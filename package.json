@@ -1,0 +1,22 @@
+{
+  "name": "bot-vito-v3",
+  "version": "3.0.0",
+  "private": true,
+  "type": "module",
+  "description": "𝙱𝙾𝚃 𝚅𝙸𝚃𝙾 𝚅𝟹 - WhatsApp bot built on Baileys",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "build": "node --check index.js && node --check الاضافات/النظام.js && node --check الاضافات/الكونسل.js && node --check الاضافات/الاعدادات.js && node --check الاضافات/القاعدة.js && node --check الاضافات/المعالج.js && node --check الاضافات/المحمل.js && node --check الاوامر/ping.js && node --check الاوامر/menu.js && node --check الاوامر/alive.js && node --check الاضافات/مضاد/مضاد-روابط.js && node --check الاضافات/مضاد/ترحيب-ووداع.js && node --check الاضافات/مضاد/مراقبة-الجروب.js && node --check الاضافات/مضاد/مضاد-بوتات.js && node --check الاضافات/مضاد/مستوى-تلقائي.js && node --check plugins/مجموعة/تفعيل-وتعطيل.js && node --check plugins/مجموعة/تشغيل-وايقاف.js && node --check plugins/مجموعة/طرد.js && node --check plugins/مجموعة/ترقية.js && node --check plugins/مجموعة/خفض.js && node --check plugins/مجموعة/كتم.js && node --check plugins/مجموعة/فك-كتم.js && node --check plugins/تنصيب/تنصيب.js && node --check database/db.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^7.0.0-rc.14",
+    "chalk": "^5.4.0",
+    "pino": "^9.6.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
