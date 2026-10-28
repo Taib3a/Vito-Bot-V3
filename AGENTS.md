@@ -63,6 +63,20 @@ Facts confirmed by testing (do not re-litigate these):
    client must reconnect. Always back off (~5s) before reconnecting or you get a
    tight reconnect loop.
 
+## Pairing UX (matches the Yuta-Okkotsu reference)
+
+`connect()` shows the code in a box (`log.pairingCode`) and starts a 75s grace
+timer (`startPairingGrace`). While the timer runs, closes are logged as
+`waiting for pairing` instead of a red error box, and the reconnect does not mint
+a second code (`pairingRequested` guards it). If the timer fires, the code is
+dropped and the next connection requests a fresh one — so a valid code is always
+on screen.
+
+A failed `requestPairingCode` is logged with `log.warn`, not `log.error`: on a
+datacenter IP the first attempt usually loses the race against the 428 drop, and
+the retry succeeds. Showing the user a red "ERROR DETECTED" box there is
+misleading.
+
 ## Environment gotcha
 
 WhatsApp terminates web-client sessions from **datacenter IPs** — the socket opens,

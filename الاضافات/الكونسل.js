@@ -78,6 +78,23 @@ export default {
     console.log(bottom);
   },
 
+  pairingCode(code) {
+    const pretty = String(code || "").match(/.{1,4}/g)?.join("-") ?? String(code || "");
+    const width = 46;
+    const center = (raw, colored) => {
+      const pad = Math.max(0, width - raw.length);
+      const left = Math.floor(pad / 2);
+      return chalk.blue("║") + " ".repeat(left) + (colored ?? raw) + " ".repeat(pad - left) + chalk.blue("║");
+    };
+    console.log();
+    console.log(chalk.blue("╔" + "═".repeat(width) + "╗"));
+    console.log(center(""));
+    console.log(center("PAIRING CODE", BB("PAIRING CODE")));
+    console.log(center(pretty, G(pretty)));
+    console.log(center(""));
+    console.log(chalk.blue("╚" + "═".repeat(width) + "╝"));
+  },
+
   info(msg) {
     const ts = new Date().toLocaleTimeString("en-GB");
     console.log(chalk.blue("╭") + BB(" INFO ") + chalk.blue("─") + " " + DIM(`[${ts}]`) + " " + W(msg));
