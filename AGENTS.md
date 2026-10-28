@@ -15,14 +15,18 @@ database/db.js                node:sqlite wrapper
   معلومات-الرسالة.js          message inspection helpers
   مضاد/                       anti-features (links, welcome, group watch, anti-bot, XP)
 الاوامر/                      all commands (auto-loaded); مجموعة/, تنصيب/
-test-connection.js            standalone connection / pairing test
+scripts/check.js              syntax-checks every source file (used by `npm run build`)
+scripts/smoke.js              crash-safety smoke test (used by `npm test`)
 ```
 
 ## Commands
 
-- `npm run build` — syntax-checks every source file (including `test-connection.js`). Run this before committing.
+- `npm run build` — walks `index.js`, `الاضافات/`, `الاوامر/` and syntax-checks every `.js`
+  file. New commands are covered automatically; **never** add filenames to `package.json`.
+- `npm test` — crash-safety smoke test: loads commands + anti-features, round-trips the
+  SQLite layer on a temp DB (`BOT_DB_PATH`), and pushes a synthetic message through the
+  handler. Fails on any crash. Run both before committing.
 - `npm start` — boots the bot (`index.js`).
-- `node test-connection.js <phone>` — standalone connection test in an isolated `test-session/`.
 
 ## Hard-won knowledge: the 428 "Connection Closed" error
 
@@ -57,8 +61,8 @@ Facts confirmed by testing (do not re-litigate these):
 WhatsApp terminates web-client sessions from **datacenter IPs** — the socket opens,
 then closes ~250–600ms later with a raw `1006` the moment handshake data is sent.
 In such an environment pairing succeeds only occasionally (a race), for both the
-pairing and QR flows. This is **not a code bug**. `test-connection.js` prints the
-egress IP so this is obvious; run the bot on a residential/real host to pair.
+pairing and QR flows. This is **not a code bug**. Run the bot on a residential/real
+host to pair; check the egress IP (`curl -s https://ipinfo.io/json`) when debugging.
 
 ## Repo conventions
 

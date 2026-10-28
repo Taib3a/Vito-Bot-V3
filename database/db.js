@@ -5,7 +5,7 @@ import { mkdirSync } from "fs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DB_DIR = join(__dirname);
-const DB_PATH = join(DB_DIR, "bot.db");
+const DB_PATH = process.env.BOT_DB_PATH || join(DB_DIR, "bot.db");
 
 mkdirSync(DB_DIR, { recursive: true });
 
