@@ -29,6 +29,10 @@ const SOCKET_OPEN_TIMEOUT_MS = 15000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Auth folders for which a pairing code was already issued successfully.
+// Prevents a reconnect from minting a second code.
+const pairingRequested = new Set();
+
 function resolveAuthFolder(isSubBot, subBotPhone) {
   if (isSubBot && subBotPhone) return join(SUB_AUTH_FOLDER, subBotPhone);
   return MAIN_AUTH_FOLDER;
@@ -176,10 +180,15 @@ export async function connect({ method, phoneNumber, isSubBot = false, subBotPho
   wireGroupEvents(sock);
   wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone });
 
-  // A pairing code has already been requested if the session is registered
-  // OR creds.me was populated by requestPairingCode. Without the creds.me
-  // check, every reconnect after a pairing request would mint a new code.
-  const alreadyPairing = !!(sock.authState?.creds?.registered || sock.authState?.creds?.me);
+  // A pairing code has already been obtained if the session is registered
+  // OR we have already successfully requested a code for this session.
+  //
+  // We track success ourselves instead of trusting creds.me: Baileys sets
+  // creds.me *before* it sends the pairing iq node, so a request that fails
+  // (e.g. the socket dropped first) would otherwise look "done" and block
+  // every retry. Keying on the auth folder also survives reconnects.
+  const sessionKey = authFolder;
+  const alreadyPairing = !!sock.authState?.creds?.registered || pairingRequested.has(sessionKey);
 
   if (method === "pairing" && phoneNumber && !alreadyPairing) {
     try {
@@ -188,9 +197,12 @@ export async function connect({ method, phoneNumber, isSubBot = false, subBotPho
       await waitForSocketOpen(sock);
       await sleep(PAIRING_DELAY_MS);
       const code = await sock.requestPairingCode(phoneNumber);
+      pairingRequested.add(sessionKey);
       log.success(`Pairing code: ${code}`);
       return { sock, pairingCode: code };
     } catch (err) {
+      // Not recorded as requested, so the next reconnect retries. On flaky
+      // networks the first attempt often loses the race against the drop.
       log.error(`Pairing request failed: ${err.message}`, "النظام.js", err.stack);
     }
   }

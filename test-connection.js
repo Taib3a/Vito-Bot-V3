@@ -55,6 +55,17 @@ function waitForSocketOpen(sock, timeoutMs) {
 async function main() {
   step(`test start — number=${PHONE_NUMBER}`);
   step(`using isolated session: ${SESSION_DIR}`);
+
+  // WhatsApp drops web-client sessions from datacenter IPs. Printing the
+  // egress IP makes that failure mode obvious instead of looking like a bug.
+  try {
+    const res = await fetch("https://ipinfo.io/json", { signal: AbortSignal.timeout(4000) });
+    const info = await res.json();
+    step(`egress IP: ${info.ip} (${info.org || "unknown"}) — datacenter IPs may be rejected by WhatsApp`);
+  } catch {
+    step("egress IP: (could not determine)");
+  }
+
   rmSync(SESSION_DIR, { recursive: true, force: true });
   mkdirSync(SESSION_DIR, { recursive: true });
 
@@ -119,13 +130,19 @@ async function main() {
     step(`waiting ${DELAY_AFTER_CREATE_MS}ms before requesting pairing code...`);
     await new Promise((r) => setTimeout(r, DELAY_AFTER_CREATE_MS));
 
-    step(`sending pairing-code request for ${PHONE_NUMBER}...`);
-    try {
-      pairingCode = await sock.requestPairingCode(PHONE_NUMBER);
-      step(`✅ PAIRING CODE RECEIVED: ${pairingCode}`);
-    } catch (err) {
-      const code = err?.output?.statusCode;
-      step(`❌ pairing request FAILED: ${err.message}${code ? ` (statusCode ${code}${code === 428 ? " = connectionClosed" : ""})` : ""}`);
+    // The server drops the socket within a few hundred ms, so the request can
+    // lose the race. Retry a couple of times to show whether the flow can
+    // succeed on this network at all.
+    for (let attempt = 1; attempt <= 3 && !pairingCode; attempt++) {
+      step(`sending pairing-code request for ${PHONE_NUMBER} (attempt ${attempt})...`);
+      try {
+        pairingCode = await sock.requestPairingCode(PHONE_NUMBER);
+        step(`✅ PAIRING CODE RECEIVED: ${pairingCode}`);
+      } catch (err) {
+        const code = err?.output?.statusCode;
+        step(`❌ attempt ${attempt} FAILED: ${err.message}${code ? ` (statusCode ${code}${code === 428 ? " = connectionClosed" : ""})` : ""}`);
+        if (attempt < 3) await new Promise((r) => setTimeout(r, 300));
+      }
     }
   }
 
