@@ -25,6 +25,8 @@ const SUB_AUTH_FOLDER = join(SESSIONS_BASE, "فرعي");
 // produces a 428 ("Connection Closed").
 const PAIRING_DELAY_MS = 0;
 const RECONNECT_DELAY_MS = 5000;
+const MAX_RECONNECT_DELAY_MS = 30000;
+const MAX_RECONNECT_ATTEMPTS = 10;
 const SOCKET_OPEN_TIMEOUT_MS = 15000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -111,7 +113,7 @@ function wireGroupEvents(sock) {
   });
 }
 
-function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone }) {
+function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone, attempt = 0 }) {
   sock.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
     if (qr && method === "qr") {
       log.connection("qr");
@@ -138,13 +140,7 @@ function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone
       const shouldReconnect = code !== DisconnectReason.loggedOut;
       log.connection("close", `code ${code}${shouldReconnect ? " — reconnecting" : " — logged out"}`);
 
-      if (shouldReconnect) {
-        // Back off before reconnecting. Reconnecting immediately (e.g. on a
-        // 428 connectionClosed) can spin in a tight loop against the server.
-        log.info(`Waiting ${RECONNECT_DELAY_MS}ms before reconnecting...`);
-        await sleep(RECONNECT_DELAY_MS);
-        connect({ method, phoneNumber, isSubBot, subBotPhone });
-      } else {
+      if (!shouldReconnect) {
         log.error("Logged out. Delete the session folder and restart.", "النظام.js");
         if (isSubBot && subBotPhone) {
           try {
@@ -153,12 +149,29 @@ function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone
             // best-effort
           }
         }
+        return;
       }
+
+      if (attempt >= MAX_RECONNECT_ATTEMPTS) {
+        log.error(
+          `Giving up after ${MAX_RECONNECT_ATTEMPTS} reconnect attempts (code ${code}).`,
+          "النظام.js"
+        );
+        return;
+      }
+
+      // Back off before reconnecting. Reconnecting immediately (e.g. on a
+      // 428 connectionClosed) can spin in a tight loop against the server, and
+      // an unbounded loop hammers it forever when the network never recovers.
+      const delay = Math.min(RECONNECT_DELAY_MS * (attempt + 1), MAX_RECONNECT_DELAY_MS);
+      log.info(`Reconnecting in ${delay}ms (attempt ${attempt + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
+      await sleep(delay);
+      connect({ method, phoneNumber, isSubBot, subBotPhone, attempt: attempt + 1 });
     }
   });
 }
 
-export async function connect({ method, phoneNumber, isSubBot = false, subBotPhone = null }) {
+export async function connect({ method, phoneNumber, isSubBot = false, subBotPhone = null, attempt = 0 }) {
   const { version, isLatest } = await fetchLatestBaileysVersion();
   log.info(`Baileys v${version.join(".")} (${isLatest ? "latest" : "current"})`);
 
@@ -172,13 +185,17 @@ export async function connect({ method, phoneNumber, isSubBot = false, subBotPho
     logger: pino({ level: "silent" }),
     browser: Browsers.macOS("Desktop"),
     markOnlineOnConnect: false,
+    connectTimeoutMs: 60000,
+    keepAliveIntervalMs: 25000,
+    retryRequestDelayMs: 3000,
+    defaultQueryTimeoutMs: 60000,
   });
 
   sock.ev.on("creds.update", saveCreds);
 
   wireMessageEvents(sock);
   wireGroupEvents(sock);
-  wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone });
+  wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone, attempt });
 
   // A pairing code has already been obtained if the session is registered
   // OR we have already successfully requested a code for this session.

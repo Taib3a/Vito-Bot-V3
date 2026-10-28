@@ -1,9 +1,14 @@
-import readline from "readline";
 import log from "./الاضافات/الكونسل.js";
-import { connect } from "./الاضافات/النظام.js";
+import { createPrompter, promptConnectionMethod, promptPhoneNumber } from "./الاضافات/الادخال.js";
 
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-const ask = (q) => new Promise((res) => rl.question(q, res));
+// node:sqlite is still flagged experimental and prints an ExperimentalWarning
+// on Node 22. The database module is imported dynamically below so this filter
+// is installed first; drop only that warning and keep any other one visible.
+process.removeAllListeners("warning");
+process.on("warning", (warning) => {
+  if (warning.name === "ExperimentalWarning") return;
+  console.warn(`${warning.name}: ${warning.message}`);
+});
 
 async function main() {
   log.name();
@@ -11,20 +16,28 @@ async function main() {
   console.log("  1. Pairing Code");
   console.log("  2. QR Code");
 
-  const choice = (await ask("\nادخل الرقم (1 او 2): ")).trim();
-  const method = choice === "1" ? "pairing" : "qr";
+  const prompter = createPrompter();
+
+  const method = await promptConnectionMethod(prompter);
+  if (method === null) {
+    prompter.close();
+    log.error("No input received. Run the bot from an interactive terminal.", "index.js");
+    process.exit(1);
+  }
 
   let phoneNumber = null;
   if (method === "pairing") {
-    phoneNumber = (await ask("ادخل رقم الهاتف (مع رمز الدولة، بدون +): ")).trim();
-    if (!phoneNumber) {
+    phoneNumber = await promptPhoneNumber(prompter);
+    if (phoneNumber === null) {
+      prompter.close();
       log.error("Phone number is required for pairing code.", "index.js");
-      rl.close();
       process.exit(1);
     }
   }
 
-  rl.close();
+  prompter.close();
+
+  const { connect } = await import("./الاضافات/النظام.js");
   await connect({ method, phoneNumber });
 }
 
