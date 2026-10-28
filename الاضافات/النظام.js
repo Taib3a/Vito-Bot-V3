@@ -24,6 +24,10 @@ const SUB_AUTH_FOLDER = join(SESSIONS_BASE, "فرعي");
 // soon as the socket opens — any artificial delay races that timeout and
 // produces a 428 ("Connection Closed").
 const PAIRING_DELAY_MS = 0;
+
+// How long to wait for the user to type the code into WhatsApp before ending
+// the socket and requesting a fresh one. WhatsApp itself expires the code.
+const PAIRING_TIMEOUT_MS = 75000;
 const RECONNECT_DELAY_MS = 5000;
 const MAX_RECONNECT_DELAY_MS = 30000;
 const MAX_RECONNECT_ATTEMPTS = 10;
@@ -32,8 +36,46 @@ const SOCKET_OPEN_TIMEOUT_MS = 15000;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Auth folders for which a pairing code was already issued successfully.
-// Prevents a reconnect from minting a second code.
+// Prevents a reconnect from minting a second code while the user is typing it.
 const pairingRequested = new Set();
+
+// Live socket per auth folder, so the grace timer can end the *current* socket
+// even if a reconnect replaced the one that issued the code.
+const activeSockets = new Map();
+
+// One grace timer per auth folder: started when a code is issued and cleared
+// once the socket opens. If it fires, the user did not finish linking in time,
+// so we drop the socket and let the reconnect request a fresh code.
+const pairingGraceTimers = new Map();
+
+function clearPairingGrace(sessionKey) {
+  const timer = pairingGraceTimers.get(sessionKey);
+  if (timer) {
+    clearTimeout(timer);
+    pairingGraceTimers.delete(sessionKey);
+  }
+}
+
+/**
+ * Start (or restart) the countdown that lets the user type the code into
+ * WhatsApp. On expiry the code is abandoned and a fresh one is requested on the
+ * next connection, which is how the user always has a valid code on screen.
+ */
+function startPairingGrace(sessionKey) {
+  clearPairingGrace(sessionKey);
+  const timer = setTimeout(() => {
+    pairingGraceTimers.delete(sessionKey);
+    pairingRequested.delete(sessionKey);
+    log.warn("Pairing code expired — requesting a new one...");
+    try {
+      activeSockets.get(sessionKey)?.end(new Error("pairing timeout"));
+    } catch {
+      // socket already gone; the close handler will reconnect
+    }
+  }, PAIRING_TIMEOUT_MS);
+  timer.unref?.();
+  pairingGraceTimers.set(sessionKey, timer);
+}
 
 function resolveAuthFolder(isSubBot, subBotPhone) {
   if (isSubBot && subBotPhone) return join(SUB_AUTH_FOLDER, subBotPhone);
@@ -113,7 +155,7 @@ function wireGroupEvents(sock) {
   });
 }
 
-function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone, attempt = 0 }) {
+function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone, attempt = 0, sessionKey }) {
   sock.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
     if (qr && method === "qr") {
       log.connection("qr");
@@ -125,6 +167,10 @@ function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone
     }
 
     if (connection === "open") {
+      clearPairingGrace(sessionKey);
+      // Registration is what ends the pairing phase. Until then keep the flag
+      // so a close is still reported as "waiting for pairing".
+      if (sock.authState?.creds?.registered) pairingRequested.delete(sessionKey);
       log.connection("open", "𝙱𝙾𝚃 𝚅𝙸𝚃𝙾 𝚅𝟹 is ready!");
       if (isSubBot && subBotPhone) {
         try {
@@ -138,7 +184,16 @@ function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone
     if (connection === "close") {
       const code = lastDisconnect?.error?.output?.statusCode;
       const shouldReconnect = code !== DisconnectReason.loggedOut;
-      log.connection("close", `code ${code}${shouldReconnect ? " — reconnecting" : " — logged out"}`);
+      // While a pairing code is outstanding, a close is expected: the server
+      // drops the socket after the handshake and again once the phone links.
+      // Report it quietly so the user sees the code, not a red error box.
+      const pairing = method === "pairing" && pairingRequested.has(sessionKey);
+      log.connection(
+        "close",
+        pairing
+          ? `code ${code} — waiting for pairing`
+          : `code ${code}${shouldReconnect ? " — reconnecting" : " — logged out"}`
+      );
 
       if (!shouldReconnect) {
         log.error("Logged out. Delete the session folder and restart.", "النظام.js");
@@ -192,10 +247,11 @@ export async function connect({ method, phoneNumber, isSubBot = false, subBotPho
   });
 
   sock.ev.on("creds.update", saveCreds);
+  activeSockets.set(authFolder, sock);
 
   wireMessageEvents(sock);
   wireGroupEvents(sock);
-  wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone, attempt });
+  wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone, attempt, sessionKey: authFolder });
 
   // A pairing code has already been obtained if the session is registered
   // OR we have already successfully requested a code for this session.
@@ -215,12 +271,15 @@ export async function connect({ method, phoneNumber, isSubBot = false, subBotPho
       await sleep(PAIRING_DELAY_MS);
       const code = await sock.requestPairingCode(phoneNumber);
       pairingRequested.add(sessionKey);
-      log.success(`Pairing code: ${code}`);
+      log.pairingCode(code);
+      startPairingGrace(sessionKey);
       return { sock, pairingCode: code };
     } catch (err) {
       // Not recorded as requested, so the next reconnect retries. On flaky
-      // networks the first attempt often loses the race against the drop.
-      log.error(`Pairing request failed: ${err.message}`, "النظام.js", err.stack);
+      // networks the first attempt often loses the race against the drop, so
+      // log it quietly and let the reconnect try again instead of showing the
+      // user a red error box.
+      log.warn(`Pairing attempt failed (${err.message}) — retrying...`);
     }
   }
 
