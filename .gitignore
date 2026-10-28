@@ -2,6 +2,8 @@ node_modules
 .env
 
 # جلسات واتساب (بيانات حساسة — لا ترفعها أبداً)
+sessions/
+sessions/**
 database/sessions-taib/
 database/sessions-taib/**/
 database/sessions/

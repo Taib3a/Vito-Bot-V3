@@ -16,9 +16,11 @@ import { updateSubBotStatus } from "../database/db.js";
 import { getGroupName, getUserName, getMessageType, getMessageContent } from "./معلومات-الرسالة.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SESSIONS_BASE = join(__dirname, "..", "database", "sessions-taib");
-const MAIN_AUTH_FOLDER = join(SESSIONS_BASE, "رئيسي");
-const SUB_AUTH_FOLDER = join(SESSIONS_BASE, "فرعي");
+// Sessions live in a plain `sessions/` folder at the project root, mirroring the
+// Yuta reference, so `sessions/main/auth.db` is easy to find and inspect.
+const SESSIONS_BASE = join(__dirname, "..", "sessions");
+const MAIN_AUTH_FOLDER = join(SESSIONS_BASE, "main");
+const SUB_AUTH_FOLDER = join(SESSIONS_BASE, "subbots");
 
 // WhatsApp needs a moment after the handshake before it accepts the pairing iq
 // node. Requesting the code too early is what produces the flood of 428
@@ -26,9 +28,9 @@ const SUB_AUTH_FOLDER = join(SESSIONS_BASE, "فرعي");
 // and pairs reliably, so match it.
 const PAIRING_DELAY_MS = 3000;
 
-// If no code is entered within this window, end the socket and request a fresh
-// one. This is the grace period shown to the user ("المهلة").
-const PAIRING_TIMEOUT_MS = 75000;
+// How long the user has to enter the code before it is discarded and a fresh
+// one is requested. Matches the Yuta reference (60s).
+const PAIRING_TIMEOUT_MS = 60000;
 const RECONNECT_DELAY_MS = 5000;
 const MAX_RECONNECT_DELAY_MS = 30000;
 const MAX_RECONNECT_ATTEMPTS = 10;
@@ -38,6 +40,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // Auth folders for which a pairing code was already issued successfully.
 // Prevents a reconnect from minting a second code while the user is typing it.
 const pairingRequested = new Set();
+
+// Auth folders that are mid-pairing (a code was requested and the phone has not
+// linked yet). Distinct from pairingRequested: the grace timer clears that one
+// so a fresh code can be minted, while this stays set so a 401 is treated as a
+// rejected pairing rather than a real logout.
+const pairingPhase = new Set();
 
 // Live socket per auth folder, so the grace timer can end the *current* socket
 // even if a reconnect replaced the one that issued the code.
@@ -67,6 +75,10 @@ function startPairingGrace(sessionKey) {
     pairingGraceTimers.delete(sessionKey);
     pairingRequested.delete(sessionKey);
     log.warn("Pairing code expired — requesting a new one...");
+    // The code expired with creds.me set but the session still unregistered.
+    // Wipe it so the next connection is clean and does not get a 401 for a
+    // half-finished login.
+    resetSession(sessionKey);
     try {
       activeSockets.get(sessionKey)?.end(new Error("pairing timeout"));
     } catch {
@@ -146,7 +158,10 @@ function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone
       clearPairingGrace(sessionKey);
       // Registration is what ends the pairing phase. Until then keep the flag
       // so a close is still reported as "waiting for pairing".
-      if (sock.authState?.creds?.registered) pairingRequested.delete(sessionKey);
+      if (sock.authState?.creds?.registered) {
+        pairingRequested.delete(sessionKey);
+        pairingPhase.delete(sessionKey);
+      }
       log.connection("open", "𝙱𝙾𝚃 𝚅𝙸𝚃𝙾 𝚅𝟹 is ready!");
       if (isSubBot && subBotPhone) {
         try {
@@ -160,7 +175,7 @@ function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone
     if (connection === "close") {
       const code = lastDisconnect?.error?.output?.statusCode;
       const shouldReconnect = code !== DisconnectReason.loggedOut;
-      const pairing = method === "pairing" && pairingRequested.has(sessionKey);
+      const pairing = method === "pairing" && pairingPhase.has(sessionKey);
       log.connection(
         "close",
         pairing
@@ -176,6 +191,7 @@ function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone
         if (pairing) {
           resetSession(authFolder);
           pairingRequested.delete(sessionKey);
+          pairingPhase.delete(sessionKey);
           log.warn("Pairing rejected — starting a fresh session and requesting a new code...");
           await sleep(RECONNECT_DELAY_MS);
           connect({ method, phoneNumber, isSubBot, subBotPhone, attempt: 0 });
@@ -273,6 +289,7 @@ export async function connect({ method, phoneNumber, isSubBot = false, subBotPho
       await sleep(PAIRING_DELAY_MS);
       const code = await sock.requestPairingCode(phoneNumber);
       pairingRequested.add(sessionKey);
+      pairingPhase.add(sessionKey);
       log.pairingCode(code);
       startPairingGrace(sessionKey);
       return { sock, pairingCode: code };

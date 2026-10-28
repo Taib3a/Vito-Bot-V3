@@ -6,7 +6,7 @@ import { registerSubBot, getSubBot, listSubBots } from "../../database/db.js";
 import { connect } from "../../الاضافات/النظام.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SUB_SESSION_BASE = join(__dirname, "..", "..", "database", "sessions-taib", "فرعي");
+const SUB_SESSION_BASE = join(__dirname, "..", "..", "sessions", "subbots");
 
 export default {
   name: "تنصيب",

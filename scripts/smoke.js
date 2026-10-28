@@ -75,6 +75,15 @@ try {
   );
   check("session is one file", existsSync(join(sessionDir, "auth.db")), "auth.db written");
 
+  // the connection module must point at a visible sessions/ folder at the root
+  const { readFileSync } = await import("fs");
+  const systemSrc = readFileSync(new URL("../الاضافات/النظام.js", import.meta.url), "utf8");
+  check(
+    "sessions live at ./sessions",
+    /join\(__dirname, "\.\.", "sessions"\)/.test(systemSrc),
+    "sessions/main/auth.db"
+  );
+
   // drive a synthetic command message through the real handler
   const sent = [];
   const fakeSock = {
