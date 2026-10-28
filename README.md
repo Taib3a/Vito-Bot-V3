@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=600&size=30&pause=1000&color=F7DF1E&center=true&vCenter=true&width=600&lines=𝙱𝙾𝚃+𝚅𝙸𝚃𝙾+𝚅𝟹;الوحش+الأسطوري+للواتساب;Developed+by+Taib" alt="Typing SVG" />
+<img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=700&size=60&pause=1000&color=00BFFF&center=true&vCenter=true&width=800&lines=𝙱𝙾𝚃+𝚅𝙸𝚃𝙾+𝚅𝟹" alt="Typing SVG" />
 
 <br>
 
@@ -30,21 +30,28 @@
 
 </div>
 
-بعد الدخول إلى لوحة التحكم في **Server Veto** (Pterodactyl)، افتح سطر الأوامر ونفّذ الخطوات التالية بالترتيب:
+بعد الدخول إلى لوحة التحكم في **Server Veto** (Pterodactyl)، اتبع الخطوات التالية:
+
+**١. تحميل البوت** — افتح سطر الأوامر في لوحة التحكم واكتب أمر `git clone` لتحميل المشروع، ثم انتقل إلى مجلد المشروع.
 
 ```bash
-# تحميل البوت
 git clone https://github.com/taib/bot-vito-v3.git
 cd bot-vito-v3
+```
 
-# تثبيت المكتبات
+**٢. تثبيت المكتبات** — اكتب `npm install` لتثبيت جميع المكتبات اللازمة. انتظر حتى انتهاء التثبيت بنجاح.
+
+```bash
 npm install
+```
 
-# تشغيل البوت
+**٣. تشغيل البوت** — اكتب `npm start` لتشغيل البوت. سيبدأ البوت بالعمل فوراً.
+
+```bash
 npm start
 ```
 
-عند التشغيل، اختر طريقة الربط:
+**٤. ربط البوت بحساب واتساب** — عند التشغيل، اختر طريقة الربط:
 
 | الخيار | الطريقة | الشرح |
 |:---:|:---|:---|
