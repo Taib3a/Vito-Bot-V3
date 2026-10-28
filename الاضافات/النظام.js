@@ -1,6 +1,7 @@
 import makeWASocket, {
   DisconnectReason,
   fetchLatestBaileysVersion,
+  makeCacheableSignalKeyStore,
   Browsers,
 } from "@whiskeysockets/baileys";
 import qrcode from "qrcode-terminal";
@@ -8,7 +9,7 @@ import pino from "pino";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import log from "./الكونسل.js";
-import { useSQLiteAuthState } from "./الجلسة.js";
+import { useSQLiteAuthState, clearSocketKeys, resetSession } from "./الجلسة.js";
 import { handleMessage, runAntiFeaturesOnEvent } from "./المعالج.js";
 import { isGroupActive, registerGroup } from "./القاعدة.js";
 import { updateSubBotStatus } from "../database/db.js";
@@ -19,19 +20,18 @@ const SESSIONS_BASE = join(__dirname, "..", "database", "sessions-taib");
 const MAIN_AUTH_FOLDER = join(SESSIONS_BASE, "رئيسي");
 const SUB_AUTH_FOLDER = join(SESSIONS_BASE, "فرعي");
 
-// WhatsApp closes an unregistered socket a few hundred ms after the handshake
-// if no pairing request arrives. The pairing iq node must therefore be sent as
-// soon as the socket opens — any artificial delay races that timeout and
-// produces a 428 ("Connection Closed").
-const PAIRING_DELAY_MS = 0;
+// WhatsApp needs a moment after the handshake before it accepts the pairing iq
+// node. Requesting the code too early is what produces the flood of 428
+// ("Connection Closed") closes. The Yuta-Okkotsu reference waits 3000ms here
+// and pairs reliably, so match it.
+const PAIRING_DELAY_MS = 3000;
 
-// How long to wait for the user to type the code into WhatsApp before ending
-// the socket and requesting a fresh one. WhatsApp itself expires the code.
+// If no code is entered within this window, end the socket and request a fresh
+// one. This is the grace period shown to the user ("المهلة").
 const PAIRING_TIMEOUT_MS = 75000;
 const RECONNECT_DELAY_MS = 5000;
 const MAX_RECONNECT_DELAY_MS = 30000;
 const MAX_RECONNECT_ATTEMPTS = 10;
-const SOCKET_OPEN_TIMEOUT_MS = 15000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -80,30 +80,6 @@ function startPairingGrace(sessionKey) {
 function resolveAuthFolder(isSubBot, subBotPhone) {
   if (isSubBot && subBotPhone) return join(SUB_AUTH_FOLDER, subBotPhone);
   return MAIN_AUTH_FOLDER;
-}
-
-/**
- * Resolve once the underlying websocket is open.
- *
- * requestPairingCode() sends an iq node immediately and throws a 428
- * ("Connection Closed") if the socket is not open yet, so we must not
- * request a code until this resolves.
- */
-function waitForSocketOpen(sock, timeoutMs = SOCKET_OPEN_TIMEOUT_MS) {
-  return new Promise((resolve, reject) => {
-    if (sock.ws?.isOpen) return resolve(true);
-
-    const deadline = Date.now() + timeoutMs;
-    const timer = setInterval(() => {
-      if (sock.ws?.isOpen) {
-        clearInterval(timer);
-        resolve(true);
-      } else if (Date.now() > deadline) {
-        clearInterval(timer);
-        reject(new Error(`socket did not open within ${timeoutMs}ms`));
-      }
-    }, 100);
-  });
 }
 
 function logIncomingMessage(msg) {
@@ -155,7 +131,7 @@ function wireGroupEvents(sock) {
   });
 }
 
-function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone, attempt = 0, sessionKey }) {
+function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone, attempt = 0, sessionKey, authFolder }) {
   sock.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
     if (qr && method === "qr") {
       log.connection("qr");
@@ -184,9 +160,6 @@ function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone
     if (connection === "close") {
       const code = lastDisconnect?.error?.output?.statusCode;
       const shouldReconnect = code !== DisconnectReason.loggedOut;
-      // While a pairing code is outstanding, a close is expected: the server
-      // drops the socket after the handshake and again once the phone links.
-      // Report it quietly so the user sees the code, not a red error box.
       const pairing = method === "pairing" && pairingRequested.has(sessionKey);
       log.connection(
         "close",
@@ -196,6 +169,19 @@ function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone
       );
 
       if (!shouldReconnect) {
+        // A 401 while a pairing code is outstanding means the server rejected
+        // the half-registered session, not that the user unlinked the phone.
+        // Wipe it so the next attempt can request a fresh code; a genuine
+        // logout (already registered) still stops and asks for a restart.
+        if (pairing) {
+          resetSession(authFolder);
+          pairingRequested.delete(sessionKey);
+          log.warn("Pairing rejected — starting a fresh session and requesting a new code...");
+          await sleep(RECONNECT_DELAY_MS);
+          connect({ method, phoneNumber, isSubBot, subBotPhone, attempt: 0 });
+          return;
+        }
+
         log.error("Logged out. Delete the session folder and restart.", "النظام.js");
         if (isSubBot && subBotPhone) {
           try {
@@ -215,9 +201,13 @@ function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone
         return;
       }
 
-      // Back off before reconnecting. Reconnecting immediately (e.g. on a
-      // 428 connectionClosed) can spin in a tight loop against the server, and
-      // an unbounded loop hammers it forever when the network never recovers.
+      // Only a corrupt session needs its keys dropped. Clearing them on every
+      // close would discard a pairing that is still in progress.
+      if (code === DisconnectReason.badSession) {
+        clearSocketKeys(authFolder);
+      }
+
+      // Back off before reconnecting so we never hammer the server.
       const delay = Math.min(RECONNECT_DELAY_MS * (attempt + 1), MAX_RECONNECT_DELAY_MS);
       log.info(`Reconnecting in ${delay}ms (attempt ${attempt + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
       await sleep(delay);
@@ -233,12 +223,19 @@ export async function connect({ method, phoneNumber, isSubBot = false, subBotPho
   const authFolder = resolveAuthFolder(isSubBot, subBotPhone);
   const { state, saveCreds } = await useSQLiteAuthState(authFolder);
 
+  const useCode = method === "pairing" && !!phoneNumber;
   const sock = makeWASocket({
     version,
-    auth: state,
-    printQRInTerminal: false,
+    auth: {
+      creds: state.creds,
+      keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "silent" })),
+    },
+    printQRInTerminal: !useCode,
     logger: pino({ level: "silent" }),
-    browser: Browsers.macOS("Desktop"),
+    // WhatsApp expects a desktop browser string while pairing; the reference
+    // uses Ubuntu/Chrome and pairs reliably.
+    browser: useCode ? Browsers.ubuntu("Chrome") : Browsers.macOS("Desktop"),
+    syncFullHistory: false,
     markOnlineOnConnect: false,
     connectTimeoutMs: 60000,
     keepAliveIntervalMs: 25000,
@@ -251,23 +248,28 @@ export async function connect({ method, phoneNumber, isSubBot = false, subBotPho
 
   wireMessageEvents(sock);
   wireGroupEvents(sock);
-  wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone, attempt, sessionKey: authFolder });
+  wireConnectionEvents(sock, {
+    method,
+    phoneNumber,
+    isSubBot,
+    subBotPhone,
+    attempt,
+    sessionKey: authFolder,
+    authFolder,
+  });
 
-  // A pairing code has already been obtained if the session is registered
-  // OR we have already successfully requested a code for this session.
-  //
-  // We track success ourselves instead of trusting creds.me: Baileys sets
-  // creds.me *before* it sends the pairing iq node, so a request that fails
-  // (e.g. the socket dropped first) would otherwise look "done" and block
-  // every retry. Keying on the auth folder also survives reconnects.
+  // A pairing code has already been obtained if the session is registered OR we
+  // already requested a code and the user is still typing it. Trusting our own
+  // flag (not creds.me) avoids minting a second code mid-pairing while still
+  // retrying after a genuine failure.
   const sessionKey = authFolder;
   const alreadyPairing = !!sock.authState?.creds?.registered || pairingRequested.has(sessionKey);
 
-  if (method === "pairing" && phoneNumber && !alreadyPairing) {
+  if (useCode && !alreadyPairing) {
     try {
-      // Wait for the websocket handshake, then send the pairing iq node
-      // immediately — the server drops an idle unregistered socket.
-      await waitForSocketOpen(sock);
+      // WhatsApp needs a moment after the handshake before it accepts the
+      // pairing iq node. Sending too early returns a code the phone rejects and
+      // drops the socket repeatedly. The reference waits 3000ms here.
       await sleep(PAIRING_DELAY_MS);
       const code = await sock.requestPairingCode(phoneNumber);
       pairingRequested.add(sessionKey);
@@ -275,10 +277,6 @@ export async function connect({ method, phoneNumber, isSubBot = false, subBotPho
       startPairingGrace(sessionKey);
       return { sock, pairingCode: code };
     } catch (err) {
-      // Not recorded as requested, so the next reconnect retries. On flaky
-      // networks the first attempt often loses the race against the drop, so
-      // log it quietly and let the reconnect try again instead of showing the
-      // user a red error box.
       log.warn(`Pairing attempt failed (${err.message}) — retrying...`);
     }
   }
