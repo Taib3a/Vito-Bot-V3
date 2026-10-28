@@ -1,26 +1,5 @@
 import log from "../../الاضافات/الكونسل.js";
-
-async function getTargetJid(sock, msg, args) {
-  if (msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.length) {
-    return msg.message.extendedTextMessage.contextInfo.mentionedJid[0];
-  }
-  const quoted = msg.message?.extendedTextMessage?.contextInfo?.participant;
-  if (quoted) return quoted;
-  const num = args[0]?.replace(/\D/g, "");
-  if (num && num.length >= 8) return `${num}@s.whatsapp.net`;
-  return null;
-}
-
-async function checkAdmins(sock, groupJid, senderJid, botJid) {
-  const metadata = await sock.groupMetadata(groupJid);
-  const sender = metadata.participants.find((p) => p.id === senderJid);
-  const bot = metadata.participants.find((p) => p.id === botJid);
-  return {
-    senderIsAdmin: sender?.admin === "admin" || sender?.admin === "superadmin",
-    botIsAdmin: bot?.admin === "admin" || bot?.admin === "superadmin",
-    metadata,
-  };
-}
+import { getTargetJid, checkAdmins } from "../../الاضافات/ادوات-المجموعة.js";
 
 export default {
   name: "خفض",
@@ -32,16 +11,14 @@ export default {
     }
     const groupJid = msg.key.remoteJid;
 
-    const target = await getTargetJid(sock, msg, args);
+    const target = await getTargetJid(msg, args);
     if (!target) {
       await sock.sendMessage(groupJid, {
         text: "❌ استخدم: *.خفض @الشخص* أو رد على رسالة الشخص، أو *.خفض [رقم]*",
       });
       return;
     }
-
-    const botJid = sock.user?.id?.split(":")[0] + "@s.whatsapp.net";
-    const { senderIsAdmin, botIsAdmin, metadata } = await checkAdmins(sock, groupJid, senderJid, botJid);
+    const { senderIsAdmin, botIsAdmin, metadata } = await checkAdmins(sock, groupJid, senderJid);
 
     if (!senderIsAdmin) {
       await sock.sendMessage(groupJid, { text: "❌ هذا الأمر للمشرفين فقط." });

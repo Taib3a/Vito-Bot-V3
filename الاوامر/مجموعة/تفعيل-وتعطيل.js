@@ -1,9 +1,10 @@
-import { isGroupActive, setGroupActive, registerGroup } from "../../الاضافات/القاعدة.js";
+import { setGroupActive, registerGroup } from "../../الاضافات/القاعدة.js";
 import { botName } from "../../الاضافات/الاعدادات.js";
+import { checkAdmins } from "../../الاضافات/ادوات-المجموعة.js";
 
 export default {
   name: "تفعيل",
-  description: "تفعيل البوت في هذه المجموعة",
+  description: "تفعيل البوت في هذه المجموعة (للمشرفين فقط)",
   async execute({ sock, msg, senderJid, isGroup }) {
     if (!isGroup) {
       await sock.sendMessage(msg.key.remoteJid, { text: "❌ هذا الأمر يعمل في المجموعات فقط." });
@@ -11,6 +12,11 @@ export default {
     }
     const groupJid = msg.key.remoteJid;
     await registerGroup(groupJid);
+
+    if (!(await checkAdmins(sock, groupJid, senderJid)).senderIsAdmin) {
+      await sock.sendMessage(groupJid, { text: "❌ هذا الأمر للمشرفين فقط." });
+      return;
+    }
 
     const sender = senderJid.split("@")[0];
     await setGroupActive(groupJid, true);
@@ -23,7 +29,7 @@ export default {
 
 export const deactivate = {
   name: "تعطيل",
-  description: "إيقاف البوت في هذه المجموعة",
+  description: "إيقاف البوت في هذه المجموعة (للمشرفين فقط)",
   async execute({ sock, msg, senderJid, isGroup }) {
     if (!isGroup) {
       await sock.sendMessage(msg.key.remoteJid, { text: "❌ هذا الأمر يعمل في المجموعات فقط." });
@@ -31,6 +37,11 @@ export const deactivate = {
     }
     const groupJid = msg.key.remoteJid;
     await registerGroup(groupJid);
+
+    if (!(await checkAdmins(sock, groupJid, senderJid)).senderIsAdmin) {
+      await sock.sendMessage(groupJid, { text: "❌ هذا الأمر للمشرفين فقط." });
+      return;
+    }
 
     const sender = senderJid.split("@")[0];
     await setGroupActive(groupJid, false);

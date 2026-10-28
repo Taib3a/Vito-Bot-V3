@@ -7,7 +7,8 @@ import {
   isGroupMuted,
   tryClaimMessage,
 } from "./القاعدة.js";
-import { loadCommands, loadAntiFeatures } from "./المحمل.js";
+import { loadCommands } from "./المحمل.js";
+import { loadAntiFeatures } from "./محمل-المضاد.js";
 import log from "./الكونسل.js";
 
 let commands = null;
@@ -16,7 +17,6 @@ let antiFeatures = null;
 async function getCommands() {
   if (!commands) {
     commands = await loadCommands();
-    log.info(`Loaded ${Object.keys(commands).length} command(s).`);
   }
   return commands;
 }
@@ -24,7 +24,6 @@ async function getCommands() {
 async function getAntiFeatures() {
   if (!antiFeatures) {
     antiFeatures = await loadAntiFeatures();
-    log.info(`Loaded ${antiFeatures.length} anti-feature(s).`);
   }
   return antiFeatures;
 }
