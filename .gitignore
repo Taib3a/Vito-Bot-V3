@@ -4,6 +4,10 @@ node_modules
 # جلسات واتساب (بيانات حساسة — لا ترفعها أبداً)
 database/sessions-taib/
 database/sessions-taib/**/
+database/sessions/
+database/sessions/**
+test-session/
+test-session/**
 
 # قاعدة البيانات المحلية وملفات WAL
 database/bot.db

@@ -71,6 +71,52 @@ In such an environment pairing succeeds only occasionally (a race), for both the
 pairing and QR flows. This is **not a code bug**. Run the bot on a residential/real
 host to pair; check the egress IP (`curl -s https://ipinfo.io/json`) when debugging.
 
+## Console input (`الاضافات/الادخال.js`)
+
+`index.js` asks two questions (method, then phone number) through
+`createPrompter()`, never a raw `readline.question()`. A single shared
+interface with `question()` drops or mis-attributes the second answer when
+stdin delivers more than one line at once (piped input, hosting-panel
+console), which made the phone prompt resolve instantly with a stale/empty
+line. The prompter queues incoming lines and reuses one interface instead.
+
+- Never add a second `readline` interface for a follow-up question; ask
+  through the same prompter.
+- EOF resolves a pending question with `null`; callers treat that as "no
+  input" and exit instead of hanging.
+- `crlfDelay` cannot fix a CR-then-LF split (common on panel consoles). The
+  prompter instead validates answers and re-prompts, so a stray empty line is
+  harmless.
+
+## Hiding the `node:sqlite` ExperimentalWarning
+
+`node:sqlite` emits an `ExperimentalWarning` on Node 22. `index.js` installs a
+`process.on("warning")` filter that drops only `ExperimentalWarning` and
+re-prints anything else. This only works because `index.js` reaches the
+database **dynamically** (`await import("./الاضافات/النظام.js")`) after the
+filter is registered. `process.removeAllListeners("warning")` is called first
+so the default printer is gone, then the filter is added.
+
+- Do NOT convert that dynamic import back to a static `import` — the static
+  import would load the DB module (and print the warning) before the filter
+  runs, reintroducing the message.
+- `scripts/smoke.js` imports `database/db.js` statically on purpose; that is
+  fine because it does not assert on warning output.
+
+## Session storage (`الاضافات/الجلسة.js`)
+
+Auth state uses `useSQLiteAuthState()`, not Baileys' `useMultiFileAuthState`.
+Everything (creds + all keys) lives in one `auth.db` per session folder instead
+of hundreds of `creds.json` / `pre-key-*.json` / `session-*.json` files.
+
+- An existing multi-file session is imported on first run; the JSON files are
+  moved to `backup-json/` (never deleted) so a pairing is not lost.
+- Import is skipped once `creds` exists in the DB, so it runs exactly once.
+- A corrupt `auth.db` is renamed aside (`auth.db.corrupt-<ts>`) and a fresh
+  session starts, rather than bricking every boot.
+- `BufferJSON.reviver` returns real `Buffer`s, so tests must compare
+  `[...buf]`, not `buf.data`.
+
 ## Repo conventions
 
 - Code comments in the source are Arabic; commit messages and `AGENTS.md` are English.

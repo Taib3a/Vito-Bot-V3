@@ -8,7 +8,7 @@
  * Guards against unhandled rejections and uncaught exceptions too, which is
  * what a Segmentation Fault-free bot must never emit.
  */
-import { mkdtempSync, rmSync } from "fs";
+import { mkdtempSync, rmSync, existsSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 
@@ -57,6 +57,23 @@ try {
   await db.registerSubBot("967700000000", "/tmp/x", "ABCD1234");
   const sub = await db.getSubBot("967700000000");
   check("sub-bot round-trip", sub?.phone === "967700000000", `status=${sub?.status}`);
+
+  // single-file SQLite auth state (replaces useMultiFileAuthState)
+  const { useSQLiteAuthState } = await import("../الاضافات/الجلسة.js");
+  const sessionDir = join(tmp, "session");
+  const { state, saveCreds } = await useSQLiteAuthState(sessionDir);
+  await state.keys.set({ "pre-key": { "1": { private: { type: "Buffer", data: [1, 2, 3] } } } });
+  await saveCreds();
+  const restored = await state.keys.get("pre-key", ["1"]);
+  const restoredBytes = Buffer.isBuffer(restored["1"]?.private)
+    ? [...restored["1"].private]
+    : null;
+  check(
+    "session key round-trip",
+    JSON.stringify(restoredBytes) === "[1,2,3]",
+    `private=${JSON.stringify(restoredBytes)}`
+  );
+  check("session is one file", existsSync(join(sessionDir, "auth.db")), "auth.db written");
 
   // drive a synthetic command message through the real handler
   const sent = [];
