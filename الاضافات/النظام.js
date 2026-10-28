@@ -8,90 +8,47 @@ import qrcode from "qrcode-terminal";
 import pino from "pino";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { botName } from "./الاعدادات.js";
 import log from "./الكونسل.js";
 import { handleMessage, runAntiFeaturesOnEvent } from "./المعالج.js";
 import { isGroupActive, registerGroup } from "./القاعدة.js";
 import { updateSubBotStatus } from "../database/db.js";
+import { getGroupName, getUserName, getMessageType, getMessageContent } from "./معلومات-الرسالة.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const AUTH_FOLDER = join(__dirname, "..", "database", "sessions-taib", "رئيسي");
+const SESSIONS_BASE = join(__dirname, "..", "database", "sessions-taib");
+const MAIN_AUTH_FOLDER = join(SESSIONS_BASE, "رئيسي");
+const SUB_AUTH_FOLDER = join(SESSIONS_BASE, "فرعي");
 
-function getGroupName(msg) {
-  if (!msg?.key?.remoteJid?.endsWith("@g.us")) return "Private";
-  return msg.key.remoteJid.split("@")[0];
+function resolveAuthFolder(isSubBot, subBotPhone) {
+  if (isSubBot && subBotPhone) return join(SUB_AUTH_FOLDER, subBotPhone);
+  return MAIN_AUTH_FOLDER;
 }
 
-function getUserName(msg) {
-  return msg?.pushName || msg?.key?.participant?.split("@")[0] || "Unknown";
-}
-
-function getMessageType(msg) {
-  if (!msg?.message) return "unknown";
-  const types = Object.keys(msg.message);
-  if (types.includes("conversation")) return "text";
-  if (types.includes("extendedTextMessage")) return "text";
-  if (types.includes("imageMessage")) return "image";
-  if (types.includes("videoMessage")) return "video";
-  if (types.includes("audioMessage")) return "audio";
-  if (types.includes("stickerMessage")) return "sticker";
-  if (types.includes("documentMessage")) return "document";
-  if (types.includes("contactMessage")) return "contact";
-  return types[0] || "unknown";
-}
-
-function getMessageContent(msg) {
-  return (
-    msg?.message?.conversation ||
-    msg?.message?.extendedTextMessage?.text ||
-    msg?.message?.imageMessage?.caption ||
-    msg?.message?.videoMessage?.caption ||
-    ""
-  );
-}
-
-export async function connect({ method, phoneNumber, isSubBot = false, subBotPhone = null }) {
-  const { version, isLatest } = await fetchLatestBaileysVersion();
-  log.info(`Baileys v${version} (${isLatest ? "latest" : "current"})`);
-
-  let authFolder = AUTH_FOLDER;
-  if (isSubBot && subBotPhone) {
-    authFolder = join(__dirname, "..", "database", "sessions-taib", "فرعي", subBotPhone);
+function logIncomingMessage(msg) {
+  try {
+    log.message({
+      time: new Date().toLocaleTimeString("en-GB"),
+      groupName: getGroupName(msg),
+      userName: getUserName(msg),
+      messageType: getMessageType(msg),
+      content: getMessageContent(msg) || `[${getMessageType(msg)}]`,
+    });
+  } catch {
+    // logging should never crash the bot
   }
+}
 
-  const { state, saveCreds } = await useMultiFileAuthState(authFolder);
-
-  const sock = makeWASocket({
-    version,
-    auth: state,
-    printQRInTerminal: false,
-    logger: pino({ level: "silent" }),
-    browser: Browsers.macOS("Desktop"),
-    markOnlineOnConnect: false,
-  });
-
-  sock.ev.on("creds.update", saveCreds);
-
+function wireMessageEvents(sock) {
   sock.ev.on("messages.upsert", async ({ messages }) => {
     for (const msg of messages) {
       if (!msg.message || msg.key.fromMe) continue;
-
-      try {
-        log.message({
-          time: new Date().toLocaleTimeString("en-GB"),
-          groupName: getGroupName(msg),
-          userName: getUserName(msg),
-          messageType: getMessageType(msg),
-          content: getMessageContent(msg) || `[${getMessageType(msg)}]`,
-        });
-      } catch {
-        // logging should never crash the bot
-      }
-
+      logIncomingMessage(msg);
       await handleMessage(sock, msg);
     }
   });
+}
 
+function wireGroupEvents(sock) {
   sock.ev.on("groups.update", async (updates) => {
     for (const update of updates) {
       const groupJid = update.id;
@@ -114,7 +71,9 @@ export async function connect({ method, phoneNumber, isSubBot = false, subBotPho
       action,
     });
   });
+}
 
+function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone }) {
   sock.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
     if (qr && method === "qr") {
       log.connection("qr");
@@ -126,7 +85,7 @@ export async function connect({ method, phoneNumber, isSubBot = false, subBotPho
     }
 
     if (connection === "open") {
-      log.connection("open", `𝙱𝙾𝚃 𝚅𝙸𝚃𝙾 𝚅𝟹 is ready!`);
+      log.connection("open", "𝙱𝙾𝚃 𝚅𝙸𝚃𝙾 𝚅𝟹 is ready!");
       if (isSubBot && subBotPhone) {
         try {
           await updateSubBotStatus(subBotPhone, "connected");
@@ -155,6 +114,29 @@ export async function connect({ method, phoneNumber, isSubBot = false, subBotPho
       }
     }
   });
+}
+
+export async function connect({ method, phoneNumber, isSubBot = false, subBotPhone = null }) {
+  const { version, isLatest } = await fetchLatestBaileysVersion();
+  log.info(`Baileys v${version.join(".")} (${isLatest ? "latest" : "current"})`);
+
+  const authFolder = resolveAuthFolder(isSubBot, subBotPhone);
+  const { state, saveCreds } = await useMultiFileAuthState(authFolder);
+
+  const sock = makeWASocket({
+    version,
+    auth: state,
+    printQRInTerminal: false,
+    logger: pino({ level: "silent" }),
+    browser: Browsers.macOS("Desktop"),
+    markOnlineOnConnect: false,
+  });
+
+  sock.ev.on("creds.update", saveCreds);
+
+  wireMessageEvents(sock);
+  wireGroupEvents(sock);
+  wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone });
 
   if (method === "pairing" && phoneNumber) {
     await new Promise((r) => setTimeout(r, 2000));
