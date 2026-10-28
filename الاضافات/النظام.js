@@ -1,5 +1,4 @@
 import makeWASocket, {
-  useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
   Browsers,
@@ -9,6 +8,7 @@ import pino from "pino";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import log from "./الكونسل.js";
+import { useSQLiteAuthState } from "./الجلسة.js";
 import { handleMessage, runAntiFeaturesOnEvent } from "./المعالج.js";
 import { isGroupActive, registerGroup } from "./القاعدة.js";
 import { updateSubBotStatus } from "../database/db.js";
@@ -176,7 +176,7 @@ export async function connect({ method, phoneNumber, isSubBot = false, subBotPho
   log.info(`Baileys v${version.join(".")} (${isLatest ? "latest" : "current"})`);
 
   const authFolder = resolveAuthFolder(isSubBot, subBotPhone);
-  const { state, saveCreds } = await useMultiFileAuthState(authFolder);
+  const { state, saveCreds } = await useSQLiteAuthState(authFolder);
 
   const sock = makeWASocket({
     version,

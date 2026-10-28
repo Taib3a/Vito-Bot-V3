@@ -103,6 +103,20 @@ so the default printer is gone, then the filter is added.
 - `scripts/smoke.js` imports `database/db.js` statically on purpose; that is
   fine because it does not assert on warning output.
 
+## Session storage (`الاضافات/الجلسة.js`)
+
+Auth state uses `useSQLiteAuthState()`, not Baileys' `useMultiFileAuthState`.
+Everything (creds + all keys) lives in one `auth.db` per session folder instead
+of hundreds of `creds.json` / `pre-key-*.json` / `session-*.json` files.
+
+- An existing multi-file session is imported on first run; the JSON files are
+  moved to `backup-json/` (never deleted) so a pairing is not lost.
+- Import is skipped once `creds` exists in the DB, so it runs exactly once.
+- A corrupt `auth.db` is renamed aside (`auth.db.corrupt-<ts>`) and a fresh
+  session starts, rather than bricking every boot.
+- `BufferJSON.reviver` returns real `Buffer`s, so tests must compare
+  `[...buf]`, not `buf.data`.
+
 ## Repo conventions
 
 - Code comments in the source are Arabic; commit messages and `AGENTS.md` are English.
