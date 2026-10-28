@@ -8,11 +8,12 @@
 
 <br><br>
 
-<a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-24-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js"/></a>
+<a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-22%2B-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js"/></a>
 <a href="https://github.com/WhiskeySockets/Baileys"><img src="https://img.shields.io/badge/Baileys-7.0-FF6C37?style=flat-square&logo=whatsapp&logoColor=white" alt="Baileys"/></a>
 <img src="https://img.shields.io/badge/SQLite-node:sqlite-003B57?style=flat-square&logo=sqlite&logoColor=white" alt="SQLite"/>
 <a href="https://github.com/taib/bot-vito-v3/stargazers"><img src="https://img.shields.io/badge/Stars-★-FFD700?style=flat-square&logo=star&logoColor=white" alt="Stars"/></a>
 <img src="https://img.shields.io/badge/Profile_Views-∞-D4AF37?style=flat-square&logo=github&logoColor=white" alt="Views"/>
+<a href="https://github.com/Taib3a/Vito-Bot-V3/actions/workflows/ci.yml"><img src="https://github.com/Taib3a/Vito-Bot-V3/actions/workflows/ci.yml/badge.svg" alt="CI"/></a>
 
 </div>
 
