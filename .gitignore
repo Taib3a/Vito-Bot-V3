@@ -12,3 +12,6 @@ database/bot.db-wal
 *.db
 *.db-shm
 *.db-wal
+
+# جلسة اختبار الاتصال المؤقتة
+test-session/
