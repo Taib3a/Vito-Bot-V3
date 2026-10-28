@@ -28,6 +28,13 @@ scripts/smoke.js              crash-safety smoke test (used by `npm test`)
   handler. Fails on any crash. Run both before committing.
 - `npm start` — boots the bot (`index.js`).
 
+## CI
+
+`.github/workflows/ci.yml` runs `npm ci` → `npm run build` → `npm test` on every push
+to `main` and every PR, on a **Node 22 and 24 matrix** (`engines.node` is `>=22`; keep
+both green). It is a required safety net: never merge a red run. `node:sqlite` emits an
+`ExperimentalWarning` on Node 22 — that is expected, not a failure.
+
 ## Hard-won knowledge: the 428 "Connection Closed" error
 
 `428` is **misleading**. Baileys maps a generic websocket `1006` (abnormal closure)
