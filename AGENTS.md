@@ -26,43 +26,43 @@ sessions/main/auth.db         the live session (gitignored)
 
 CI (`.github/workflows/ci.yml`) runs both on Node 22 and 24 for every push and PR to `main`.
 
-## The dependency is NOT the published Baileys package
-
-This is the single most important thing in this repo.
+## The dependency is the patched `baileys-nextgen` package
 
 ```json
-"@whiskeysockets/baileys": "git+https://github.com/naut21/Baileys.git#344c1ad7..."
+"@whiskeysockets/baileys": "npm:@muhammadridwanf61/baileys-nextgen@latest"
 ```
 
-The published `^7.0.0-rc.14` **cannot pair reliably**. The fork carries fixes that land
-exactly on the pairing handshake. Do not "upgrade" to the npm package.
+The reference repo pins `github:naut21/Baileys`, but **that build is not usable** — it
+crashes (the reference itself only links after swapping it out). Both the official
+package and this npm alias work. We use the alias: it is published, needs no build
+step, and carries the pairing improvements.
 
-The decisive one is in `Utils/noise-handler`:
+Do not switch this back to the `naut21` git dependency.
 
-```js
-// published rc14 — two concurrent drains over the same buffer, frames arrive out of order
-await processData(pendingOnFrame)
-frame = await decodeBinaryNode(result)
-
-// fork — synchronous, in-order
-processData(pendingOnFrame)
-frame = decodeBinaryNodeSync(result)
-```
-
-That reordering corrupts the handshake that runs *while a pairing code is being
-registered* — which is why linking failed on this bot while the reference paired
-first try. The fork also sets `perMessageDeflate: false`, `setNoDelay` and
-`setKeepAlive` on the upgraded socket, and gives Signal reads a lock-free cache path.
-
-The fork is a TypeScript repo with a `prepare: npm run build` script. npm builds it
-on install, so a clean `npm ci` works — it just takes ~30s.
+`baileys-nextgen` is `7.0.0-rc14` plus extra modules: `Pairing/` (companion-reg
+pairing suite), `Resilience/` (prekey repair, rate-limit guard, session revival),
+`HumanEngine/` (anti-ban), `Router/`, `AI/`. They are opt-in exports — importing the
+package starts no timers or servers.
 
 ### Pairing codes
 
-`requestPairingCode(phone, customCode?)` accepts a custom code of **exactly 8 chars**.
-The fork's own fallback picks from a fixed list of five (`NAUT2100`, `DUARTEXV`, …), so
-every install would show the same codes. `النظام.js` generates a fresh Crockford-base32
-code per pairing instead — do not remove `generatePairingCode()`.
+`requestPairingCode(phone, customCode?)` accepts a custom code of **exactly 8 chars**;
+without one it generates a code itself. `النظام.js` generates a fresh Crockford-base32
+code per pairing via `generatePairingCode()`.
+
+## Crash safety
+
+The process is long-lived, so nothing may take it down:
+
+- `index.js` installs `uncaughtException` and `unhandledRejection` handlers that log
+  and keep running, plus a `warning` filter that drops only the `node:sqlite`
+  `ExperimentalWarning`.
+- The whole `makeWASocket` call is inside a `try`, and the reconnect path is `.catch`ed.
+- `connect()` never throws to the caller — on exhaustion it returns `{ sock: null }`.
+
+Optional peers (`jimp`, `link-preview-js`, `audio-decode`, `sharp`) are loaded lazily
+by Baileys. `generateHighQualityLinkPreview: true` needs `link-preview-js`; the import
+is wrapped in try/catch upstream, but install the peer if link previews matter.
 
 ## Pairing flow (mirrors the reference)
 

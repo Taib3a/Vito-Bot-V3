@@ -9,6 +9,17 @@ process.on("warning", (warning) => {
   console.warn(`${warning.name}: ${warning.message}`);
 });
 
+// The bot is a long-lived process: a throw from inside a Baileys callback or a
+// rejected promise must not take the whole session down. Log and keep running.
+process.on("uncaughtException", (err) => {
+  log.error(err?.message ?? String(err), "uncaughtException", err?.stack);
+});
+
+process.on("unhandledRejection", (reason) => {
+  const err = reason instanceof Error ? reason : new Error(String(reason));
+  log.error(err.message, "unhandledRejection", err.stack);
+});
+
 async function main() {
   log.name();
 
