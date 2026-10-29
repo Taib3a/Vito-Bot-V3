@@ -12,7 +12,7 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "git+https://github.com/naut21/Baileys.git#344c1ad7650c6b60ac73fb47bf529001dbea1f95",
+    "@whiskeysockets/baileys": "npm:@muhammadridwanf61/baileys-nextgen@latest",
     "chalk": "^5.4.0",
     "pino": "^9.6.0",
     "qrcode-terminal": "^0.12.0"
