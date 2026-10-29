@@ -1,4 +1,4 @@
-import { botName } from "../الاضافات/الاعدادات.js";
+import { botName } from "../../الاضافات/الاعدادات.js";
 
 export default {
   name: "alive",

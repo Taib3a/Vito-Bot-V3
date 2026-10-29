@@ -8,7 +8,7 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { spawnSync } from "child_process";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 const ROOTS = ["index.js", "database", "الاضافات", "الاوامر"];
 const SKIP = new Set(["node_modules", ".git", "database/sessions-taib"]);

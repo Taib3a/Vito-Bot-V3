@@ -108,14 +108,44 @@ function logIncomingMessage(msg) {
   }
 }
 
-function wireMessageEvents(sock) {
-  sock.ev.on("messages.upsert", async ({ messages }) => {
+function wireMessageEvents(sock, state) {
+  // Recent messages, so a retry can re-decrypt a message WhatsApp re-delivers.
+  // Baileys asks for these through getMessage below; without them a retried
+  // command silently fails to decrypt.
+  const msgStore = new Map();
+  const MAX_STORE_SIZE = 500;
+  const cacheMessage = (msg) => {
+    if (!msg?.key?.id) return;
+    msgStore.set(`${msg.key.remoteJid}:${msg.key.id}`, msg);
+    if (msgStore.size > MAX_STORE_SIZE) msgStore.delete(msgStore.keys().next().value);
+  };
+
+  sock.ev.on("messages.upsert", async ({ messages, type }) => {
+    // Only live traffic. history/sync payloads would replay old commands.
+    if (type && type !== "notify") return;
+
     for (const msg of messages) {
-      if (!msg.message || msg.key.fromMe) continue;
-      logIncomingMessage(msg);
+      if (!msg.message) continue;
+      if (msg.key.remoteJid === "status@broadcast") continue;
+
+      cacheMessage(msg);
+
+      // Commands sent from the owner's own phone arrive as fromMe; they must
+      // still run, otherwise the bot ignores its own messages.
+      if (!msg.key.fromMe) logIncomingMessage(msg);
+
+      // Hold messages that arrive before the connection is fully open, then
+      // replay them, so nothing sent during the handshake is lost.
+      if (!state.connected) {
+        state.pending.push(msg);
+        continue;
+      }
+
       await handleMessage(sock, msg);
     }
   });
+
+  return { getMessage: async (key) => msgStore.get(`${key.remoteJid}:${key.id}`)?.message };
 }
 
 function wireGroupEvents(sock) {
@@ -143,7 +173,7 @@ function wireGroupEvents(sock) {
   });
 }
 
-function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone, attempt = 0, sessionKey, authFolder }) {
+function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone, attempt = 0, sessionKey, authFolder, state }) {
   sock.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
     if (qr && method === "qr") {
       log.connection("qr");
@@ -162,7 +192,15 @@ function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone
         pairingRequested.delete(sessionKey);
         pairingPhase.delete(sessionKey);
       }
+      state.connected = true;
       log.connection("open", "𝙱𝙾𝚃 𝚅𝙸𝚃𝙾 𝚅𝟹 is ready!");
+
+      // Replay anything that arrived during the handshake.
+      const queued = state.pending.splice(0);
+      for (const msg of queued) {
+        handleMessage(sock, msg).catch((err) => log.error(`Queued message error: ${err.message}`));
+      }
+
       if (isSubBot && subBotPhone) {
         try {
           await updateSubBotStatus(subBotPhone, "connected");
@@ -173,6 +211,7 @@ function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone
     }
 
     if (connection === "close") {
+      state.connected = false;
       const code = lastDisconnect?.error?.output?.statusCode;
       const shouldReconnect = code !== DisconnectReason.loggedOut;
       const pairing = method === "pairing" && pairingPhase.has(sessionKey);
@@ -237,14 +276,15 @@ export async function connect({ method, phoneNumber, isSubBot = false, subBotPho
   log.info(`Baileys v${version.join(".")} (${isLatest ? "latest" : "current"})`);
 
   const authFolder = resolveAuthFolder(isSubBot, subBotPhone);
-  const { state, saveCreds } = await useSQLiteAuthState(authFolder);
+  const { state: authState, saveCreds } = await useSQLiteAuthState(authFolder);
 
   const useCode = method === "pairing" && !!phoneNumber;
+  const conn = { connected: false, pending: [] };
   const sock = makeWASocket({
     version,
     auth: {
-      creds: state.creds,
-      keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "silent" })),
+      creds: authState.creds,
+      keys: makeCacheableSignalKeyStore(authState.keys, pino({ level: "silent" })),
     },
     printQRInTerminal: !useCode,
     logger: pino({ level: "silent" }),
@@ -257,12 +297,13 @@ export async function connect({ method, phoneNumber, isSubBot = false, subBotPho
     keepAliveIntervalMs: 25000,
     retryRequestDelayMs: 3000,
     defaultQueryTimeoutMs: 60000,
+    getMessage: (key) => conn.getMessage(key),
   });
 
   sock.ev.on("creds.update", saveCreds);
   activeSockets.set(authFolder, sock);
 
-  wireMessageEvents(sock);
+  Object.assign(conn, wireMessageEvents(sock, conn));
   wireGroupEvents(sock);
   wireConnectionEvents(sock, {
     method,
@@ -272,6 +313,7 @@ export async function connect({ method, phoneNumber, isSubBot = false, subBotPho
     attempt,
     sessionKey: authFolder,
     authFolder,
+    state: conn,
   });
 
   // A pairing code has already been obtained if the session is registered OR we
