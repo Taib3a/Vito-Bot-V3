@@ -97,24 +97,6 @@ export function clearSocketKeys(sessionDir) {
   }
 }
 
-/**
- * Wipe the whole session, creds included.
- *
- * Used when a pairing attempt was rejected (401) before the phone ever linked:
- * `creds.me` is then set but the session is not registered, so reconnecting
- * sends a login handshake the server refuses. Starting from an empty store lets
- * the next attempt request a fresh pairing code.
- */
-export function resetSession(sessionDir) {
-  try {
-    const db = new DatabaseSync(join(sessionDir, AUTH_DB));
-    db.exec("DELETE FROM auth");
-    db.close();
-  } catch (err) {
-    log.warn(`تعذّر تصفير الجلسة: ${err.message}`);
-  }
-}
-
 function openDatabase(dbPath) {
   try {
     return new DatabaseSync(dbPath);
