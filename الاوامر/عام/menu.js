@@ -1,4 +1,4 @@
-import { botName, prefix } from "../الاضافات/الاعدادات.js";
+import { botName, prefix } from "../../الاضافات/الاعدادات.js";
 
 export default {
   name: "menu",

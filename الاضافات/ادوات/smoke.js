@@ -32,10 +32,10 @@ const check = (label, ok, detail = "") => {
 };
 
 try {
-  const { loadCommands } = await import("../الاضافات/المحمل.js");
-  const { loadAntiFeatures } = await import("../الاضافات/محمل-المضاد.js");
-  const db = await import("../database/db.js");
-  const { handleMessage } = await import("../الاضافات/المعالج.js");
+  const { loadCommands } = await import("../../الاضافات/المحمل.js");
+  const { loadAntiFeatures } = await import("../../الاضافات/محمل-المضاد.js");
+  const db = await import("../../database/db.js");
+  const { handleMessage } = await import("../../الاضافات/المعالج.js");
 
   const commands = await loadCommands();
   const antiFeatures = await loadAntiFeatures();
@@ -59,7 +59,7 @@ try {
   check("sub-bot round-trip", sub?.phone === "967700000000", `status=${sub?.status}`);
 
   // single-file SQLite auth state (replaces useMultiFileAuthState)
-  const { useSQLiteAuthState } = await import("../الاضافات/الجلسة.js");
+  const { useSQLiteAuthState } = await import("../../الاضافات/الجلسة.js");
   const sessionDir = join(tmp, "session");
   const { state, saveCreds } = await useSQLiteAuthState(sessionDir);
   await state.keys.set({ "pre-key": { "1": { private: { type: "Buffer", data: [1, 2, 3] } } } });
@@ -77,7 +77,7 @@ try {
 
   // the connection module must point at a visible sessions/ folder at the root
   const { readFileSync } = await import("fs");
-  const systemSrc = readFileSync(new URL("../الاضافات/النظام.js", import.meta.url), "utf8");
+  const systemSrc = readFileSync(new URL("../../الاضافات/النظام.js", import.meta.url), "utf8");
   check(
     "sessions live at ./sessions",
     /join\(__dirname, "\.\.", "sessions"\)/.test(systemSrc),
@@ -96,13 +96,24 @@ try {
     groupParticipantsUpdate: async () => {},
     user: { id: "1@s.whatsapp.net" },
   };
-  const fakeMsg = {
-    key: { remoteJid: "123@g.us", fromMe: false, id: "SMOKE1", participant: "9@s.whatsapp.net" },
+
+  // A group the bot was never "activated" in must still run commands — that
+  // gate silently dropped every command, which is the bug users reported.
+  await handleMessage(fakeSock, {
+    key: { remoteJid: "999@g.us", fromMe: false, id: "SMOKE1", participant: "9@s.whatsapp.net" },
     pushName: "Smoke",
     message: { conversation: ".ping" },
-  };
-  await handleMessage(fakeSock, fakeMsg);
-  check("handler runs .ping", sent.length > 0, `${sent.length} reply(ies)`);
+  });
+  check("command runs in a non-activated group", sent.length > 0, `${sent.length} reply(ies)`);
+
+  // A command typed on the owner's own phone arrives as fromMe and must run.
+  sent.length = 0;
+  await handleMessage(fakeSock, {
+    key: { remoteJid: "999@g.us", fromMe: true, id: "SMOKE2" },
+    pushName: "Owner",
+    message: { conversation: ".ping" },
+  });
+  check("command runs when fromMe", sent.length > 0, `${sent.length} reply(ies)`);
 } catch (err) {
   check("boot", false, err.message);
 }

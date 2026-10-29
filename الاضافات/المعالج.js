@@ -47,11 +47,22 @@ export async function runAntiFeaturesOnEvent(eventType, ctx) {
   }
 }
 
+function extractBody(msg) {
+  return (
+    msg.message?.conversation ||
+    msg.message?.extendedTextMessage?.text ||
+    msg.message?.imageMessage?.caption ||
+    msg.message?.videoMessage?.caption ||
+    ""
+  );
+}
+
 export async function handleMessage(sock, msg) {
   try {
     const senderJid = msg.key.participant || msg.key.remoteJid;
     const isGroup = msg.key.remoteJid?.endsWith("@g.us");
     const groupJid = isGroup ? msg.key.remoteJid : null;
+    const fromMe = !!msg.key.fromMe;
 
     if (isGroup) {
       await registerGroup(groupJid);
@@ -61,20 +72,21 @@ export async function handleMessage(sock, msg) {
 
     if (await isBanned(senderJid)) return;
 
-    if (isGroup) {
-      const active = await isGroupActive(groupJid);
-      if (!active) return;
+    // Anti-features only run in groups where the bot was explicitly activated.
+    // Commands below are never gated, so .تفعيل itself always works.
+    if (isGroup && !fromMe) {
+      if (await isGroupActive(groupJid)) {
+        if (await isGroupMuted(groupJid)) return;
 
-      if (await isGroupMuted(groupJid)) return;
+        const claimed = await tryClaimMessage(msg.key.id, groupJid);
+        if (!claimed) return;
 
-      const claimed = await tryClaimMessage(msg.key.id, groupJid);
-      if (!claimed) return;
-
-      const ctx = { sock, msg, senderJid, isGroup, groupJid };
-      await runAntiFeatures(ctx);
+        const ctx = { sock, msg, senderJid, isGroup, groupJid };
+        await runAntiFeatures(ctx);
+      }
     }
 
-    const raw = msg.message?.conversation || msg.message?.extendedTextMessage?.text || "";
+    const raw = extractBody(msg);
     if (!raw || !raw.startsWith(prefix)) return;
 
     const body = raw.slice(prefix.length).trim();
@@ -85,7 +97,7 @@ export async function handleMessage(sock, msg) {
     const command = cmds[cmdName.toLowerCase()];
     if (!command) return;
 
-    await command.execute({ sock, msg, args, senderJid, isGroup, commands: cmds });
+    await command.execute({ sock, msg, args, senderJid, isGroup, fromMe, commands: cmds });
   } catch (err) {
     log.error(`Command error: ${err.message}`);
   }
