@@ -1,7 +1,6 @@
 import { printBanner, log } from "./core/logger.js";
 import { createConnection } from "./core/connection.js";
 import { loadPlugins, watchPlugins } from "./core/pluginLoader.js";
-import config from "./config.js";
 import { launchAllSubbots, registerMainBot } from "./core/subbotManager.js";
 import fs from "fs";
 import path from "path";
@@ -32,14 +31,6 @@ process.on("uncaughtException", (err) => {
 process.on("unhandledRejection", (reason) => {
   log.error(`وعد مرفوض غير معالج: ${reason?.message || reason}`, "index.js");
 });
-
-// Globals kept for compatibility with plugins that read them directly.
-global.botNames = config.botNames;
-global.botImages = config.botImages;
-global.my = config.channels;
-global.botname = config.botName;
-global.packname = config.packname;
-global.author = config.author;
 
 const tmpDir = path.resolve("./tmp");
 if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });

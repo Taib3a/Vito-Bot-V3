@@ -111,7 +111,6 @@ export function initButtons(conn) {
       sections = [],
       image = null,
       contextInfo = null,
-      selectTitle = "Seleccionar",
     } = opts;
 
     const formatted = buttons.map(formatButton);
@@ -120,7 +119,7 @@ export function initButtons(conn) {
       formatted.push({
         name: "single_select",
         buttonParamsJson: JSON.stringify({
-          title: selectTitle,
+          title: "Seleccionar",
           sections: sections.map((s) => ({
             title: s.title,
             rows: s.rows.map((r) => ({ title: r.title, description: r.description || "", id: r.id })),
@@ -190,4 +189,58 @@ export function extractButtonId(message) {
   );
 }
 
-export default { initButtons, extractButtonId };
+/* ── Convenience wrappers ─────────────────────────────────────────────────
+ * These keep the older `sendButtons(sock, from, msg, opts)` call shape
+ * working on top of the same relay path, so callers need no init step.
+ */
+
+function ensureButtons(sock) {
+  if (typeof sock.sendButtonMessage !== "function") initButtons(sock);
+}
+
+/**
+ * Send a message with reply/url/copy/call buttons.
+ *
+ *   await sendButtons(sock, from, msg, {
+ *     text: "choose", buttons: [{ text: "Hi", id: ".hi" }],
+ *   });
+ */
+export async function sendButtons(sock, from, msg, opts = {}) {
+  ensureButtons(sock);
+  const { text, title, footer, buttons = [], mentions, contextInfo, image, sections } = opts;
+
+  return sock.sendButtonMessage(from, text || "", buttons, {
+    title,
+    footer,
+    quoted: msg?.message ? msg : null,
+    mentions,
+    sections: sections || [],
+    image,
+    contextInfo,
+  });
+}
+
+/**
+ * Send a single-select dropdown (a "list").
+ *
+ *   await sendList(sock, from, msg, {
+ *     text: "pick one", buttonText: "القائمة",
+ *     sections: [{ title: "A", rows: [{ title: "x", description: "…", id: ".say_x" }] }],
+ *   });
+ */
+export async function sendList(sock, from, msg, opts = {}) {
+  const { text, title, footer, buttonText, sections = [], mentions, contextInfo, image } = opts;
+
+  return sendButtons(sock, from, msg, {
+    text,
+    title,
+    footer,
+    buttons: [],
+    sections,
+    mentions,
+    contextInfo,
+    image,
+  });
+}
+
+export default { initButtons, extractButtonId, sendButtons, sendList };

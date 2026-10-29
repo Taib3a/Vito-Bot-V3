@@ -119,6 +119,8 @@ then Uberduck — and the first that returns audio wins.
   conversion outright.
 - The text is stored per chat+sender for 30 minutes so the voice buttons still
   know what to say after the menu has scrolled away.
+- The plugin is left exactly as the reference bot had it; it calls the
+  `sendButtons` / `sendList` wrappers, which init the socket on first use.
 
 ## The pairing flow
 
