@@ -1,5 +1,7 @@
 import log from "./الاضافات/الكونسل.js";
 import { createPrompter, promptConnectionMethod, promptPhoneNumber } from "./الاضافات/الادخال.js";
+import { useSQLiteAuthState } from "./الاضافات/الجلسة.js";
+import { MAIN_AUTH_FOLDER } from "./الاضافات/النظام.js";
 
 // node:sqlite is still flagged experimental and prints an ExperimentalWarning
 // on Node 22. The database module is imported dynamically below so this filter
@@ -12,6 +14,18 @@ process.on("warning", (warning) => {
 
 async function main() {
   log.name();
+
+  const { connect } = await import("./الاضافات/النظام.js");
+
+  // A registered session is already linked. Ask nothing and just reconnect, so
+  // a restart never re-prompts for a pairing code the user does not need.
+  const { state } = await useSQLiteAuthState(MAIN_AUTH_FOLDER);
+  if (state.creds?.registered) {
+    log.info("Session already registered — reconnecting...");
+    await connect({ method: "pairing", phoneNumber: null });
+    return;
+  }
+
   console.log("\nاختر طريقة الاتصال:");
   console.log("  1. Pairing Code");
   console.log("  2. QR Code");
@@ -37,7 +51,6 @@ async function main() {
 
   prompter.close();
 
-  const { connect } = await import("./الاضافات/النظام.js");
   await connect({ method, phoneNumber });
 }
 

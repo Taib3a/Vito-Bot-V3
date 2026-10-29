@@ -40,7 +40,22 @@ jobs:
         run: npm ci
 
       - name: Syntax-check every source file
-        run: npm run build
+        run: |
+          find index.js database الاضافات الاوامر -name '*.js' -print0 \
+            | xargs -0 -n1 node --check
 
-      - name: Crash-safety smoke test
-        run: npm test
+      - name: Load commands, anti-features and the database
+        run: |
+          node --input-type=module -e "
+          process.env.BOT_DB_PATH = '/tmp/ci.db';
+          const { loadCommands } = await import('./الاضافات/المحمل.js');
+          const { loadAntiFeatures } = await import('./الاضافات/محمل-المضاد.js');
+          const db = await import('./database/db.js');
+          const commands = await loadCommands();
+          const anti = await loadAntiFeatures();
+          if (Object.keys(commands).length === 0) throw new Error('no commands loaded');
+          if (anti.length === 0) throw new Error('no anti-features loaded');
+          await db.registerGroup('1@g.us', 'CI');
+          console.log('ok:', Object.keys(commands).length, 'commands,', anti.length, 'anti-features');
+          process.exit(0);
+          "

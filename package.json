@@ -6,9 +6,7 @@
   "description": "𝙱𝙾𝚃 𝚅𝙸𝚃𝙾 𝚅𝟹 - WhatsApp bot built on Baileys",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "build": "node الاضافات/ادوات/check.js",
-    "test": "node الاضافات/ادوات/smoke.js"
+    "start": "node index.js"
   },
   "engines": {
     "node": ">=22"

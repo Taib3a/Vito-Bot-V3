@@ -9,6 +9,7 @@ import pino from "pino";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import log from "./الكونسل.js";
+import { readMessages } from "./الاعدادات.js";
 import { useSQLiteAuthState, clearSocketKeys, resetSession } from "./الجلسة.js";
 import { handleMessage, runAntiFeaturesOnEvent } from "./المعالج.js";
 import { isGroupActive, registerGroup } from "./القاعدة.js";
@@ -19,7 +20,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // Sessions live in a plain `sessions/` folder at the project root, mirroring the
 // Yuta reference, so `sessions/main/auth.db` is easy to find and inspect.
 const SESSIONS_BASE = join(__dirname, "..", "sessions");
-const MAIN_AUTH_FOLDER = join(SESSIONS_BASE, "main");
+export const MAIN_AUTH_FOLDER = join(SESSIONS_BASE, "main");
 const SUB_AUTH_FOLDER = join(SESSIONS_BASE, "subbots");
 
 // WhatsApp needs a moment after the handshake before it accepts the pairing iq
@@ -132,7 +133,13 @@ function wireMessageEvents(sock, state) {
 
       // Commands sent from the owner's own phone arrive as fromMe; they must
       // still run, otherwise the bot ignores its own messages.
-      if (!msg.key.fromMe) logIncomingMessage(msg);
+      if (!msg.key.fromMe) {
+        logIncomingMessage(msg);
+        if (readMessages) {
+          // Blue ticks straight away, so the sender sees the bot read the message.
+          sock.readMessages([msg.key]).catch(() => {});
+        }
+      }
 
       // Hold messages that arrive before the connection is fully open, then
       // replay them, so nothing sent during the handshake is lost.
@@ -173,7 +180,7 @@ function wireGroupEvents(sock) {
   });
 }
 
-function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone, attempt = 0, sessionKey, authFolder, state }) {
+function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone, attempt = 0, sessionKey, authFolder, state, authState }) {
   sock.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
     if (qr && method === "qr") {
       log.connection("qr");
@@ -188,7 +195,7 @@ function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone
       clearPairingGrace(sessionKey);
       // Registration is what ends the pairing phase. Until then keep the flag
       // so a close is still reported as "waiting for pairing".
-      if (sock.authState?.creds?.registered) {
+      if (authState.creds?.registered) {
         pairingRequested.delete(sessionKey);
         pairingPhase.delete(sessionKey);
       }
@@ -278,7 +285,8 @@ export async function connect({ method, phoneNumber, isSubBot = false, subBotPho
   const authFolder = resolveAuthFolder(isSubBot, subBotPhone);
   const { state: authState, saveCreds } = await useSQLiteAuthState(authFolder);
 
-  const useCode = method === "pairing" && !!phoneNumber;
+  const registered = !!authState.creds?.registered;
+  const useCode = method === "pairing" && !!phoneNumber && !registered;
   const conn = { connected: false, pending: [] };
   const sock = makeWASocket({
     version,
@@ -286,7 +294,8 @@ export async function connect({ method, phoneNumber, isSubBot = false, subBotPho
       creds: authState.creds,
       keys: makeCacheableSignalKeyStore(authState.keys, pino({ level: "silent" })),
     },
-    printQRInTerminal: !useCode,
+    // An already-registered session only reconnects: no QR, no pairing code.
+    printQRInTerminal: !useCode && !registered,
     logger: pino({ level: "silent" }),
     // WhatsApp expects a desktop browser string while pairing; the reference
     // uses Ubuntu/Chrome and pairs reliably.
@@ -314,6 +323,7 @@ export async function connect({ method, phoneNumber, isSubBot = false, subBotPho
     sessionKey: authFolder,
     authFolder,
     state: conn,
+    authState,
   });
 
   // A pairing code has already been obtained if the session is registered OR we
@@ -321,7 +331,7 @@ export async function connect({ method, phoneNumber, isSubBot = false, subBotPho
   // flag (not creds.me) avoids minting a second code mid-pairing while still
   // retrying after a genuine failure.
   const sessionKey = authFolder;
-  const alreadyPairing = !!sock.authState?.creds?.registered || pairingRequested.has(sessionKey);
+  const alreadyPairing = !!authState.creds?.registered || pairingRequested.has(sessionKey);
 
   if (useCode && !alreadyPairing) {
     try {
