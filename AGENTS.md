@@ -27,7 +27,7 @@ core/
     مضاد-بوتات.js             anti-bots       (flag: antibot)
     ترحيب-وداع.js             welcome/goodbye (flag: welcome)
 database/db.js                users / groups / bots store (node:sqlite)
-plugins/<category>/*.js       all commands, auto-loaded (107 files)
+plugins/<category>/*.js       all commands, auto-loaded (104 files)
 sessions/main/auth.db         the live session (gitignored)
 ```
 
@@ -83,12 +83,29 @@ Group protections, one **flat `.js` file per anti-feature** inside
 `core/مضاد/`. The loader discovers the files automatically — adding a
 protection means dropping in a file, never editing the loader.
 
-| File | Flag | Toggle | Fires on |
-|---|---|---|---|
-| `مضاد-روابط.js` | `antilink` | `.antilink on/off` · `مضاد-روابط` | message |
-| `مضاد-سبام.js` | `antispam` | `.antispam on/off` · `مضاد-سبام` | message |
-| `مضاد-بوتات.js` | `antibot` | `.antibot on/off` · `مضاد-بوتات` | join |
-| `ترحيب-وداع.js` | `welcome` | `.welcome on/off` · `ترحيب` | join + leave |
+| File | Flag | Fires on |
+|---|---|---|
+| `مضاد-روابط.js` | `antilink` | message |
+| `مضاد-سبام.js` | `antispam` | message |
+| `مضاد-بوتات.js` | `antibot` | join |
+| `ترحيب-وداع.js` | `welcome` | join + leave |
+
+### One command controls them all
+
+`plugins/grupos/مضاد.js` is the only toggle. It imports the registry from
+`core/مضاد/index.js`, so a new anti-feature shows up in the panel and can be
+switched on without touching the command.
+
+```
+.مضاد                show the panel (state of every anti-feature)
+.تفعيل antilink      turn one on   (also: .مضاد on antilink)
+.ايقاف antilink      turn one off  (also: .مضاد off antilink)
+.تفعيل all           turn them all on
+.ايقاف all           turn them all off
+```
+
+Either the Arabic name or the flag works as the target. Aliases: `مضادات`,
+`حماية`, `antifeatures`, `تشغيل`, `تعطيل`.
 
 ### Contract
 

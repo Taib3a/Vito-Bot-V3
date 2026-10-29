@@ -113,4 +113,6 @@ export function registerAntifeatures(sock, botLabel = "MAIN") {
   log.info(`[${botLabel}] المضادات مُفعّلة: ${modules.map((m) => m.name).join("، ")}`);
 }
 
+/** سجل المضادات: يُستخدم بواسطة أمر التحكم الواحد في plugins/. */
+export const antifeatures = modules.map((m) => ({ name: m.name, flag: m.flag }));
 export const antifeatureNames = modules.map((m) => m.name);
