@@ -23,8 +23,8 @@ sessions/main/auth.db         the live session (gitignored)
 - `npm start` — boots the bot.
 - Syntax check: `find index.js database الاضافات الاوامر -name '*.js' -print0 | xargs -0 -n1 node --check`
 - Loader check: import `الاضافات/المحمل.js` and `الاضافات/محمل-المضاد.js`, assert both return something.
-
-CI (`.github/workflows/ci.yml`) runs both on Node 22 and 24 for every push and PR to `main`.
+- CI (`.github/workflows/ci.yml`) runs the syntax check and the loader check on Node 22
+  and 24. There is no `npm run build` or `npm test` script.
 
 ## The dependency is the patched `baileys-nextgen` package
 
@@ -76,8 +76,34 @@ is wrapped in try/catch upstream, but install the peer if link previews matter.
    version did exactly that — it called `resetSession()` on expiry, deleting the
    credentials mid-pairing, which surfaced as "تعذر ربط الجهاز".
 
-Reconnect clears the cached keys (`clearSocketKeys`) and backs off
-`RECONNECT_DELAY_MS * attempt`, capped at 30s.
+## Post-pairing sync: the 515 trap
+
+Right after a successful link, WhatsApp closes the socket with **515
+(`restartRequired`)** and expects an immediate reconnect. Two bugs here caused the
+"linked but does not read, re-reads the session forever" symptom:
+
+1. **Wiping keys on every retry.** `connect()` called `clearSocketKeys()` whenever
+   `attempt > 0`. `clearSocketKeys` deletes every `auth` row *except* `creds`, so
+   `creds.registered` stayed `true` while all Signal keys were gone. The socket then
+   connected fine but could not decrypt anything. Key wiping now happens only when
+   the caller explicitly asks (`wipeKeys: true`), which is the `badSession` path.
+2. **Reconnecting with `attempt: 0`.** The 515 path reset the counter, so the backoff
+   was `5000 * 0 = 0ms` — an instant loop. The delay now has a floor of
+   `RECONNECT_DELAY_MS`.
+
+`reconnect()` is the single re-entry point and is guarded by a module-level
+`reconnectLocks` set keyed by auth folder: Baileys can emit more than one close for a
+single failure, and two concurrent `connect()` calls both re-read the auth db.
+
+## Reconnect rules
+
+- `restartRequired` (515) → reconnect with the saved session, reset the attempt
+  counter, keep the keys. This is the normal post-link path.
+- `badSession` (500) → wipe keys, then reconnect.
+- `loggedOut` (401) / `connectionReplaced` (440) → stop; do not loop.
+- Everything else → backoff `RECONNECT_DELAY_MS * attempt`, capped at 30s, up to
+  `MAX_RECONNECT_ATTEMPTS`.
+- **Never** wipe keys on a plain retry.
 
 ## Repo conventions
 
