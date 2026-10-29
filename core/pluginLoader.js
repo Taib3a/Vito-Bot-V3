@@ -7,9 +7,11 @@ import { ARABIC_ALIASES } from "./aliases.js";
 const plugins = new Map();
 const PLUGINS_DIR = path.resolve("./plugins");
 const watchTimers = new Map();
+const dynamicPrefixes = [];
 
 export async function loadPlugins() {
   plugins.clear();
+  dynamicPrefixes.length = 0;
   await loadDir(PLUGINS_DIR);
   registerArabicAliases();
 
@@ -71,6 +73,11 @@ async function loadPlugin(filePath) {
 
     const names = Array.isArray(mod.default.name) ? mod.default.name : [mod.default.name];
     for (const n of names) plugins.set(String(n).toLowerCase(), mod.default);
+
+    // A plugin may own a whole id namespace: a button click sends back
+    // "say_woody", which is not a declared name but belongs to "say".
+    const prefixes = Array.isArray(mod.default.dynamicPrefixes) ? mod.default.dynamicPrefixes : [];
+    for (const p of prefixes) dynamicPrefixes.push({ prefix: String(p).toLowerCase(), plugin: mod.default });
   } catch (e) {
     log.error(`خطأ في تحميل ${filePath}: ${e.message}`);
   }
@@ -106,4 +113,23 @@ export function watchPlugins() {
 
 export function getPlugins() {
   return plugins;
+}
+
+/**
+ * Resolve a command name, falling back to a plugin's dynamic id namespace.
+ * Returns undefined when nothing owns the name.
+ */
+export function findPlugin(name) {
+  const key = String(name || "").toLowerCase();
+  const direct = plugins.get(key);
+  if (direct) return direct;
+
+  // Longest prefix wins, so "say-buttons" beats "say".
+  let best = null;
+  for (const { prefix, plugin } of dynamicPrefixes) {
+    if (key.startsWith(prefix) && (!best || prefix.length > best.prefix.length)) {
+      best = { prefix, plugin };
+    }
+  }
+  return best?.plugin;
 }
