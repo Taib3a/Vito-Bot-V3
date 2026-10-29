@@ -36,6 +36,11 @@ const CONNECTION_TIMEOUT_MS = 75000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// One reconnect at a time per session folder. Baileys can emit several closes
+// (e.g. 428 followed by 515) for a single failure; without this, two connect()
+// calls race and both re-read the auth db.
+const reconnectLocks = new Set();
+
 /** Bare digits only — requestPairingCode expects the number without separators. */
 const cleanPhoneNumber = (value) => String(value ?? "").replace(/\D/g, "");
 
@@ -105,8 +110,8 @@ function wireGroupEvents(sock) {
  *
  * - the 1/2 prompt is asked here, only for the main bot, only on the first
  *   attempt, and only when the session is not registered yet;
- * - a reconnect clears the cached socket keys first (a stale key store is what
- *   makes the handshake fail and the phone report "could not link");
+ * - a reconnect keeps the cached socket keys, except on a bad-session close
+ *   (`wipeKeys`), where a stale key store is what breaks the handshake;
  * - there is no timer that wipes the session while a code is on screen.
  */
 export async function connect({
@@ -115,14 +120,23 @@ export async function connect({
   isSubBot = false,
   subBotPhone = null,
   attempt = 0,
+  wipeKeys = false,
 } = {}) {
   const authFolder = resolveAuthFolder(isSubBot, subBotPhone);
   const label = isSubBot && subBotPhone ? subBotPhone : "MAIN";
 
-  if (attempt > 0) {
+  // Only wipe cached keys when the previous attempt actually failed the
+  // handshake. Wiping on every retry is what broke post-pairing sync: right
+  // after linking, WhatsApp closes with 515 (restartRequired) and we must
+  // reconnect *with the keys we just wrote*, not without them.
+  if (attempt > 0 && wipeKeys) {
     log.warn(`[${label}] تنظيف مفاتيح الجلسة قبل إعادة الاتصال...`);
     clearSocketKeys(authFolder);
-    const delay = Math.min(RECONNECT_DELAY_MS * attempt, MAX_RECONNECT_DELAY_MS);
+  }
+  if (attempt > 0) {
+    // Always back off, even when the counter was reset: reconnecting instantly
+    // after 515 is what produced the tight "re-reading the session" loop.
+    const delay = Math.min(RECONNECT_DELAY_MS * Math.max(attempt, 1), MAX_RECONNECT_DELAY_MS);
     log.info(`[${label}] إعادة الاتصال بعد ${delay / 1000}s...`);
     await sleep(delay);
   }
@@ -185,6 +199,24 @@ export async function connect({
     }
   };
 
+  // One place that re-enters connect(), so every close reason uses the same
+  // guard. resetAttempt is for 515: the link succeeded, so the retry budget
+  // must start over rather than counting that close against the limit.
+  const reconnect = ({ wipeKeys = false, resetAttempt = false } = {}) => {
+    if (reconnectLocks.has(authFolder)) return;
+    reconnectLocks.add(authFolder);
+    connect({
+      method,
+      phoneNumber,
+      isSubBot,
+      subBotPhone,
+      attempt: resetAttempt ? 0 : attempt + 1,
+      wipeKeys,
+    })
+      .catch((e) => log.error(`[${label}] فشل إعادة الاتصال: ${e.message}`, "النظام.js"))
+      .finally(() => reconnectLocks.delete(authFolder));
+  };
+
   try {
     sock = makeWASocket({
       version,
@@ -209,7 +241,7 @@ export async function connect({
   } catch (err) {
     log.error(`[${label}] فشل إنشاء الاتصال: ${err.message}`, "النظام.js");
     if (attempt < MAX_RECONNECT_ATTEMPTS) {
-      return connect({ method, phoneNumber, isSubBot, subBotPhone, attempt: attempt + 1 });
+      return reconnect({});
     }
     return { sock: null, pairingCode: null };
   }
@@ -289,14 +321,19 @@ export async function connect({
 
       if (code === DisconnectReason.badSession) {
         log.error(`جلسة تالفة — تنظيف وإعادة الاتصال...`, "النظام.js");
-        clearSocketKeys(authFolder);
+        return reconnect({ wipeKeys: true });
+      }
+
+      // 515 arrives right after a successful link: WhatsApp wants a fresh
+      // socket, and the credentials written during pairing must be kept.
+      if (code === DisconnectReason.restartRequired) {
+        log.info(`[${label}] إعادة تشغيل مطلوبة — إعادة الاتصال بالجلسة المحفوظة...`);
+        return reconnect({ resetAttempt: true });
       }
 
       if (attempt < MAX_RECONNECT_ATTEMPTS) {
         log.info(`[${label}] إعادة الاتصال (${attempt + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
-        connect({ method, phoneNumber, isSubBot, subBotPhone, attempt: attempt + 1 }).catch((e) =>
-          log.error(`[${label}] فشل إعادة الاتصال: ${e.message}`, "النظام.js")
-        );
+        reconnect({});
       } else {
         log.error(`[${label}] استُنفدت محاولات إعادة الاتصال.`, "النظام.js");
       }
