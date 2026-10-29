@@ -7,6 +7,8 @@ export const config = {
     premiumNumbers: [],
     channelLink: "https://whatsapp.com/channel/0029Vb8hDbBDuMRXBFk3u02L",
     groupLink: "https://chat.whatsapp.com/IOO6Nwz29rpLgFy6L6p5YH",
+    // Mark incoming messages as read so the sender sees blue ticks immediately.
+    readMessages: true,
     license: "Developed by Taib"
 };
 
@@ -19,6 +21,7 @@ export const {
     premiumNumbers,
     channelLink,
     groupLink,
+    readMessages,
     license,
 } = config;
 
