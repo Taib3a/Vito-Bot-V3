@@ -12,6 +12,7 @@ import { openDatabase } from "./sqlite.js";
 import { useSQLiteAuthState } from "./connection.js";
 import { db } from "../database/db.js";
 import { handleMessage, registerGroupCacheEvents } from "./messageHandler.js";
+import { registerAntifeatures } from "./مضاد/index.js";
 
 const SUBBOTS_DIR = "./sessions/subbots";
 if (!fs.existsSync(SUBBOTS_DIR)) fs.mkdirSync(SUBBOTS_DIR, { recursive: true });
@@ -227,6 +228,7 @@ async function startSubbotConnection(id, sessionDir, phoneNumber = null, onCode 
 
   sockets.set(id, { sock, closeDb });
   registerGroupCacheEvents(sock);
+  registerAntifeatures(sock, id.toUpperCase());
 
   if (useCode) {
     await new Promise((r) => setTimeout(r, 3000));

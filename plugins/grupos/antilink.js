@@ -1,8 +1,8 @@
 import { db } from "../../database/db.js";
 
 export default {
-  name: ["antilink"],
-  description: "Activa o desactiva el antilink del grupo",
+  name: ["antilink", "مضاد-روابط"],
+  description: "تشغيل أو إيقاف مضاد الروابط",
   category: "grupos",
   groupOnly: true,
   adminOnly: true,
@@ -11,16 +11,16 @@ export default {
     const opcion = args[0]?.toLowerCase();
 
     if (!["on", "off"].includes(opcion)) {
-      const estado = db.getGroup(from).antilink ? "activado ✅" : "desactivado ❌";
+      const estado = db.getGroup(from).antilink ? "مُفعّل ✅" : "مُعطّل ❌";
       return await reply({
-        text: `『🔗』Antilink está *${estado}*.\n> Usa *.antilink on* o *.antilink off*`
+        text: `『🔗』مضاد الروابط *${estado}*.\n> اكتب *.antilink on* أو *.antilink off*`,
       });
     }
 
     db.setGroup(from, { antilink: opcion === "on" });
 
     return await reply({
-      text: `『🔗』Antilink ${opcion === "on" ? "activado ✅" : "desactivado ❌"}.`
+      text: `『🔗』مضاد الروابط ${opcion === "on" ? "مُفعّل ✅" : "مُعطّل ❌"}.`,
     });
-  }
+  },
 };

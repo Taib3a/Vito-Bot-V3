@@ -17,6 +17,7 @@ import { openDatabase } from "./sqlite.js";
 import { askPairingDetails } from "./prompt.js";
 import config from "../config.js";
 import { handleMessage, registerGroupCacheEvents } from "./messageHandler.js";
+import { registerAntifeatures } from "./مضاد/index.js";
 
 // WhatsApp needs a beat after the handshake before it accepts the pairing iq.
 const PAIRING_DELAY_MS = 3000;
@@ -354,6 +355,7 @@ export async function createConnection({
   sock.ev.on("creds.update", saveCreds);
 
   registerGroupCacheEvents(sock);
+  registerAntifeatures(sock, botLabel);
 
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
     if (type !== "notify") return;
