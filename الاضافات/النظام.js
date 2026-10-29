@@ -197,7 +197,7 @@ export async function connect({
     // Send the pairing iq only after the handshake settles.
     await sleep(PAIRING_DELAY_MS);
     try {
-      pairingCode = await sock.requestPairingCode(phoneNumber);
+      pairingCode = await sock.requestPairingCode(String(phoneNumber).replace(/\D/g, ""));
       log.pairingCode(pairingCode);
     } catch (err) {
       log.error(`[${label}] تعذّر طلب رمز الاقتران: ${err.message}`, "النظام.js");

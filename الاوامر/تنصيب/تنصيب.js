@@ -4,6 +4,7 @@ import { botName } from "../../الاضافات/الاعدادات.js";
 import log from "../../الاضافات/الكونسل.js";
 import { registerSubBot, getSubBot, listSubBots } from "../../database/db.js";
 import { connect } from "../../الاضافات/النظام.js";
+import { normalizePhoneNumber } from "../../الاضافات/الادخال.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SUB_SESSION_BASE = join(__dirname, "..", "..", "sessions", "subbots");
@@ -42,10 +43,10 @@ export default {
       return;
     }
 
-    const cleanPhone = phone.replace(/\D/g, "");
-    if (cleanPhone.length < 8) {
+    const cleanPhone = normalizePhoneNumber(phone);
+    if (!cleanPhone) {
       await sock.sendMessage(msg.key.remoteJid, {
-        text: "❌ رقم الهاتف غير صحيح. أدخل الرقم مع رمز الدولة بدون +.",
+        text: "❌ رقم الهاتف غير صحيح. أدخل الرقم مع رمز الدولة (مثال: 967735541558).",
       });
       return;
     }

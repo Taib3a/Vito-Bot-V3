@@ -48,8 +48,14 @@ export function createPrompter(input = process.stdin, output = process.stdout) {
 }
 
 export async function promptConnectionMethod(prompter) {
+  console.log("");
+  console.log(" ╔══════════════════════════════════╗");
+  console.log(" ║  [1] رمز الاقتران (Pairing Code) ║");
+  console.log(" ║  [2] رمز QR                      ║");
+  console.log(" ╚══════════════════════════════════╝");
+
   for (;;) {
-    const raw = await prompter.ask("\nادخل الرقم (1 او 2): ");
+    const raw = await prompter.ask("اختر طريقة الاتصال (1 او 2): ");
     if (raw === null) return null;
     const answer = raw.trim();
     if (answer === "1") return "pairing";
@@ -59,11 +65,31 @@ export async function promptConnectionMethod(prompter) {
 }
 
 export async function promptPhoneNumber(prompter) {
+  console.log("");
+  console.log("أدخل رقم الهاتف مع رمز الدولة.");
+  console.log("يقبل كل الصيغ — بمسافات أو بدونها، بزائد (+) أو بدونه:");
+  console.log("  967735541558");
+  console.log("  +967 738 512 629");
+  console.log("  967 738 512 629");
+  console.log("  +20 11 01704095");
+
   for (;;) {
-    const raw = await prompter.ask("ادخل رقم الهاتف (مع رمز الدولة، بدون +): ");
+    const raw = await prompter.ask("\nرقم الهاتف: ");
     if (raw === null) return null;
-    const digits = raw.replace(/\D/g, "");
-    if (digits.length >= 8) return digits;
-    console.log("❌ رقم غير صالح — أدخل الرقم مع رمز الدولة (مثال: 967777123456).");
+    const digits = normalizePhoneNumber(raw);
+    if (digits) return digits;
+    console.log("❌ رقم غير صالح — أدخل الرقم مع رمز الدولة (مثال: 967735541558).");
   }
+}
+
+/**
+ * Reduce any way a user might type a phone number to bare digits, which is what
+ * WhatsApp expects. Spaces, dashes, parentheses and a leading + are all dropped,
+ * so `+967 738 512 629` and `967738512629` produce the same result. Returns null
+ * when what is left cannot be a phone number (too short or too long for E.164).
+ */
+export function normalizePhoneNumber(raw) {
+  const digits = String(raw ?? "").replace(/\D/g, "");
+  if (digits.length < 8 || digits.length > 15) return null;
+  return digits;
 }
