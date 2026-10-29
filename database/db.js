@@ -156,6 +156,8 @@ function getGroup(jid) {
     const defaultGroup = {
       welcome: false,
       antilink: false,
+      antispam: false,
+      antibot: false,
       primaryBot: null,
       adminMode: false,
       selfMode: false,

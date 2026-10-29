@@ -18,10 +18,16 @@ core/
   aliases.js                  Arabic name → canonical plugin name
   subbotManager.js            subbots (extra paired numbers)
   logger.js                   console output
-  economy.js xp.js gamedata.js antilink.js
+  economy.js xp.js gamedata.js
   sqlite.js                   node:sqlite wrapper
+  مضاد/                       anti-features — one flat file per anti-feature
+    index.js                  loader + runAntifeatures + registerAntifeatures
+    مضاد-روابط.js             anti-link       (flag: antilink)
+    مضاد-سبام.js              anti-spam       (flag: antispam)
+    مضاد-بوتات.js             anti-bots       (flag: antibot)
+    ترحيب-وداع.js             welcome/goodbye (flag: welcome)
 database/db.js                users / groups / bots store (node:sqlite)
-plugins/<category>/*.js       all commands, auto-loaded (105 files)
+plugins/<category>/*.js       all commands, auto-loaded (104 files)
 sessions/main/auth.db         the live session (gitignored)
 ```
 
@@ -70,6 +76,69 @@ loading. Add an entry there instead of editing a plugin's `name` field.
 3. Wait `PAIRING_DELAY_MS` (3000ms), request the code, print **only** the code,
    then hold the socket for `PAIRING_GRACE_MS` (120s) so the user can link.
 4. Never add a timer that wipes the session while a code is on screen.
+
+## The anti-features section (`core/مضاد/`)
+
+Group protections, one **flat `.js` file per anti-feature** inside
+`core/مضاد/`. The loader discovers the files automatically — adding a
+protection means dropping in a file, never editing the loader.
+
+| File | Flag | Fires on |
+|---|---|---|
+| `مضاد-روابط.js` | `antilink` | message |
+| `مضاد-سبام.js` | `antispam` | message |
+| `مضاد-بوتات.js` | `antibot` | join |
+| `ترحيب-وداع.js` | `welcome` | join + leave |
+
+### One command controls them all
+
+`plugins/grupos/مضاد.js` is the only toggle. It imports the registry from
+`core/مضاد/index.js`, so a new anti-feature shows up in the panel and can be
+switched on without touching the command.
+
+```
+.مضاد                show the panel (state of every anti-feature)
+.تفعيل antilink      turn one on   (also: .مضاد on antilink)
+.ايقاف antilink      turn one off  (also: .مضاد off antilink)
+.تفعيل all           turn them all on
+.ايقاف all           turn them all off
+```
+
+Either the Arabic name or the flag works as the target. Aliases: `مضادات`,
+`حماية`, `antifeatures`, `تشغيل`, `تعطيل`.
+
+### Contract
+
+A module is the default export of its file in `core/مضاد/` (same shape the
+old `core/antilink.js` used):
+
+```js
+export default {
+  name: "مضاد-روابط",        // shown in the startup log
+  flag: "antilink",           // db.getGroup(group).antilink gates it
+  async check({ sock, msg, from, sender, body, isBotAdmin, botLabel }) {},
+  async onJoin({ sock, groupJid, participants, isBotAdmin, botLabel }) {},
+  async onLeave({ sock, groupJid, participants, isBotAdmin, botLabel }) {},
+};
+```
+
+Only `name` is required. A module may implement `check`, `onJoin`, `onLeave`,
+or any combination. `check` returns `true` to claim the message (it is then
+not treated as a command); `false`/`undefined` to pass it on.
+
+`runAntifeatures` runs every enabled `check` in order and stops at the first
+claim. `registerAntifeatures(sock, label)` wires `group-participants.update`
+and is called from both `core/connection.js` and `core/subbotManager.js`, so
+subbots are protected too.
+
+### Two rules learned the hard way
+
+1. **Every call is wrapped in try/catch, per module.** A malformed event
+   (`participants: null`) or one broken protection must log and continue —
+   never throw. The previous version took the whole process down this way.
+2. **Kicking needs the bot to be an admin.** Each module checks `isBotAdmin`
+   itself and, when it is false, still deletes/warns and says why instead of
+   failing silently on a `forbidden` from `groupParticipantsUpdate`.
 
 ## Post-pairing sync: the 515 trap
 

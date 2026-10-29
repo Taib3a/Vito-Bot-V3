@@ -2,7 +2,7 @@ import config from "../config.js";
 import { log } from "./logger.js";
 import { getPlugins } from "./pluginLoader.js";
 import { db } from "../database/db.js";
-import { checkAntilink } from "./antilink.js";
+import { runAntifeatures } from "./مضاد/index.js";
 import { handleChatXp, handleCommandXp } from "./xp.js";
 import { claimOnce } from "./subbotManager.js";
 import { resolveAlias } from "./aliases.js";
@@ -242,8 +242,8 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
       if (groupData?.selfMode && !isOwner && !isCoOwner && !fromMe) return;
       if (groupData?.adminMode && !isAdmin && !isMod) return;
 
-      if (groupData?.antilink && body && !isAdmin && !isMod && !isCmd) {
-        const handled = await checkAntilink({ sock, msg, from, sender, body, isBotAdmin, botLabel });
+      if (body && !isAdmin && !isMod && !isCmd) {
+        const handled = await runAntifeatures({ sock, msg, from, sender, body, isBotAdmin, botLabel });
         if (handled) return;
       }
 
