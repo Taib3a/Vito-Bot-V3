@@ -2,113 +2,133 @@
 
 Project memory for **Vito-Bot-V3** — an Arabic WhatsApp bot on Baileys (ESM, SQLite).
 
+The structure mirrors `DuarteXV/Yuta-Okkotsu-Bot-MD`, but the code, messages and
+command names are Arabic and the library is the maintained `baileys-nextgen`.
+
 ## Layout
 
 ```
-index.js                      entry point — installs the warning filter, calls connect()
-database/db.js                node:sqlite wrapper
-الاضافات/                     core modules
-  النظام.js                   connection + pairing  ← connection logic lives here
-  المعالج.js                  message handling / command routing
-  المحمل.js                   command loader (from الاوامر/)
-  محمل-المضاد.js              anti-feature loader
-  الادخال.js                  line-buffered prompts + phone normalisation
-  الجلسة.js                   single-file SQLite auth state
-  الاوامر/  تنصيب/            all commands (auto-loaded)
+index.js                      entry point — warning filter, crash net, boot
+config.js                     bot name, prefix, owner numbers
+core/
+  connection.js               pairing + connection + reconnect  ← the tricky part
+  prompt.js                   buffered stdin prompts (method + phone)
+  messageHandler.js           permission model + command routing
+  pluginLoader.js             loads plugins/, registers Arabic aliases
+  aliases.js                  Arabic name → canonical plugin name
+  subbotManager.js            subbots (extra paired numbers)
+  logger.js                   console output
+  economy.js xp.js gamedata.js antilink.js
+  sqlite.js                   node:sqlite wrapper
+database/db.js                users / groups / bots store (node:sqlite)
+plugins/<category>/*.js       all commands, auto-loaded (105 files)
 sessions/main/auth.db         the live session (gitignored)
 ```
 
 ## Commands
 
 - `npm start` — boots the bot.
-- Syntax check: `find index.js database الاضافات الاوامر -name '*.js' -print0 | xargs -0 -n1 node --check`
-- Loader check: import `الاضافات/المحمل.js` and `الاضافات/محمل-المضاد.js`, assert both return something.
-- CI (`.github/workflows/ci.yml`) runs the syntax check and the loader check on Node 22
-  and 24. There is no `npm run build` or `npm test` script.
+- `npm run check` — syntax-checks every source file.
+- CI (`.github/workflows/ci.yml`) runs the syntax check and a plugin-load +
+  database round-trip on Node 22 and 24. There is no `npm test` script.
 
-## The dependency is the patched `baileys-nextgen` package
+## Plugin contract
 
-```json
-"@whiskeysockets/baileys": "npm:@muhammadridwanf61/baileys-nextgen@latest"
+Every file under `plugins/` default-exports:
+
+```js
+export default {
+  name: ["cmd", "alias"],   // first name is canonical
+  category: "info",         // decides the menu section
+  ownerOnly / adminOnly / botAdmin / modOnly / premiumOnly /
+  groupOnly / privateOnly,  // any of these gate the command
+  async run(ctx) { ... }
+};
 ```
 
-The reference repo pins `github:naut21/Baileys`, but **that build is not usable** — it
-crashes (the reference itself only links after swapping it out). Both the official
-package and this npm alias work. We use the alias: it is published, needs no build
-step, and carries the pairing improvements.
+`ctx` gives `sock, msg, from, sender, senderNum, botJid, botLabel, isGroup,
+groupName, groupMeta, body, args, text, usedPrefix, isOwner, isCoOwner, isMod,
+isPremium, isAdmin, isBotAdmin, reply(), react(), resolveLid()`. Use `reply()`
+rather than raw `sock.sendMessage` — it retries without `quoted` when a quote
+fails, and it always mentions the sender.
 
-Do not switch this back to the `naut21` git dependency.
+### Arabic command names
 
-`baileys-nextgen` is `7.0.0-rc14` plus extra modules: `Pairing/` (companion-reg
-pairing suite), `Resilience/` (prekey repair, rate-limit guard, session revival),
-`HumanEngine/` (anti-ban), `Router/`, `AI/`. They are opt-in exports — importing the
-package starts no timers or servers.
+Plugins keep their original names so upstream fixes stay applicable. Arabic
+names live in `core/aliases.js` and are registered by `pluginLoader.js` after
+loading. Add an entry there instead of editing a plugin's `name` field.
 
-### Pairing codes
+## The pairing flow
 
-`requestPairingCode(phone, customCode?)` accepts a custom code of **exactly 8 chars**;
-without one it generates a code itself. `النظام.js` generates a fresh Crockford-base32
-code per pairing via `generatePairingCode()`.
-
-## Crash safety
-
-The process is long-lived, so nothing may take it down:
-
-- `index.js` installs `uncaughtException` and `unhandledRejection` handlers that log
-  and keep running, plus a `warning` filter that drops only the `node:sqlite`
-  `ExperimentalWarning`.
-- The whole `makeWASocket` call is inside a `try`, and the reconnect path is `.catch`ed.
-- `connect()` never throws to the caller — on exhaustion it returns `{ sock: null }`.
-
-Optional peers (`jimp`, `link-preview-js`, `audio-decode`, `sharp`) are loaded lazily
-by Baileys. `generateHighQualityLinkPreview: true` needs `link-preview-js`; the import
-is wrapped in try/catch upstream, but install the peer if link previews matter.
-
-## Pairing flow (mirrors the reference)
-
-1. `connect()` asks `1`/`2` **only** when the session is not registered, only on the
-   main bot, and only on `attempt === 0`.
-2. Phone input accepts any format — `+967 738 512 629`, `967-738-512-629`,
-   `(967) 738 512 629`. `normalizePhoneNumber()` strips non-digits and checks E.164
-   length (8–15).
-3. Wait `PAIRING_DELAY_MS` (3000ms), then request the code.
-4. **Never add a timer that wipes the session while a code is on screen.** An earlier
-   version did exactly that — it called `resetSession()` on expiry, deleting the
-   credentials mid-pairing, which surfaced as "تعذر ربط الجهاز".
+1. `askPairingDetails()` in `core/prompt.js` asks `1`/`2`, then the phone
+   number, **on one prompter**. Two separate prompters lose the number: if the
+   choice and the number arrive together (pasted, or a panel that delivers both
+   lines at once), the first readline interface buffers the second line and
+   drops it on close, so the phone question resolves empty.
+2. The number is normalised to digits only, so `+967 738 512 629`,
+   `967738512629` and `(967) 738-512-629` are all accepted (8–15 digits).
+3. Wait `PAIRING_DELAY_MS` (3000ms), request the code, print **only** the code,
+   then hold the socket for `PAIRING_GRACE_MS` (120s) so the user can link.
+4. Never add a timer that wipes the session while a code is on screen.
 
 ## Post-pairing sync: the 515 trap
 
-Right after a successful link, WhatsApp closes the socket with **515
-(`restartRequired`)** and expects an immediate reconnect. Two bugs here caused the
-"linked but does not read, re-reads the session forever" symptom:
+Right after a successful link WhatsApp closes the socket with **515
+(`restartRequired`)** and expects a reconnect. Two bugs here caused "linked but
+does not read, re-reads the session forever":
 
-1. **Wiping keys on every retry.** `connect()` called `clearSocketKeys()` whenever
-   `attempt > 0`. `clearSocketKeys` deletes every `auth` row *except* `creds`, so
-   `creds.registered` stayed `true` while all Signal keys were gone. The socket then
-   connected fine but could not decrypt anything. Key wiping now happens only when
-   the caller explicitly asks (`wipeKeys: true`), which is the `badSession` path.
-2. **Reconnecting with `attempt: 0`.** The 515 path reset the counter, so the backoff
-   was `5000 * 0 = 0ms` — an instant loop. The delay now has a floor of
-   `RECONNECT_DELAY_MS`.
+1. **Wiping keys on every retry.** `clearSocketFiles` deletes every `auth` row
+   *except* `creds`, so `creds.registered` stays `true` while all Signal keys
+   are gone — the socket opens but can never decrypt. Wiping now happens only
+   when the caller asks (`wipeKeys: true`), which is the `badSession` path.
+2. **Reconnecting with `_attempt: 0`.** The 515 path resets the counter, so the
+   backoff became `5000 * 0 = 0ms` — an instant loop. The delay now has a floor
+   of `config.reconnectDelay`.
 
-`reconnect()` is the single re-entry point and is guarded by a module-level
-`reconnectLocks` set keyed by auth folder: Baileys can emit more than one close for a
-single failure, and two concurrent `connect()` calls both re-read the auth db.
+`reconnect()` is the single re-entry point, guarded by a module-level
+`reconnectLocks` set keyed by session folder: Baileys can emit several closes
+for one failure and two concurrent `createConnection` calls both re-read the db.
 
-## Reconnect rules
+### Reconnect rules
 
 - `restartRequired` (515) → reconnect with the saved session, reset the attempt
   counter, keep the keys. This is the normal post-link path.
 - `badSession` (500) → wipe keys, then reconnect.
 - `loggedOut` (401) / `connectionReplaced` (440) → stop; do not loop.
-- Everything else → backoff `RECONNECT_DELAY_MS * attempt`, capped at 30s, up to
-  `MAX_RECONNECT_ATTEMPTS`.
+- Everything else → backoff `reconnectDelay * attempt`, capped at 30s, up to
+  `maxReconnectAttempts`.
 - **Never** wipe keys on a plain retry.
+
+## Database
+
+`database/db.js` uses `node:sqlite` (built into Node), not `better-sqlite3`.
+There is no native build step, so install cannot fail on a prebuilt-binary
+mismatch. Users are keyed by **bare number** (`normalizeJid`), so
+`123@s.whatsapp.net`, `123:5@s.whatsapp.net` and `123` are one row.
+
+## Dependencies
+
+```json
+"@whiskeysockets/baileys": "npm:@muhammadridwanf61/baileys-nextgen@latest"
+```
+
+nextgen does **not** export `Button`, `Carousel` or `AIRich`. Plugins needing an
+interactive list must render text instead (see `plugins/economy/comprarpersonaje.js`).
+`plugins/owner/crash.js` from the reference was **not** ported — it is a
+denial-of-service tool (floods a group to freeze clients).
+
+## Environment gotcha
+
+WhatsApp terminates web-client sessions from **datacenter IPs** — the socket
+opens, then closes ~250–600ms later with a raw `1006`. Pairing then succeeds
+only occasionally, for both the pairing and QR flows. This is **not a code bug**;
+run on a residential host to pair. Check the egress IP with
+`curl -s https://ipinfo.io/json`.
 
 ## Repo conventions
 
 - Source comments are Arabic; commit messages and this file are English.
-- Never commit `sessions/`, `database/sessions-taib/`, `*.db`, `.env`, or `test-session/`.
+- Never commit `sessions/`, `tmp/`, `database/*.sqlite*`, `*.db`, `.env`.
 - Workflow: branch → PR → CI green → squash-merge into `main`. `gh` is not
   authenticated; use the REST API with `$GITHUB_TOKEN` (merge via
   `PUT /pulls/:n/merge-async`, then poll `/pulls/:n/merge-async/:uuid`).

@@ -41,21 +41,23 @@ jobs:
 
       - name: Syntax-check every source file
         run: |
-          find index.js database الاضافات الاوامر -name '*.js' -print0 \
+          find index.js config.js core database plugins -name '*.js' -print0 \
             | xargs -0 -n1 node --check
 
-      - name: Load commands, anti-features and the database
+      - name: Load every plugin and round-trip the database
         run: |
           node --input-type=module -e "
           process.env.BOT_DB_PATH = '/tmp/ci.db';
-          const { loadCommands } = await import('./الاضافات/المحمل.js');
-          const { loadAntiFeatures } = await import('./الاضافات/محمل-المضاد.js');
-          const db = await import('./database/db.js');
-          const commands = await loadCommands();
-          const anti = await loadAntiFeatures();
-          if (Object.keys(commands).length === 0) throw new Error('no commands loaded');
-          if (anti.length === 0) throw new Error('no anti-features loaded');
-          await db.registerGroup('1@g.us', 'CI');
-          console.log('ok:', Object.keys(commands).length, 'commands,', anti.length, 'anti-features');
+          const { loadPlugins, getPlugins } = await import('./core/pluginLoader.js');
+          const { db } = await import('./database/db.js');
+          await loadPlugins();
+          const plugins = getPlugins();
+          if (plugins.size === 0) throw new Error('no plugins loaded');
+          db.setUser('123@s.whatsapp.net', { role: 'owner' });
+          db.setGroup('1@g.us', { antilink: true });
+          db.setBot('1@s.whatsapp.net', { label: 'CI' });
+          if (!db.hasRole('123', 'owner')) throw new Error('hasRole failed');
+          if (!db.getGroup('1@g.us').antilink) throw new Error('group round-trip failed');
+          console.log('ok:', plugins.size, 'aliases loaded');
           process.exit(0);
           "

@@ -1,36 +1,80 @@
-import log from "./الاضافات/الكونسل.js";
+import { printBanner, log } from "./core/logger.js";
+import { createConnection } from "./core/connection.js";
+import { loadPlugins, watchPlugins } from "./core/pluginLoader.js";
+import { launchAllSubbots, registerMainBot } from "./core/subbotManager.js";
+import fs from "fs";
+import path from "path";
 
-// node:sqlite is still flagged experimental and prints an ExperimentalWarning
-// on Node 22. The database module is imported dynamically below so this filter
-// is installed first; drop only that warning and keep any other one visible.
-process.removeAllListeners("warning");
-process.on("warning", (warning) => {
-  if (warning.name === "ExperimentalWarning") return;
-  console.warn(`${warning.name}: ${warning.message}`);
-});
+/**
+ * Silence the node:sqlite ExperimentalWarning.
+ *
+ * Node prints "SQLite is an experimental feature" on every run, which buries
+ * the bot's own output in the console. Only that one warning is dropped —
+ * everything else still reaches stderr.
+ */
+const originalEmit = process.emit;
+process.emit = function (name, data, ...rest) {
+  if (
+    name === "warning" &&
+    data?.name === "ExperimentalWarning" &&
+    /SQLite/i.test(data?.message || "")
+  ) {
+    return false;
+  }
+  return originalEmit.call(process, name, data, ...rest);
+};
 
-// The bot is a long-lived process: a throw from inside a Baileys callback or a
-// rejected promise must not take the whole session down. Log and keep running.
+// A rejected promise or a stray throw must never take the whole bot down.
 process.on("uncaughtException", (err) => {
-  log.error(err?.message ?? String(err), "uncaughtException", err?.stack);
+  log.error(`خطأ غير متوقع: ${err?.message}`, "index.js", err?.stack);
 });
-
 process.on("unhandledRejection", (reason) => {
-  const err = reason instanceof Error ? reason : new Error(String(reason));
-  log.error(err.message, "unhandledRejection", err.stack);
+  log.error(`وعد مرفوض غير معالج: ${reason?.message || reason}`, "index.js");
 });
 
-async function main() {
-  log.name();
+const tmpDir = path.resolve("./tmp");
+if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+process.env.TMPDIR = tmpDir;
 
-  const { connect } = await import("./الاضافات/النظام.js");
-
-  // connect() decides everything itself: it only asks for 1/2 when the session
-  // is not registered yet, and just reconnects when it already is.
-  await connect();
+for (const file of fs.readdirSync(tmpDir)) {
+  try {
+    fs.unlinkSync(path.join(tmpDir, file));
+  } catch {}
 }
 
-main().catch((err) => {
-  log.error(err.message, "index.js", err.stack);
+setInterval(() => {
+  if (!fs.existsSync(tmpDir)) return;
+  for (const file of fs.readdirSync(tmpDir)) {
+    try {
+      const filePath = path.join(tmpDir, file);
+      if (Date.now() - fs.statSync(filePath).mtimeMs > 3600000) fs.unlinkSync(filePath);
+    } catch {}
+  }
+}, 6 * 60 * 60 * 1000);
+
+async function main() {
+  await printBanner();
+
+  log.info("تحميل الإضافات...");
+  await loadPlugins();
+  watchPlugins();
+
+  log.info("تشغيل البوت الرئيسي...");
+  const sock = await createConnection({
+    sessionDir: "./sessions/main",
+    botLabel: "MAIN",
+    isSubbot: false,
+  });
+
+  if (sock) {
+    registerMainBot(sock, "MAIN");
+    log.info("[MAIN] تم التسجيل في البوتات النشطة");
+  }
+
+  launchAllSubbots();
+}
+
+main().catch((e) => {
+  log.error(`خطأ قاتل: ${e.message}`, "index.js", e.stack);
   process.exit(1);
 });

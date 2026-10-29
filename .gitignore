@@ -18,3 +18,11 @@ database/bot.db-wal
 *.db
 *.db-shm
 *.db-wal
+
+# مجلد الملفات المؤقتة
+tmp/
+
+# قاعدة بيانات البوت
+database/vito.sqlite
+database/vito.sqlite-shm
+database/vito.sqlite-wal
