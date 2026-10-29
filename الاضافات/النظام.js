@@ -4,6 +4,7 @@ import makeWASocket, {
   fetchLatestBaileysVersion,
 } from "@whiskeysockets/baileys";
 import pino from "pino";
+import { randomBytes } from "crypto";
 import { mkdir } from "fs/promises";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -34,6 +35,26 @@ const MAX_RECONNECT_ATTEMPTS = 10;
 const CONNECTION_TIMEOUT_MS = 75000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** Bare digits only — requestPairingCode expects the number without separators. */
+const cleanPhoneNumber = (value) => String(value ?? "").replace(/\D/g, "");
+
+/**
+ * Build an 8-character pairing code.
+ *
+ * The reference library ships a fixed list of codes and picks one at random,
+ * which means every install shows the same handful of codes. It accepts a custom
+ * code of exactly 8 chars, so generate a fresh one per pairing instead. Crockford
+ * base32 (no I, L, O, U) keeps the code unambiguous to read aloud.
+ */
+const PAIRING_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTVWXYZ";
+
+function generatePairingCode() {
+  const bytes = randomBytes(8);
+  let code = "";
+  for (const byte of bytes) code += PAIRING_ALPHABET[byte % PAIRING_ALPHABET.length];
+  return code;
+}
 
 function resolveAuthFolder(isSubBot, subBotPhone) {
   if (isSubBot && subBotPhone) return join(SUB_AUTH_FOLDER, subBotPhone);
@@ -197,7 +218,7 @@ export async function connect({
     // Send the pairing iq only after the handshake settles.
     await sleep(PAIRING_DELAY_MS);
     try {
-      pairingCode = await sock.requestPairingCode(String(phoneNumber).replace(/\D/g, ""));
+      pairingCode = await sock.requestPairingCode(cleanPhoneNumber(phoneNumber), generatePairingCode());
       log.pairingCode(pairingCode);
     } catch (err) {
       log.error(`[${label}] تعذّر طلب رمز الاقتران: ${err.message}`, "النظام.js");
