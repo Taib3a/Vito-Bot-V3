@@ -52,7 +52,7 @@ export default {
     "https://cdn.dix.lat/me/kqfd_20260909-c91x-xkkt-ed5c.png",
   ],
 
-  // القنوات ومجموعة الدعم
+  // القنوات ومجموعة الدعم (تُصدَّر أيضاً كـ global.my)
   channels: {
     canal1: "120363429662971001@newsletter",
     canal2: "120363429662971001@newsletter",

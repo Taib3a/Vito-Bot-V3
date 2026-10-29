@@ -74,27 +74,32 @@ decides what the suffix means.
 
 ## Interactive buttons and lists
 
-`core/buttons.js` sends reply buttons, url/copy/call buttons and dropdowns.
+`core/buttons.js` exports `initButtons(conn)`, called from `connection.js` once
+the socket is built. It attaches `sock.sendButtonMessage`:
 
 ```js
-import { sendButtons, sendList } from "../../core/buttons.js";
-
-await sendButtons(sock, from, msg, {
-  text: "choose", title: "Title", footer: "footer",
-  image: "https://…",                       // optional header image
-  buttons: [{ text: "Hi", id: ".hi" }],     // kind: reply|url|copy|call
-});
-
-await sendList(sock, from, msg, {
-  text: "pick one", buttonText: "القائمة",
-  sections: [{ title: "A", rows: [{ title: "x", description: "y", id: ".say_x" }] }],
+await sock.sendButtonMessage(from, "text", [
+  { text: "Reply", id: ".cmd" },        // quick_reply (default)
+  { text: "Site",  url: "https://…" },  // cta_url
+  { text: "Call",  phoneNumber: "+967…" }, // cta_call
+  { text: "Copy",  copy: "CODE" },      // cta_copy
+], {
+  title: "Header", footer: "Footer",
+  image: "https://…",                   // header image, optional
+  mentions: [jid],
+  sections: [{ title: "S", rows: [{ title: "Row", description: "d", id: ".cmd" }] }],
 });
 ```
 
-**This build has no `sendButtonMessage`.** Buttons only render when the payload
-is a `viewOnceMessage` wrapping an `interactiveMessage` with a
-`nativeFlowMessage`, sent through `relayMessage` — which is exactly what this
-module does. Do not look for the helper in Baileys; it is not there.
+**This build has no built-in `sendButtonMessage`.** Two things are required and
+both are easy to get wrong:
+
+1. Send a **plain `interactiveMessage`** — do NOT wrap it in `viewOnceMessage`.
+   Wrapping compiles fine but WhatsApp silently drops the buttons.
+2. Pass `additionalNodes` with `biz > interactive(type=native_flow) >
+   native_flow(v=9, name=mixed)`. Without it the message goes out as plain text.
+   Private chats also need a second node, `bot(biz_bot=1)`; groups must not
+   have it.
 
 A click arrives as `interactiveResponseMessage.nativeFlowResponseMessage
 .paramsJson` (`{"id":"…"}`), not as text. `messageHandler` runs it through

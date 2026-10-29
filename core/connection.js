@@ -18,6 +18,7 @@ import { askPairingDetails } from "./prompt.js";
 import config from "../config.js";
 import { handleMessage, registerGroupCacheEvents } from "./messageHandler.js";
 import { registerAntifeatures } from "./مضاد/index.js";
+import { initButtons } from "./buttons.js";
 
 // WhatsApp needs a beat after the handshake before it accepts the pairing iq.
 const PAIRING_DELAY_MS = 3000;
@@ -356,6 +357,8 @@ export async function createConnection({
 
   registerGroupCacheEvents(sock);
   registerAntifeatures(sock, botLabel);
+  // Adds sock.sendButtonMessage — see core/buttons.js.
+  initButtons(sock);
 
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
     if (type !== "notify") return;

@@ -5,7 +5,6 @@ import crypto from "crypto";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import config from "../../config.js";
-import { sendButtons, sendList } from "../../core/buttons.js";
 import { log } from "../../core/logger.js";
 
 const execFileAsync = promisify(execFile);
@@ -339,27 +338,36 @@ function ctxInfo(mentions) {
   };
 }
 
-/** Buttons, with the header image dropped if it cannot be prepared. */
+/**
+ * Send buttons. The image is dropped on failure so a broken URL never costs
+ * the user the whole menu.
+ */
 async function tryButtons(sock, from, msg, opts) {
   const image = opts.image ?? pickImage();
+  const send = (img) =>
+    sock.sendButtonMessage(from, opts.text || "", opts.buttons || [], {
+      title: opts.title,
+      footer: opts.footer,
+      quoted: msg,
+      image: img,
+      sections: opts.sections || [],
+      selectTitle: opts.buttonText || "Seleccionar",
+      mentions: opts.mentions || [],
+      contextInfo: ctxInfo(opts.mentions),
+    });
+
   try {
-    return await sendButtons(sock, from, msg, { ...opts, image, contextInfo: ctxInfo(opts.mentions) });
+    return await send(image);
   } catch (e) {
     if (!image) throw e;
     log.warn(`[انطق] تعذّر تجهيز الصورة: ${e.message} — إرسال بدونها`);
-    return await sendButtons(sock, from, msg, { ...opts, image: null, contextInfo: ctxInfo(opts.mentions) });
+    return await send(null);
   }
 }
 
+/** A dropdown travels as a single_select inside the same button message. */
 async function tryList(sock, from, msg, opts) {
-  const image = opts.image ?? pickImage();
-  try {
-    return await sendList(sock, from, msg, { ...opts, image, contextInfo: ctxInfo(opts.mentions) });
-  } catch (e) {
-    if (!image) throw e;
-    log.warn(`[انطق] تعذّر تجهيز الصورة: ${e.message} — إرسال بدونها`);
-    return await sendList(sock, from, msg, { ...opts, image: null, contextInfo: ctxInfo(opts.mentions) });
-  }
+  return tryButtons(sock, from, msg, { ...opts, buttons: [], sections: opts.sections || [] });
 }
 
 async function replyText(sock, from, msg, text, mentions) {
