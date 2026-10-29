@@ -1,6 +1,6 @@
 import config from "../config.js";
 import { log } from "./logger.js";
-import { getPlugins, findPlugin } from "./pluginLoader.js";
+import { getPlugins } from "./pluginLoader.js";
 import { db } from "../database/db.js";
 import { runAntifeatures } from "./مضاد/index.js";
 import { handleChatXp, handleCommandXp } from "./xp.js";
@@ -150,9 +150,7 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
     const text = args.join(" ");
 
     const plugins = getPlugins();
-    // findPlugin also matches a plugin's dynamic id namespace, so a button
-    // click like "say_woody" reaches the "say" plugin.
-    const plugin = isCmd ? findPlugin(cmdName) : null;
+    const plugin = isCmd ? plugins.get(cmdName) : null;
 
     let groupName = "";
     let groupMeta = null;
