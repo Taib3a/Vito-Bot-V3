@@ -16,6 +16,7 @@ core/
   messageHandler.js           permission model + command routing
   pluginLoader.js             loads plugins/, registers Arabic aliases
   aliases.js                  Arabic name → canonical plugin name
+  buttons.js                  interactive buttons / lists (native flow)
   subbotManager.js            subbots (extra paired numbers)
   logger.js                   console output
   economy.js xp.js gamedata.js
@@ -27,7 +28,7 @@ core/
     مضاد-بوتات.js             anti-bots       (flag: antibot)
     ترحيب-وداع.js             welcome/goodbye (flag: welcome)
 database/db.js                users / groups / bots store (node:sqlite)
-plugins/<category>/*.js       all commands, auto-loaded (104 files)
+plugins/<category>/*.js       all commands, auto-loaded (105 files)
 sessions/main/auth.db         the live session (gitignored)
 ```
 
@@ -63,6 +64,56 @@ fails, and it always mentions the sender.
 Plugins keep their original names so upstream fixes stay applicable. Arabic
 names live in `core/aliases.js` and are registered by `pluginLoader.js` after
 loading. Add an entry there instead of editing a plugin's `name` field.
+
+### Dynamic button ids
+
+A plugin may declare `dynamicPrefixes: ["say_"]` to own a whole id namespace.
+A click sends back e.g. `say_woody`, which is not a declared name; `findPlugin()`
+matches it by prefix (longest wins) and routes it to the plugin. The plugin then
+decides what the suffix means.
+
+## Interactive buttons and lists
+
+`core/buttons.js` sends reply buttons, url/copy/call buttons and dropdowns.
+
+```js
+import { sendButtons, sendList } from "../../core/buttons.js";
+
+await sendButtons(sock, from, msg, {
+  text: "choose", title: "Title", footer: "footer",
+  image: "https://…",                       // optional header image
+  buttons: [{ text: "Hi", id: ".hi" }],     // kind: reply|url|copy|call
+});
+
+await sendList(sock, from, msg, {
+  text: "pick one", buttonText: "القائمة",
+  sections: [{ title: "A", rows: [{ title: "x", description: "y", id: ".say_x" }] }],
+});
+```
+
+**This build has no `sendButtonMessage`.** Buttons only render when the payload
+is a `viewOnceMessage` wrapping an `interactiveMessage` with a
+`nativeFlowMessage`, sent through `relayMessage` — which is exactly what this
+module does. Do not look for the helper in Baileys; it is not there.
+
+A click arrives as `interactiveResponseMessage.nativeFlowResponseMessage
+.paramsJson` (`{"id":"…"}`), not as text. `messageHandler` runs it through
+`extractButtonId()` and treats the id as the typed command, so `.say_woody` in a
+button id behaves like the user typed it.
+
+## Text-to-speech (`plugins/ia/انطق.js`)
+
+`.انطق <نص>` (alias `say`) shows a menu of 42 cartoon voices, as pressable
+buttons or a dropdown. Providers are tried in order — Fish Audio, then FakeYou,
+then Uberduck — and the first that returns audio wins.
+
+- API keys come from the environment (`FISH_API_KEY`, `FAYEYOU_COOKIE`,
+  `UBERDUCK_API_KEY`) via `config.tts`. **Never hardcode a key in the repo.**
+- Voice notes need opus, which needs the `ffmpeg` binary. When it is missing the
+  audio is still sent, as mp3. `config.tts.ffmpegPath = false` disables the
+  conversion outright.
+- The text is stored per chat+sender for 30 minutes so the voice buttons still
+  know what to say after the menu has scrolled away.
 
 ## The pairing flow
 

@@ -1,11 +1,12 @@
 import config from "../config.js";
 import { log } from "./logger.js";
-import { getPlugins } from "./pluginLoader.js";
+import { getPlugins, findPlugin } from "./pluginLoader.js";
 import { db } from "../database/db.js";
 import { runAntifeatures } from "./مضاد/index.js";
 import { handleChatXp, handleCommandXp } from "./xp.js";
 import { claimOnce } from "./subbotManager.js";
 import { resolveAlias } from "./aliases.js";
+import { extractButtonId } from "./buttons.js";
 
 const GROUP_TTL = 10 * 60 * 1000;
 const groupCache = new Map();
@@ -115,6 +116,8 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
       msg.message?.buttonsResponseMessage?.selectedButtonId ||
       msg.message?.listResponseMessage?.singleSelectReply?.selectedRowId ||
       msg.message?.templateButtonReplyMessage?.selectedId ||
+      // A native-flow click arrives as paramsJson, not as text.
+      extractButtonId(msg.message) ||
       "";
 
     const msgType = msg.message ? Object.keys(msg.message)[0] ?? "unknown" : "unknown";
@@ -147,7 +150,9 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
     const text = args.join(" ");
 
     const plugins = getPlugins();
-    const plugin = isCmd ? plugins.get(cmdName) : null;
+    // findPlugin also matches a plugin's dynamic id namespace, so a button
+    // click like "say_woody" reaches the "say" plugin.
+    const plugin = isCmd ? findPlugin(cmdName) : null;
 
     let groupName = "";
     let groupMeta = null;
