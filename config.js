@@ -73,34 +73,4 @@ export default {
   reconnectDelay: 5000,
 
   logLevel: "info",
-
-  // أسماء البوت وصوره والقنوات — المصدر الوحيد في الـ globals أعلاه
-  botNames: global.botNames,
-  botImages: global.botImages,
-  channels: global.my,
-
-  // تحويل النص إلى صوت (انطق / say)
-  // مفاتيح المزوّدين تُقرأ من البيئة — لا تُكتب داخل الملف.
-  tts: {
-    provider: "auto",
-    maxChars: 5000,
-    ffmpegPath: "ffmpeg",
-    fish: {
-      baseUrl: "https://api.fish.audio",
-      model: "s2.1-pro-free",
-      searchUrl: "https://api.fish.audio/model",
-      apiKey: process.env.FISH_API_KEY || "",
-    },
-    fakeyou: {
-      baseUrl: "https://api.fakeyou.com",
-      storageUrl: "https://storage.googleapis.com/vocodes-public",
-      cookie: process.env.FAYEYOU_COOKIE || "",
-      pollTries: 80,
-      pollDelayMs: 3000,
-    },
-    uberduck: {
-      baseUrl: "https://api.uberduck.ai",
-      apiKey: process.env.UBERDUCK_API_KEY || "",
-    },
-  },
 };
