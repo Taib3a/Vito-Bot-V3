@@ -96,8 +96,8 @@ both are easy to get wrong:
 
 A click arrives as `interactiveResponseMessage.nativeFlowResponseMessage
 .paramsJson` (`{"id":"…"}`), not as text. `messageHandler` runs it through
-`extractButtonId()` and treats the id as the typed command, so `.say_woody` in a
-button id behaves like the user typed it.
+`extractButtonId()` and treats the id as the typed command, so a button whose id
+is `.ping` behaves exactly as if the user had typed it.
 
 ## The pairing flow
 
