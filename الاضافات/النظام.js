@@ -1,16 +1,17 @@
 import makeWASocket, {
   DisconnectReason,
-  fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
-  Browsers,
+  fetchLatestBaileysVersion,
 } from "@whiskeysockets/baileys";
-import qrcode from "qrcode-terminal";
 import pino from "pino";
+import { mkdir } from "fs/promises";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import qrcode from "qrcode-terminal";
 import log from "./الكونسل.js";
 import { readMessages } from "./الاعدادات.js";
-import { useSQLiteAuthState, clearSocketKeys, resetSession } from "./الجلسة.js";
+import { useSQLiteAuthState, clearSocketKeys } from "./الجلسة.js";
+import { createPrompter, promptConnectionMethod, promptPhoneNumber } from "./الادخال.js";
 import { handleMessage, runAntiFeaturesOnEvent } from "./المعالج.js";
 import { isGroupActive, registerGroup } from "./القاعدة.js";
 import { updateSubBotStatus } from "../database/db.js";
@@ -18,77 +19,21 @@ import { getGroupName, getUserName, getMessageType, getMessageContent } from "./
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // Sessions live in a plain `sessions/` folder at the project root, mirroring the
-// Yuta reference, so `sessions/main/auth.db` is easy to find and inspect.
+// reference, so `sessions/main/auth.db` is easy to find and inspect.
 const SESSIONS_BASE = join(__dirname, "..", "sessions");
 export const MAIN_AUTH_FOLDER = join(SESSIONS_BASE, "main");
 const SUB_AUTH_FOLDER = join(SESSIONS_BASE, "subbots");
 
 // WhatsApp needs a moment after the handshake before it accepts the pairing iq
-// node. Requesting the code too early is what produces the flood of 428
-// ("Connection Closed") closes. The Yuta-Okkotsu reference waits 3000ms here
-// and pairs reliably, so match it.
+// node. The reference waits 3000ms here and pairs reliably.
 const PAIRING_DELAY_MS = 3000;
-
-// How long the user has to enter the code before it is discarded and a fresh
-// one is requested. Matches the Yuta reference (60s).
-const PAIRING_TIMEOUT_MS = 60000;
 const RECONNECT_DELAY_MS = 5000;
 const MAX_RECONNECT_DELAY_MS = 30000;
 const MAX_RECONNECT_ATTEMPTS = 10;
+// Drop a socket that never reaches "open" and let the close handler retry.
+const CONNECTION_TIMEOUT_MS = 75000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-// Auth folders for which a pairing code was already issued successfully.
-// Prevents a reconnect from minting a second code while the user is typing it.
-const pairingRequested = new Set();
-
-// Auth folders that are mid-pairing (a code was requested and the phone has not
-// linked yet). Distinct from pairingRequested: the grace timer clears that one
-// so a fresh code can be minted, while this stays set so a 401 is treated as a
-// rejected pairing rather than a real logout.
-const pairingPhase = new Set();
-
-// Live socket per auth folder, so the grace timer can end the *current* socket
-// even if a reconnect replaced the one that issued the code.
-const activeSockets = new Map();
-
-// One grace timer per auth folder: started when a code is issued and cleared
-// once the socket opens. If it fires, the user did not finish linking in time,
-// so we drop the socket and let the reconnect request a fresh code.
-const pairingGraceTimers = new Map();
-
-function clearPairingGrace(sessionKey) {
-  const timer = pairingGraceTimers.get(sessionKey);
-  if (timer) {
-    clearTimeout(timer);
-    pairingGraceTimers.delete(sessionKey);
-  }
-}
-
-/**
- * Start (or restart) the countdown that lets the user type the code into
- * WhatsApp. On expiry the code is abandoned and a fresh one is requested on the
- * next connection, which is how the user always has a valid code on screen.
- */
-function startPairingGrace(sessionKey) {
-  clearPairingGrace(sessionKey);
-  const timer = setTimeout(() => {
-    pairingGraceTimers.delete(sessionKey);
-    pairingRequested.delete(sessionKey);
-    log.warn("Pairing code expired — requesting a new one...");
-    // The code expired with creds.me set but the session still unregistered.
-    // Wipe it so the next connection is clean and does not get a 401 for a
-    // half-finished login.
-    resetSession(sessionKey);
-    try {
-      activeSockets.get(sessionKey)?.end(new Error("pairing timeout"));
-    } catch {
-      // socket already gone; the close handler will reconnect
-    }
-  }, PAIRING_TIMEOUT_MS);
-  timer.unref?.();
-  pairingGraceTimers.set(sessionKey, timer);
-}
 
 function resolveAuthFolder(isSubBot, subBotPhone) {
   if (isSubBot && subBotPhone) return join(SUB_AUTH_FOLDER, subBotPhone);
@@ -107,52 +52,6 @@ function logIncomingMessage(msg) {
   } catch {
     // logging should never crash the bot
   }
-}
-
-function wireMessageEvents(sock, state) {
-  // Recent messages, so a retry can re-decrypt a message WhatsApp re-delivers.
-  // Baileys asks for these through getMessage below; without them a retried
-  // command silently fails to decrypt.
-  const msgStore = new Map();
-  const MAX_STORE_SIZE = 500;
-  const cacheMessage = (msg) => {
-    if (!msg?.key?.id) return;
-    msgStore.set(`${msg.key.remoteJid}:${msg.key.id}`, msg);
-    if (msgStore.size > MAX_STORE_SIZE) msgStore.delete(msgStore.keys().next().value);
-  };
-
-  sock.ev.on("messages.upsert", async ({ messages, type }) => {
-    // Only live traffic. history/sync payloads would replay old commands.
-    if (type && type !== "notify") return;
-
-    for (const msg of messages) {
-      if (!msg.message) continue;
-      if (msg.key.remoteJid === "status@broadcast") continue;
-
-      cacheMessage(msg);
-
-      // Commands sent from the owner's own phone arrive as fromMe; they must
-      // still run, otherwise the bot ignores its own messages.
-      if (!msg.key.fromMe) {
-        logIncomingMessage(msg);
-        if (readMessages) {
-          // Blue ticks straight away, so the sender sees the bot read the message.
-          sock.readMessages([msg.key]).catch(() => {});
-        }
-      }
-
-      // Hold messages that arrive before the connection is fully open, then
-      // replay them, so nothing sent during the handshake is lost.
-      if (!state.connected) {
-        state.pending.push(msg);
-        continue;
-      }
-
-      await handleMessage(sock, msg);
-    }
-  });
-
-  return { getMessage: async (key) => msgStore.get(`${key.remoteJid}:${key.id}`)?.message };
 }
 
 function wireGroupEvents(sock) {
@@ -180,9 +79,147 @@ function wireGroupEvents(sock) {
   });
 }
 
-function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone, attempt = 0, sessionKey, authFolder, state, authState }) {
+/**
+ * Connect one WhatsApp socket, mirroring the reference's createConnection:
+ *
+ * - the 1/2 prompt is asked here, only for the main bot, only on the first
+ *   attempt, and only when the session is not registered yet;
+ * - a reconnect clears the cached socket keys first (a stale key store is what
+ *   makes the handshake fail and the phone report "could not link");
+ * - there is no timer that wipes the session while a code is on screen.
+ */
+export async function connect({
+  method = null,
+  phoneNumber = null,
+  isSubBot = false,
+  subBotPhone = null,
+  attempt = 0,
+} = {}) {
+  const authFolder = resolveAuthFolder(isSubBot, subBotPhone);
+  const label = isSubBot && subBotPhone ? subBotPhone : "MAIN";
+
+  if (attempt > 0) {
+    log.warn(`[${label}] تنظيف مفاتيح الجلسة قبل إعادة الاتصال...`);
+    clearSocketKeys(authFolder);
+    const delay = Math.min(RECONNECT_DELAY_MS * attempt, MAX_RECONNECT_DELAY_MS);
+    log.info(`[${label}] إعادة الاتصال بعد ${delay / 1000}s...`);
+    await sleep(delay);
+  }
+
+  await mkdir(authFolder, { recursive: true });
+  const { state: authState, saveCreds } = await useSQLiteAuthState(authFolder);
+  const { version } = await fetchLatestBaileysVersion();
+
+  // Ask only when the main session is not linked yet and no method was passed.
+  if (!isSubBot && !authState.creds.registered && attempt === 0 && !method) {
+    const prompter = createPrompter();
+    const chosen = await promptConnectionMethod(prompter);
+    if (chosen === null) {
+      prompter.close();
+      log.error("No input received. Run the bot from an interactive terminal.", "النظام.js");
+      process.exit(1);
+    }
+    if (chosen === "pairing") {
+      const phone = await promptPhoneNumber(prompter);
+      if (phone === null) {
+        prompter.close();
+        log.error("Phone number is required for pairing code.", "النظام.js");
+        process.exit(1);
+      }
+      method = "pairing";
+      phoneNumber = phone;
+    } else {
+      method = "qr";
+    }
+    prompter.close();
+  }
+
+  const useCode = method === "pairing" && !!phoneNumber && !authState.creds.registered;
+
+  let connected = false;
+  const pendingMessages = [];
+  const msgStore = new Map();
+  const MAX_STORE_SIZE = 500;
+  let connectionTimeout = null;
+  let pairingCode = null;
+  let sock;
+
+  const cacheMessage = (msg) => {
+    if (!msg?.key?.id) return;
+    msgStore.set(`${msg.key.remoteJid}:${msg.key.id}`, msg);
+    if (msgStore.size > MAX_STORE_SIZE) msgStore.delete(msgStore.keys().next().value);
+  };
+
+  const clearConnTimeout = () => {
+    if (connectionTimeout) {
+      clearTimeout(connectionTimeout);
+      connectionTimeout = null;
+    }
+  };
+
+  const flushPending = () => {
+    const queue = pendingMessages.splice(0);
+    for (const msg of queue) {
+      handleMessage(sock, msg).catch((e) => log.error(`Queued message error: ${e.message}`, "النظام.js"));
+    }
+  };
+
+  try {
+    sock = makeWASocket({
+      version,
+      auth: {
+        creds: authState.creds,
+        keys: makeCacheableSignalKeyStore(authState.keys, pino({ level: "silent" })),
+      },
+      printQRInTerminal: !useCode,
+      logger: pino({ level: "silent" }),
+      // The reference pairs as Ubuntu/Chrome and reconnects as a desktop app.
+      browser: useCode ? ["Ubuntu", "Chrome", "20.0.04"] : ["VitoBot", "Chrome", "3.0.0"],
+      syncFullHistory: false,
+      markOnlineOnConnect: false,
+      generateHighQualityLinkPreview: true,
+      connectTimeoutMs: 60000,
+      keepAliveIntervalMs: 25000,
+      retryRequestDelayMs: 3000,
+      defaultQueryTimeoutMs: 60000,
+      // A retried message must be re-decryptable, so keep the last messages.
+      getMessage: async (key) => msgStore.get(`${key.remoteJid}:${key.id}`)?.message,
+    });
+  } catch (err) {
+    log.error(`[${label}] فشل إنشاء الاتصال: ${err.message}`, "النظام.js");
+    if (attempt < MAX_RECONNECT_ATTEMPTS) {
+      return connect({ method, phoneNumber, isSubBot, subBotPhone, attempt: attempt + 1 });
+    }
+    return { sock: null, pairingCode: null };
+  }
+
+  if (useCode) {
+    // Send the pairing iq only after the handshake settles.
+    await sleep(PAIRING_DELAY_MS);
+    try {
+      pairingCode = await sock.requestPairingCode(phoneNumber);
+      log.pairingCode(pairingCode);
+    } catch (err) {
+      log.error(`[${label}] تعذّر طلب رمز الاقتران: ${err.message}`, "النظام.js");
+    }
+  }
+
+  connectionTimeout = setTimeout(() => {
+    if (!connected) {
+      log.warn(`[${label}] انتهت مهلة الاتصال — إعادة المحاولة...`);
+      try {
+        sock.end(new Error("timeout"));
+      } catch {
+        // socket already gone
+      }
+    }
+  }, CONNECTION_TIMEOUT_MS);
+  connectionTimeout.unref?.();
+
+  sock.ev.on("creds.update", saveCreds);
+
   sock.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
-    if (qr && method === "qr") {
+    if (qr) {
       log.connection("qr");
       qrcode.generate(qr, { small: true });
     }
@@ -192,22 +229,10 @@ function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone
     }
 
     if (connection === "open") {
-      clearPairingGrace(sessionKey);
-      // Registration is what ends the pairing phase. Until then keep the flag
-      // so a close is still reported as "waiting for pairing".
-      if (authState.creds?.registered) {
-        pairingRequested.delete(sessionKey);
-        pairingPhase.delete(sessionKey);
-      }
-      state.connected = true;
+      clearConnTimeout();
+      connected = true;
       log.connection("open", "𝙱𝙾𝚃 𝚅𝙸𝚃𝙾 𝚅𝟹 is ready!");
-
-      // Replay anything that arrived during the handshake.
-      const queued = state.pending.splice(0);
-      for (const msg of queued) {
-        handleMessage(sock, msg).catch((err) => log.error(`Queued message error: ${err.message}`));
-      }
-
+      flushPending();
       if (isSubBot && subBotPhone) {
         try {
           await updateSubBotStatus(subBotPhone, "connected");
@@ -218,33 +243,14 @@ function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone
     }
 
     if (connection === "close") {
-      state.connected = false;
+      clearConnTimeout();
+      connected = false;
       const code = lastDisconnect?.error?.output?.statusCode;
-      const shouldReconnect = code !== DisconnectReason.loggedOut;
-      const pairing = method === "pairing" && pairingPhase.has(sessionKey);
-      log.connection(
-        "close",
-        pairing
-          ? `code ${code} — waiting for pairing`
-          : `code ${code}${shouldReconnect ? " — reconnecting" : " — logged out"}`
-      );
+      const reason = lastDisconnect?.error?.message || "unknown";
+      log.connection("close", `code ${code} — ${reason}`);
 
-      if (!shouldReconnect) {
-        // A 401 while a pairing code is outstanding means the server rejected
-        // the half-registered session, not that the user unlinked the phone.
-        // Wipe it so the next attempt can request a fresh code; a genuine
-        // logout (already registered) still stops and asks for a restart.
-        if (pairing) {
-          resetSession(authFolder);
-          pairingRequested.delete(sessionKey);
-          pairingPhase.delete(sessionKey);
-          log.warn("Pairing rejected — starting a fresh session and requesting a new code...");
-          await sleep(RECONNECT_DELAY_MS);
-          connect({ method, phoneNumber, isSubBot, subBotPhone, attempt: 0 });
-          return;
-        }
-
-        log.error("Logged out. Delete the session folder and restart.", "النظام.js");
+      if (code === DisconnectReason.loggedOut) {
+        log.error(`تم تسجيل الخروج. احذف مجلد الجلسة ثم أعد التشغيل.`, "النظام.js");
         if (isSubBot && subBotPhone) {
           try {
             await updateSubBotStatus(subBotPhone, "disconnected");
@@ -255,100 +261,60 @@ function wireConnectionEvents(sock, { method, phoneNumber, isSubBot, subBotPhone
         return;
       }
 
-      if (attempt >= MAX_RECONNECT_ATTEMPTS) {
-        log.error(
-          `Giving up after ${MAX_RECONNECT_ATTEMPTS} reconnect attempts (code ${code}).`,
-          "النظام.js"
-        );
+      if (code === DisconnectReason.connectionReplaced) {
+        log.error(`تم استبدال الجلسة بأخرى. الإيقاف.`, "النظام.js");
         return;
       }
 
-      // Only a corrupt session needs its keys dropped. Clearing them on every
-      // close would discard a pairing that is still in progress.
       if (code === DisconnectReason.badSession) {
+        log.error(`جلسة تالفة — تنظيف وإعادة الاتصال...`, "النظام.js");
         clearSocketKeys(authFolder);
       }
 
-      // Back off before reconnecting so we never hammer the server.
-      const delay = Math.min(RECONNECT_DELAY_MS * (attempt + 1), MAX_RECONNECT_DELAY_MS);
-      log.info(`Reconnecting in ${delay}ms (attempt ${attempt + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
-      await sleep(delay);
-      connect({ method, phoneNumber, isSubBot, subBotPhone, attempt: attempt + 1 });
+      if (attempt < MAX_RECONNECT_ATTEMPTS) {
+        log.info(`[${label}] إعادة الاتصال (${attempt + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
+        connect({ method, phoneNumber, isSubBot, subBotPhone, attempt: attempt + 1 }).catch((e) =>
+          log.error(`[${label}] فشل إعادة الاتصال: ${e.message}`, "النظام.js")
+        );
+      } else {
+        log.error(`[${label}] استُنفدت محاولات إعادة الاتصال.`, "النظام.js");
+      }
     }
   });
-}
 
-export async function connect({ method, phoneNumber, isSubBot = false, subBotPhone = null, attempt = 0 }) {
-  const { version, isLatest } = await fetchLatestBaileysVersion();
-  log.info(`Baileys v${version.join(".")} (${isLatest ? "latest" : "current"})`);
-
-  const authFolder = resolveAuthFolder(isSubBot, subBotPhone);
-  const { state: authState, saveCreds } = await useSQLiteAuthState(authFolder);
-
-  const registered = !!authState.creds?.registered;
-  const useCode = method === "pairing" && !!phoneNumber && !registered;
-  const conn = { connected: false, pending: [] };
-  const sock = makeWASocket({
-    version,
-    auth: {
-      creds: authState.creds,
-      keys: makeCacheableSignalKeyStore(authState.keys, pino({ level: "silent" })),
-    },
-    // An already-registered session only reconnects: no QR, no pairing code.
-    printQRInTerminal: !useCode && !registered,
-    logger: pino({ level: "silent" }),
-    // WhatsApp expects a desktop browser string while pairing; the reference
-    // uses Ubuntu/Chrome and pairs reliably.
-    browser: useCode ? Browsers.ubuntu("Chrome") : Browsers.macOS("Desktop"),
-    syncFullHistory: false,
-    markOnlineOnConnect: false,
-    connectTimeoutMs: 60000,
-    keepAliveIntervalMs: 25000,
-    retryRequestDelayMs: 3000,
-    defaultQueryTimeoutMs: 60000,
-    getMessage: (key) => conn.getMessage(key),
+  sock.ev.on("CB:stream:error", (err) => {
+    log.error(`[${label}] خطأ في التدفق: ${err?.message || err}`, "النظام.js");
   });
 
-  sock.ev.on("creds.update", saveCreds);
-  activeSockets.set(authFolder, sock);
+  sock.ws?.on?.("error", (err) => {
+    log.error(`[${label}] خطأ في WebSocket: ${err?.message || err}`, "النظام.js");
+  });
 
-  Object.assign(conn, wireMessageEvents(sock, conn));
+  sock.ev.on("messages.upsert", async ({ messages, type }) => {
+    if (type !== "notify") return;
+
+    for (const msg of messages) {
+      if (!msg.message) continue;
+      if (msg.key?.remoteJid === "status@broadcast") continue;
+
+      cacheMessage(msg);
+
+      if (!msg.key.fromMe) {
+        logIncomingMessage(msg);
+        if (readMessages) sock.readMessages([msg.key]).catch(() => {});
+      }
+
+      // Hold messages that arrive before "open", then replay them.
+      if (!connected) {
+        pendingMessages.push(msg);
+        continue;
+      }
+
+      handleMessage(sock, msg).catch((e) => log.error(`Message error: ${e.message}`, "النظام.js"));
+    }
+  });
+
   wireGroupEvents(sock);
-  wireConnectionEvents(sock, {
-    method,
-    phoneNumber,
-    isSubBot,
-    subBotPhone,
-    attempt,
-    sessionKey: authFolder,
-    authFolder,
-    state: conn,
-    authState,
-  });
 
-  // A pairing code has already been obtained if the session is registered OR we
-  // already requested a code and the user is still typing it. Trusting our own
-  // flag (not creds.me) avoids minting a second code mid-pairing while still
-  // retrying after a genuine failure.
-  const sessionKey = authFolder;
-  const alreadyPairing = !!authState.creds?.registered || pairingRequested.has(sessionKey);
-
-  if (useCode && !alreadyPairing) {
-    try {
-      // WhatsApp needs a moment after the handshake before it accepts the
-      // pairing iq node. Sending too early returns a code the phone rejects and
-      // drops the socket repeatedly. The reference waits 3000ms here.
-      await sleep(PAIRING_DELAY_MS);
-      const code = await sock.requestPairingCode(phoneNumber);
-      pairingRequested.add(sessionKey);
-      pairingPhase.add(sessionKey);
-      log.pairingCode(code);
-      startPairingGrace(sessionKey);
-      return { sock, pairingCode: code };
-    } catch (err) {
-      log.warn(`Pairing attempt failed (${err.message}) — retrying...`);
-    }
-  }
-
-  return { sock, pairingCode: null };
+  return { sock, pairingCode };
 }
