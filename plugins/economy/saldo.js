@@ -1,9 +1,9 @@
 import { db } from '../../database/db.js'
 
 export default {
-  name: ['saldo', 'balance', 'bal'],
+  name: ["saldo", "balance", "bal", "رصيدي", "الرصيد"],
   description: 'Muestra tu balance de Fragmentos',
-  category: 'economy',
+  category: "economy, الاقتصاد",
   ownerOnly: false,
 
   async run({ sender, senderNum, reply, react }) {

@@ -3,9 +3,9 @@ import { activeBots } from "../../core/subbotManager.js";
 import { jidNormalizedUser, isLidUser } from "@whiskeysockets/baileys";
 
 export default {
-  name: ["bots", "listbots"],
+  name: ["bots", "listbots", "البوتات"],
   description: "Muestra los bots conectados en el grupo actual",
-  category: "sockets",
+  category: "sockets, البوتات الفرعية",
   groupOnly: true,
 
   async run({ sock, from, msg, react, reply, groupMeta }) {

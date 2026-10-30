@@ -82,9 +82,9 @@ function formatViews(views) {
 }
 
 export default {
-  name: "play",
+  name: ["play", "يوتيوب", "اغنية"],
   description: "Descarga música de YouTube",
-  category: "dl",
+  category: "dl, التحميل",
   ownerOnly: false,
 
   async run({ sock, from, msg, react, reply, text, args }) {

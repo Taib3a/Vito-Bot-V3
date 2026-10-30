@@ -2,9 +2,9 @@ import { xpProgress } from "../../core/xp.js";
 import { db } from "../../database/db.js";
 
 export default {
-  name: ["nivel", "rank", "xp"],
+  name: ["nivel", "rank", "xp", "مستوى", "رتبتي"],
   description: "Muestra tu nivel y XP",
-  category: "economy",
+  category: "economy, الاقتصاد",
 
   async run({ sender, reply }) {
     const user = db.getUser(sender);

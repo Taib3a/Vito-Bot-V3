@@ -90,9 +90,9 @@ function leerNombre(at, aesKey) {
 }
 
 export default {
-  name: ["mega", "megadl"],
+  name: ["mega", "megadl", "ميجا"],
   description: "Descarga archivos de MEGA a partir del enlace (audio, video, HTML, zip, etc.)",
-  category: "dl",
+  category: "dl, التحميل",
   groupOnly: false,
 
   async run({ sock, from, msg, text, usedPrefix, reply, react }) {

@@ -9,9 +9,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.join(__dirname, '../../')
 
 export default {
-  name: ['check', 'checkbot', 'verificar'],
+  name: ['check', 'checkbot', 'verificar', 'فحص'],
   description: 'Verifica el estado del bot, librerías y plugins',
-  category: 'owner',
+  category: "owner, المالك",
   ownerOnly: true,
 
   async run({ react, reply }) {

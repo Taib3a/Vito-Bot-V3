@@ -80,9 +80,9 @@ async function iloveimgUpscale(imageBuffer, filename) {
 }
 
 export default {
-  name: ["hd", "upscale", "mejorar"],
+  name: ["hd", "upscale", "mejorar", "جودة"],
   description: "Mejora la calidad de una imagen (x4) usando IA",
-  category: "utils",
+  category: "utils, الأدوات",
 
   async run({ sock, from, msg, usedPrefix, cmdName, reply, react }) {
     const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;

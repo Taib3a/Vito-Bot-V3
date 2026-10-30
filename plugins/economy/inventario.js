@@ -8,9 +8,9 @@ const ITEMS_INFO = {
 }
 
 export default {
-  name: ['inventario', 'inv'],
+  name: ["inventario", "inv", "حقيبة", "المخزون"],
   description: 'Muestra tu inventario de items',
-  category: 'economy',
+  category: "economy, الاقتصاد",
   ownerOnly: false,
 
   async run({ sender, reply, react }) {

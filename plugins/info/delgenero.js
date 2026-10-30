@@ -1,9 +1,9 @@
 import { db } from "../../database/db.js";
 
 export default {
-  name: ["delgenero", "delgenre"],
+  name: ["delgenero", "delgenre", "حذف-جنسي"],
   description: "Elimina tu configuración de género",
-  category: "info",
+  category: "info, المعلومات",
   ownerOnly: false,
 
   async run({ sender, reply }) {

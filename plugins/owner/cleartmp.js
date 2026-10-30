@@ -4,9 +4,9 @@ import path from "path";
 const TMP_DIR = path.resolve("./tmp");
 
 export default {
-  name: ["cleartmp", "limpiartmp"],
+  name: ["cleartmp", "limpiartmp", "تنظيف"],
   description: "Borra los archivos temporales de la carpeta tmp",
-  category: "owner",
+  category: "owner, المالك",
   ownerOnly: true,
 
   async run({ reply }) {

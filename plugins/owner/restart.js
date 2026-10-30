@@ -1,5 +1,5 @@
 export default { 
-  name: ["restart", "rest"], 
+  name: ["restart", "rest", "اعادة"], 
   description: "Reinicia el bot", 
 category : "owner",
   ownerOnly: true,

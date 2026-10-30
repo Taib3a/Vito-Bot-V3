@@ -1,9 +1,9 @@
 import config from '../../config.js'
 
 export default {
-  name: ['owner', 'dueño'],
+  name: ["owner", "dueño", "المالك"],
   description: 'Muestra la información del dueño del bot',
-  category: 'info',
+  category: "info, المعلومات",
   ownerOnly: false,
 
   async run({ sock, from, msg }) {

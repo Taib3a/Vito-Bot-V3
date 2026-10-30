@@ -3,9 +3,9 @@ import fs from 'fs'
 import path from 'path'
 
 export default {
-  name: 'saveplugin', // Nombre plano para evitar fallos en el handler
+  name: ['saveplugin', 'حفظ-اضافة'], // Nombre plano para evitar fallos en el handler
   description: 'Guarda un archivo de plugin de forma dinámica respondiendo a su código.',
-  category: 'owner',
+  category: "owner, المالك",
 
   async run({ sock, from, msg, senderNum, args, usedPrefix, react, reply }) {
     try {

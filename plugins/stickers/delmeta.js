@@ -2,9 +2,9 @@ import { db } from '../../database/db.js'
 import config from '../../config.js'
 
 export default {
-  name: ['delmeta'],
+  name: ["delmeta", "حذف-اسم-الملصق"],
   description: 'Resetea tu marca de agua a la del bot',
-  category: 'stickers',
+  category: "stickers, الملصقات",
   ownerOnly: false,
 
   async run({ senderNum, react, reply }) {

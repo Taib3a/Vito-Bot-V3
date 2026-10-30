@@ -27,9 +27,9 @@ function labelSoltero(jid) {
 }
 
 export default {
-  name: ["perfil", "profile"],
+  name: ["perfil", "profile", "ملفي", "الملف"],
   description: "Muestra tu perfil: foto, monedas y XP",
-  category: "info",
+  category: "info, المعلومات",
 
   async run({ sock, sender, from, msg, groupMeta, resolveLid, reply }) {
     const contextInfo = msg?.message?.extendedTextMessage?.contextInfo;

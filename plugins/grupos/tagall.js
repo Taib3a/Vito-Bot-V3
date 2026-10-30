@@ -8,9 +8,9 @@ function cleanJid(jid = "") {
 }
 
 export default {
-  name: ["tagall", "todos", "invocar", "mentionall"],
+  name: ["tagall", "todos", "invocar", "mentionall", "الكل", "منشن"],
   description: "Mencionar a todos los participantes del grupo",
-  category: "grupos",
+  category: "grupos, المجموعات",
   adminOnly: true,
   groupOnly: true,
 

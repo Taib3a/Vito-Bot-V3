@@ -10,9 +10,9 @@ function cleanJid(jid = "") {
 }
 
 export default {
-  name: ['delwarn', 'unwarn', 'quitarwarn'],
+  name: ["delwarn", "unwarn", "quitarwarn", "حذف-تحذير"],
   description: 'Quita una advertencia a un miembro del grupo',
-  category: 'grupos',
+  category: "grupos, المجموعات",
   groupOnly: true,
   adminOnly: true,
 

@@ -10,9 +10,9 @@ function cleanJid(jid = "") {
 }
 
 export default {
-  name: ['warn', 'advertir'],
+  name: ["warn", "advertir", "تحذير", "انذار"],
   description: 'Advierte a un miembro del grupo',
-  category: 'grupos',
+  category: "grupos, المجموعات",
   groupOnly: true,
   adminOnly: true,
 

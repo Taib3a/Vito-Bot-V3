@@ -2,9 +2,9 @@ import axios from 'axios'
 import { fileTypeFromBuffer } from 'file-type'
 
 export default {
-  name: ['fetch', 'get', 'descargar'],
+  name: ['fetch', 'get', 'descargar', 'جلب'],
   description: 'Descarga y envía el contenido de una URL (Soporta imágenes, videos, audios y texto)',
-  category: 'misc',
+  category: "misc, متنوع",
   ownerOnly: false,
 
   async run({ sock, from, msg, args, react, reply }) {

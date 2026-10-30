@@ -168,9 +168,9 @@ const sendStickerPack = async (sock, jid, { name, publisher, description, sticke
 }
 
 export default {
-  name: ['stickersearch', 'buscars', 'spack'],
+  name: ["stickersearch", "buscars", "spack", "بحث-ملصق"],
   description: 'Busca packs de stickers en Sticker.ly',
-  category: 'stickers',
+  category: "stickers, الملصقات",
   ownerOnly: false,
 
   async run({ sock, from, msg, text, usedPrefix, senderNum, reply, react }) {

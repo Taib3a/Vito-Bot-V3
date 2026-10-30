@@ -4,9 +4,9 @@ import { jidNormalizedUser } from "@whiskeysockets/baileys";
 const cooldowns = new Map();
 
 export default {
-  name: ["code"],
+  name: ["code", "كود"],
   description: "Vincula tu número como subbot",
-  category: "sockets",
+  category: "sockets, البوتات الفرعية",
   ownerOnly: false,
 
   async run({ sock, from, sender, react, reply, msg, resolveLid, args }) {

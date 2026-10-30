@@ -15,9 +15,9 @@ const FRASES_FALLO = [
 ];
 
 export default {
-  name: ["mendigar", "beg"],
+  name: ["mendigar", "beg", "شحاذة", "تسول"],
   description: "Pide limosna a ver si alguien te da algo",
-  category: "economy",
+  category: "economy, الاقتصاد",
 
   async run({ sender, reply }) {
     const status = checkCooldown(sender, "mendigar");

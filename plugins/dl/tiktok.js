@@ -120,9 +120,9 @@ async function processVideoFile(inputP, outP) {
 const MAX_INPUT_MB = 500;
 
 export default {
-  name: ['tiktok', 'tt'],
+  name: ["tiktok", "tt", "تيك-توك", "تيكتوك"],
   description: 'Descarga videos de TikTok rápido',
-  category: 'dl',
+  category: "dl, التحميل",
   groupOnly: false,
 
   async run({ sock, from, msg, args, usedPrefix, cmdName, reply, react }) {

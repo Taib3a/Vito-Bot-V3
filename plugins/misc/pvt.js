@@ -1,9 +1,9 @@
 import { downloadMediaMessage } from '@whiskeysockets/baileys'
 
 export default {
-  name: ['pvt'],
+  name: ['pvt', 'خاص'],
   description: 'Convierte un video respondido en nota de video',
-  category: 'misc',
+  category: "misc, متنوع",
   ownerOnly: false,
 
   async run({ sock, from, msg, react, reply }) {

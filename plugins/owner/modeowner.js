@@ -2,9 +2,9 @@ import config from "../../config.js";
 import { db } from "../../database/db.js";
 
 export default {
-  name: ["self"],
+  name: ["self", "وضع-خاص"],
   description: 'Prende o apaga el modo self del grupo usando "on" u "off"',
-  category: "owner",
+  category: "owner, المالك",
   groupOnly: true,
   ownerOnly: true,
 

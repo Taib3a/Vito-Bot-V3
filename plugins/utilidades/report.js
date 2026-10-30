@@ -29,9 +29,9 @@ async function enviarConCualquierBot(sockOriginal, payload) {
 }
 
 export default {
-  name: ["report"],
+  name: ["report", "بلاغ"],
   description: "Envía un reporte al grupo de staff",
-  category: "utils",
+  category: "utils, الأدوات",
   ownerOnly: false,
 
   async run({ sock, from, msg, text, reply, senderNum, isGroup, groupName, groupMeta }) {

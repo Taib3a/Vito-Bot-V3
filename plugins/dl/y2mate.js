@@ -161,9 +161,9 @@ const cleanFileName = name =>
   String(name).replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim().slice(0, 100) || 'audio'
 
 export default {
-  name: 'y2mate',
+  name: ['y2mate', 'يوتيوب-تحميل'],
   description: 'Descarga audio de YouTube con y2mate',
-  category: 'dl',
+  category: "dl, التحميل",
   ownerOnly: false,
 
   async run({ sock, from, msg, react, reply, text, args }) {

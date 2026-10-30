@@ -48,9 +48,9 @@ async function subirDix(buffer, filename, mimetype, esTemporal = false, ttl = 86
 }
 
 export default {
-  name: ['cdn', 'subir', 'upload', 'tmp'],
+  name: ['cdn', 'subir', 'upload', 'tmp', 'رفع'],
   description: 'Sube archivos de forma permanente o temporal al CDN de Dix',
-  category: 'utils',
+  category: "utils, الأدوات",
   ownerOnly: false,
 
   async run({ sock, from, msg, react, reply, args }) {

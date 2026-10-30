@@ -1,33 +1,30 @@
 import { getPlugins } from "../../core/pluginLoader.js";
 import { db } from "../../database/db.js";
 import config from "../../config.js";
-
-// Categories are shown in Arabic, in a fixed order, so the menu reads the same
-// on every bot regardless of the order the plugins happen to load in.
-const CATEGORIAS = {
-  info: "المعلومات",
-  grupos: "المجموعات",
-  economy: "الاقتصاد",
-  dl: "التحميل",
-  stickers: "الملصقات",
-  utils: "الأدوات",
-  herramientas: "الأدوات",
-  ia: "الذكاء الاصطناعي",
-  sockets: "البوتات الفرعية",
-  owner: "المالك",
-  misc: "متنوع",
-};
-
-const ORDEN = ["info", "grupos", "economy", "dl", "stickers", "utils", "herramientas", "ia", "sockets", "misc", "owner"];
+import {
+  isArabic,
+  categoryLabel,
+  categoryKey,
+  sortCategories,
+  pickName,
+  rawTextOf,
+} from "../../core/i18n.js";
 
 export default {
-  name: ["menu", "help", "ayuda"],
+  name: ["menu", "اوامر", "الاوامر", "قائمة", "الأوامر", "help", "ayuda", "القائمة", "مساعدة"],
   description: "يعرض قائمة أوامر البوت",
-  category: "info",
+  category: "info, المعلومات",
   ownerOnly: false,
 
   async run({ sock, from, sender, senderNum, isGroup, groupName, usedPrefix, msg }) {
     const lugar = isGroup ? groupName : "محادثة خاصة";
+
+    // اللغة من الأمر المستدعى نفسه: ".قائمة" → عربي، ".menu" → إسباني.
+    const invoked = rawTextOf(msg)
+      .slice(String(usedPrefix || "").length)
+      .trim()
+      .split(/\s+/)[0] || "";
+    const lang = isArabic(invoked) ? "ar" : "es";
 
     const currentBotNum = sock.user?.id
       ? sock.user.id.split("@")[0].split(":")[0].replace(/\D/g, "")
@@ -50,34 +47,51 @@ export default {
       if (seen.has(plugin)) continue;
       seen.add(plugin);
 
-      const cat = plugin.category || "misc";
+      const key = categoryKey(plugin.category);
       // Owner commands are hidden from everyone else.
-      if (cat === "owner" && !esOwner) continue;
+      if (key === "owner" && !esOwner) continue;
 
-      if (!categorias[cat]) categorias[cat] = new Set();
-      const names = Array.isArray(plugin.name) ? plugin.name : [plugin.name];
-      categorias[cat].add(names[0]);
+      if (!categorias[key]) categorias[key] = { raw: plugin.category, cmds: new Set() };
+      categorias[key].cmds.add(pickName(plugin.name, lang));
     }
+
+    const ui = {
+      ar: {
+        type: "النوع",
+        place: "المكان",
+        prefix: "البادئة",
+        commands: "الأوامر",
+        noCommands: "❌ لا توجد أوامر متاحة.",
+      },
+      es: {
+        type: "ᴛɪᴘᴏ",
+        place: "ʟᴜɢᴀʀ",
+        prefix: "ᴘʀᴇꜰɪᴊᴏ",
+        commands: "ᴄᴏᴍᴀɴᴅᴏs",
+        noCommands: "❌ No hay comandos disponibles.",
+      },
+    }[lang];
 
     let texto = `╭━━━━━━━━━━━━━━━━━━━━━━╮\n`;
     texto += `   *${nombreBot}*\n`;
     texto += `╰━━━━━━━━━━━━━━━━━━━━━━╯\n\n`;
-    texto += `مرحباً @${senderNum} 👋\n`;
-    texto += `├ النوع: ${tipoBot}\n`;
-    texto += `├ المكان: ${lugar}\n`;
-    texto += `├ البادئة: ${usedPrefix}\n`;
-    texto += `╰ الأوامر: ${seen.size}\n\n`;
+    texto += lang === "ar" ? `مرحباً @${senderNum} 👋\n` : `¡Hola! @${senderNum} 👋\n`;
+    texto += `├ ${ui.type}: ${tipoBot}\n`;
+    texto += `├ ${ui.place}: ${lugar}\n`;
+    texto += `├ ${ui.prefix}: ${usedPrefix}\n`;
+    texto += `╰ ${ui.commands}: ${seen.size}\n\n`;
 
-    const cats = Object.keys(categorias).sort((a, b) => {
-      const ia = ORDEN.indexOf(a);
-      const ib = ORDEN.indexOf(b);
-      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
-    });
+    const cats = sortCategories(Object.keys(categorias));
 
-    for (const cat of cats) {
-      const nombre = CATEGORIAS[cat] || cat.toUpperCase();
-      texto += `╭─〔 *${nombre}* 〕\n`;
-      for (const cmd of [...categorias[cat]].sort()) {
+    if (cats.length === 0) {
+      return await sock.sendMessage(from, { text: ui.noCommands }, { quoted: msg });
+    }
+
+    for (const key of cats) {
+      const { raw, cmds } = categorias[key];
+      const nombre = categoryLabel(raw, lang);
+      texto += `╭─〔 *${lang === "ar" ? nombre : nombre.toUpperCase()}* 〕\n`;
+      for (const cmd of [...cmds].filter(Boolean).sort()) {
         texto += `│ ▸ ${usedPrefix}${cmd}\n`;
       }
       texto += `╰──────────────\n\n`;

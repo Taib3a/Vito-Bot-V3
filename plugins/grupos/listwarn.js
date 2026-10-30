@@ -13,9 +13,9 @@ function cleanJid(jid = "") {
 }
 
 export default {
-  name: ['listwarn', 'listawarn', 'warns'],
+  name: ["listwarn", "listawarn", "warns", "التحذيرات"],
   description: 'Muestra la lista de advertencias del grupo',
-  category: 'grupos',
+  category: "grupos, المجموعات",
   groupOnly: true,
   adminOnly: true,
 

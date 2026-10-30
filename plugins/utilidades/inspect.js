@@ -11,9 +11,9 @@ async function resolverJid(sock, jid) {
 }
 
 export default {
-    name: ['inspect', 'inspeccionar'],
+    name: ['inspect', 'inspeccionar', 'فحص-رسالة'],
     description: 'Inspecciona un enlace de grupo, comunidad o canal de WhatsApp',
-    category: 'herramientas',
+    category: "herramientas, الأدوات",
 
     async run({ sock, from, msg, text, reply }) {
         const sender = msg.key.participant || msg.key.remoteJid

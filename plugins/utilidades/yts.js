@@ -41,9 +41,9 @@ async function buscarYouTube(query, limite = 5) {
 }
 
 export default {
-  name: ['ytsearch', 'yts'],
+  name: ["ytsearch", "yts", "يوتيوب-بحث"],
   description: 'Busca música o videos en YouTube',
-  category: 'utils',
+  category: "utils, الأدوات",
 
   async run({ sock, from, msg, text, reply, react }) {
     if (!text) {

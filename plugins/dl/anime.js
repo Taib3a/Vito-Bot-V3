@@ -405,7 +405,7 @@ function numerosDisponibles(episodios) {
 //  EXPORT DEL PLUGIN
 // ============================================================
 export default {
-  name: 'anime',
+  name: ['anime', 'انمي'],
   commands: ['anime', 'descargar'],
 
   async run(ctx) {

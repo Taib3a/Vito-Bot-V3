@@ -19,9 +19,9 @@ const findParticipant = (participants, { pn, lid }) =>
 const isAdmin = (p) => p?.admin === 'admin' || p?.admin === 'superadmin'
 
 export default {
-  name: ['abrir', 'open'],
+  name: ["abrir", "open", "فتح"],
   description: 'Abre el chat del grupo para todos los miembros',
-  category: 'grupos',
+  category: "grupos, المجموعات",
   groupOnly: true,
 
   async run({ sock, from, msg, reply }) {

@@ -1,7 +1,7 @@
 export default {
-  name: ["reload"],
+  name: ["reload", "اعادة-تحميل"],
   description: "Reinicia la sesión de este bot (reconexión rápida, ~1-2 segundos)",
-  category: "owner",
+  category: "owner, المالك",
   ownerOnly: true,
 
   async run({ sock, reply, react, botLabel }) {

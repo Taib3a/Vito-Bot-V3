@@ -21,9 +21,9 @@ function panel(groupData) {
 }
 
 export default {
-  name: ["مضاد", "مضادات", "antifeatures", "تفعيل", "ايقاف", "إيقاف"],
+  name: ["مضاد", "مضادات", "antifeatures", "تفعيل", "ايقاف", "إيقاف", "حماية", "المضادات", "تشغيل", "تعطيل"],
   description: "تحكم واحد بكل المضادات: تفعيل/إيقاف",
-  category: "grupos",
+  category: "grupos, المجموعات",
   groupOnly: true,
   adminOnly: true,
 

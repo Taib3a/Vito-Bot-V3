@@ -1,9 +1,9 @@
 import { db } from '../../database/db.js'
 
 export default {
-  name: ['setmeta'],
+  name: ["setmeta", "اسم-الملصق"],
   description: 'Cambia tu marca de agua para stickers',
-  category: 'stickers',
+  category: "stickers, الملصقات",
   ownerOnly: false,
 
   async run({ senderNum, text, react, reply }) {

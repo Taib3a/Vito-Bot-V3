@@ -1,9 +1,9 @@
 import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
 export default {
-  name: ["del", "delete", "eliminar"],
+  name: ["del", "delete", "eliminar", "حذف"],
   description: "Elimina un mensaje respondiendo a él",
-  category: "grupos",
+  category: "grupos, المجموعات",
   groupOnly: true,
   adminOnly: true,
   botAdmin: true,

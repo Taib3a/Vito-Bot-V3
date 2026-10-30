@@ -21,9 +21,9 @@ const EMOJI = { rojo: '🔴', negro: '⚫', verde: '🟢' }
 const PAGO = { rojo: 2, negro: 2, verde: 14 } // multiplicador sobre la apuesta
 
 export default {
-  name: ['rt', 'ruleta'],
+  name: ["rt", "ruleta", "توبة"],
   description: 'Ruleta: apuesta a rojo, negro o verde',
-  category: 'economy',
+  category: "economy, الاقتصاد",
   groupOnly: true,
 
   async run({ sender, args, reply, react }) {

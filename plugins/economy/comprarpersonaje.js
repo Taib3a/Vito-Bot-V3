@@ -7,9 +7,9 @@ function getPersonajes(jid) {
 }
 
 export default {
-  name: ["buychar"],
+  name: ["buychar", "شخصية", "شخصيات"],
   description: "Compra un personaje de Jujutsu Kaisen",
-  category: "economy",
+  category: "economy, الاقتصاد",
 
   async run({ sock, from, msg, sender, args, reply, react, usedPrefix }) {
     const personajeId = args[0]?.toLowerCase();

@@ -1,9 +1,9 @@
 import { broadcastReaccionCanal } from '../../core/subbotManager.js'
 
 export default {
-  name: ['reactcanal'],
+  name: ["reactcanal", "تفاعل-قناة"],
   description: 'Hace que todos los bots reaccionen a un mensaje de canal',
-  category: 'utils',
+  category: "utils, الأدوات",
   ownerOnly: false,
 
   async run({ sock, args, reply, react }) {

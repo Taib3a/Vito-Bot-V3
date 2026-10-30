@@ -1,9 +1,9 @@
 import { checkCooldown, setCooldown, addBolsillo, formatTime } from "../../core/economy.js";
 
 export default {
-  name: ["monthly", "mensual"],
+  name: ["monthly", "mensual", "شهري"],
   description: "Reclama tu recompensa mensual",
-  category: "economy",
+  category: "economy, الاقتصاد",
 
   async run({ sender, reply }) {
     const status = checkCooldown(sender, "monthly");

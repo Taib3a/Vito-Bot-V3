@@ -46,9 +46,9 @@ function localTimeToUtc(year, month, day, hour, minute, timeZone) {
 }
 
 export default {
-  name: ["evento"],
+  name: ["evento", "حدث"],
   description: "Crea un evento de grupo con RSVP",
-  category: "grupos",
+  category: "grupos, المجموعات",
   groupOnly: true,
   adminOnly: true,
 

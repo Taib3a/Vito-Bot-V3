@@ -92,9 +92,9 @@ async function convertirWebpVideo(buffer) {
 }
 
 export default {
-  name: ['bratv'],
+  name: ['bratv', 'برات-فيديو'],
   description: 'Crea sticker animado estilo brat (texto en fondo blanco)',
-  category: 'stickers',
+  category: "stickers, الملصقات",
   ownerOnly: false,
 
   async run({ sock, from, msg, senderNum, args, react, reply }) {

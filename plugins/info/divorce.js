@@ -1,9 +1,9 @@
 import { db } from "../../database/db.js";
 
 export default {
-  name: ["divorciar", "divorcio"],
+  name: ["divorciar", "divorcio", "طلاق"],
   description: "Termina tu matrimonio actual",
-  category: "info",
+  category: "info, المعلومات",
 
   async run(ctx) {
     const { sender, reply } = ctx;

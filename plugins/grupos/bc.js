@@ -5,9 +5,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const numOf = (jid = "") => jid.split("@")[0].split(":")[0];
 
 export default {
-  name: ["bc", "difundir", "broadcast"],
+  name: ["bc", "difundir", "broadcast", "اذاعة", "بث"],
   description: "Envía un mensaje a todos los grupos donde haya bots",
-  category: "owner",
+  category: "owner, المالك",
   ownerOnly: true,
   groupOnly: true,
 

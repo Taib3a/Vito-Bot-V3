@@ -1,7 +1,7 @@
 export default {
-  name: ["linkgc", "gclink", "linkgroup"],
+  name: ["linkgc", "gclink", "linkgroup", "رابط", "الرابط"],
   description: "Obtiene el link del grupo",
-  category: 'grupos',
+  category: "grupos, المجموعات",
   groupOnly: true,
   adminOnly: true,
 

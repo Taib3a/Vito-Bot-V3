@@ -19,9 +19,9 @@ const findParticipant = (participants, { pn, lid }) =>
 const isAdmin = (p) => p?.admin === 'admin' || p?.admin === 'superadmin'
 
 export default {
-  name: ['cerrar', 'close'],
+  name: ["cerrar", "close", "اقفال", "اغلاق"],
   description: 'Cierra el chat del grupo solo para administradores',
-  category: 'grupos',
+  category: "grupos, المجموعات",
   groupOnly: true,
 
   async run({ sock, from, msg, reply }) {

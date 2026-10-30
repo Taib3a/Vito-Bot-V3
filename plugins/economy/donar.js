@@ -10,9 +10,9 @@ function cleanJid(jid = '') {
 }
 
 export default {
-  name: ['donar'],
+  name: ["donar", "تحويل", "تبرع"],
   description: 'Dona Fragmentos de tu bolsillo a otra persona',
-  category: 'economy',
+  category: "economy, الاقتصاد",
   ownerOnly: false,
 
   async run({ sender, args, msg, groupMeta, resolveLid, reply, react }) {

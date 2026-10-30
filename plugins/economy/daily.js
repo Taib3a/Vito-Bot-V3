@@ -2,9 +2,9 @@ import { db } from "../../database/db.js";
 import { checkCooldown, setCooldown, addBolsillo, formatTime } from "../../core/economy.js";
 
 export default {
-  name: ["daily", "diario"],
+  name: ["daily", "diario", "يومي"],
   description: "Reclama tu recompensa diaria",
-  category: "economy",
+  category: "economy, الاقتصاد",
 
   async run({ sender, reply }) {
     const status = checkCooldown(sender, "daily");

@@ -16,9 +16,9 @@ function cleanJid(jid = '') {
 }
 
 export default {
-  name: ['chetar'],
+  name: ["chetar", "فلوس"],
   description: 'Da Fragmentos a un usuario (solo owners)',
-  category: 'owner',
+  category: "owner, المالك",
   ownerOnly: true,
 
   async run({ sock, from, sender, args, msg, groupMeta, resolveLid, reply, react }) {

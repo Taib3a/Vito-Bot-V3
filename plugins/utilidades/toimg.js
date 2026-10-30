@@ -15,9 +15,9 @@ if (!fs.existsSync(tmp))
   fs.mkdirSync(tmp, { recursive: true })
 
 export default {
-  name: ["toimg"],
+  name: ["toimg", "تحويل-صورة"],
   description: "Convierte un sticker a imagen",
-  category: "utils",
+  category: "utils, الأدوات",
 
   async run({ sock, from, msg, react, reply }) {
     try {

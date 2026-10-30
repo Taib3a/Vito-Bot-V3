@@ -1,7 +1,7 @@
 export default {
-  name: ["ping", "p"],
+  name: ["ping", "p", "بينغ", "سرعة"],
   description: "Mide la latencia del bot",
-  category: 'utils',
+  category: "utils, الأدوات",
   ownerOnly: false,
 
   async run({ sock, from, msg, reply }) {

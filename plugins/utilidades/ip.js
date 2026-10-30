@@ -1,9 +1,9 @@
 import axios from 'axios';
 
 export default {
-  name: ["ip"],
+  name: ["ip", "ايبي"],
   description: "Busca información de una dirección IP",
-  category: "utils",
+  category: "utils, الأدوات",
   ownerOnly: false,
 
   async run({ text, reply, usedPrefix, cmdName }) {

@@ -30,7 +30,7 @@ function resolveDisplayName(jid, groupMeta) {
 export default {
   name: Object.keys(DATA),
   description: "Reacciones anime: .hug @user, .kiss @user, etc.",
-  category: "anime",
+  category: "anime, الأنمي",
   adminOnly: false,
   groupOnly: true,
   showAllNames: true,

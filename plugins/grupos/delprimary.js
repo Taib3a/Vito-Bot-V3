@@ -2,9 +2,9 @@ import { db } from '../../database/db.js'
 import { claimOnce } from '../../core/subbotManager.js'
 
 export default {
-  name: ['delprimary', 'quitarprincipal'],
+  name: ["delprimary", "quitarprincipal", "حذف-الرئيسي"],
   description: 'Quita el bot primario del grupo',
-  category: 'grupos',
+  category: "grupos, المجموعات",
   groupOnly: true,
   adminOnly: true,
 

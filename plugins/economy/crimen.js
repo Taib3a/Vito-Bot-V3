@@ -16,9 +16,9 @@ const CRIMENES_FALLO = [
 ];
 
 export default {
-  name: ["crimen", "crime"],
+  name: ["crimen", "crime", "جريمة"],
   description: "Cometé un crimen random, con riesgo de multa",
-  category: "economy",
+  category: "economy, الاقتصاد",
 
   async run({ sender, reply }) {
     const status = checkCooldown(sender, "crimen");

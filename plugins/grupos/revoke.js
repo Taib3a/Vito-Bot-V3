@@ -1,7 +1,7 @@
 export default {
-  name: ["revokelink", "revocarlink", "resetlink"],
+  name: ["revokelink", "revocarlink", "resetlink", "تجديد-الرابط"],
   description: "Revoca el link actual del grupo y genera uno nuevo",
-  category: 'grupos',
+  category: "grupos, المجموعات",
   groupOnly: true,
   adminOnly: true,
 

@@ -1,7 +1,7 @@
 export default {
-  name: ["spoiler"],
+  name: ["spoiler", "تخفي"],
   description: "Envía un mensaje largo que WhatsApp trunca con 'Leer más' en la misma línea",
-  category: "utils",
+  category: "utils, الأدوات",
   ownerOnly: false,
 
   async run({ reply, text }) {

@@ -3,9 +3,9 @@ import { checkCooldown, setCooldown, formatTime } from "../../core/economy.js";
 import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
 export default {
-  name: ["rob", "robar"],
+  name: ["rob", "robar", "سرقة", "اسرق"],
   description: "Intenta robarle plata a otro usuario",
-  category: "economy",
+  category: "economy, الاقتصاد",
   groupOnly: true,
 
   async run({ sender, msg, reply, resolveLid }) {

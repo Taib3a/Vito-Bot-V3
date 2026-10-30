@@ -7,7 +7,7 @@ const ID_RE = /(?:youtu\.be\/|v=|shorts\/)([\w-]{11})/
 
 const APIS = [
   {
-    name: 'alyacore',
+    name: ['alyacore', 'صوتية', 'فيديو'],
     endpoint: 'https://api.alyacore.xyz/dl/ytmp4v2',
     apikey: 'Duarte-zz12',
     tries: 2,
@@ -53,7 +53,7 @@ const cleanFileName = name =>
 export default {
   name: ['play2'],
   description: 'Descarga video de YouTube',
-  category: 'dl',
+  category: "dl, التحميل",
   ownerOnly: false,
 
   async run({ sock, from, msg, react, reply, text }) {

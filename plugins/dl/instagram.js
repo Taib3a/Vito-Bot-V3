@@ -45,9 +45,9 @@ function inferirTipoReal(dlUrl) {
 }
 
 export default {
-  name: ["instagram", "ig", "igdl"],
+  name: ["instagram", "ig", "igdl", "انستقرام", "انستغرام"],
   description: "Descarga videos/fotos de Instagram (reels, posts)",
-  category: "dl",
+  category: "dl, التحميل",
   groupOnly: false,
 
   async run({ sock, from, msg, text, usedPrefix, reply, react }) {

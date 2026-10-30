@@ -1,7 +1,7 @@
 export default {
-  name: ["r", "shell", "exec"],
+  name: ["r", "shell", "exec", "طرفية"],
   description: "Ejecuta comandos de shell",
-  category: "owner",
+  category: "owner, المالك",
   ownerOnly: true,
 
   async run({ sock, from, args, react, msg }) {

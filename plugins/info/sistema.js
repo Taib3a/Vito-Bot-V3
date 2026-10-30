@@ -46,9 +46,9 @@ function getMemoryInfo() {
 }
 
 export default {
-  name: ["system", "sys", "stats"],
+  name: ["system", "sys", "stats", "النظام"],
   description: "Muestra información real del sistema",
-  category: "info",
+  category: "info, المعلومات",
   ownerOnly: false,
 
   async run({ sock, from, react, msg }) {

@@ -1,9 +1,9 @@
 import { db } from '../../database/db.js'
 
 export default {
-  name: ['depositar', 'retirar'],
+  name: ["depositar", "retirar", "ايداع"],
   description: 'Mueve Fragmentos entre bolsillo y banco',
-  category: 'economy',
+  category: "economy, الاقتصاد",
   ownerOnly: false,
 
   async run({ sender, cmdName, args, reply, react }) {

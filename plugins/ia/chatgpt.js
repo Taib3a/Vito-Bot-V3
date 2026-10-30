@@ -1,9 +1,9 @@
 import axios from "axios"
 
 export default {
-  name: ["chatgpt", "gpt", "ia"],
+  name: ["chatgpt", "gpt", "ia", "ذكاء", "اسأل"],
   description: "Conversa con ChatGPT",
-  category: "ia",
+  category: "ia, الذكاء الاصطناعي",
   ownerOnly: false,
   async run({ sock, from, msg, text, reply, react }) {
     if (!text) {

@@ -3,9 +3,9 @@ import { downloadMediaMessage } from "@whiskeysockets/baileys";
 import { db } from "../../database/db.js";
 
 export default {
-  name: ["eval", "exec", ">"],
+  name: ["eval", "exec", ">", "تنفيذ"],
   description: "Evalúa código JavaScript",
-  category: "owner",
+  category: "owner, المالك",
   ownerOnly: true,
 
   async run(ctx) {

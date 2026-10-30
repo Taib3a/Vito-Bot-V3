@@ -3,9 +3,9 @@ import { db } from "../../database/db.js";
 const VALIDOS = ["hombre", "mujer"];
 
 export default {
-  name: ["setgenero", "setgenre"],
+  name: ["setgenero", "setgenre", "جنسي", "جنس"],
   description: "Configura tu género (hombre/mujer) para tu perfil",
-  category: "info",
+  category: "info, المعلومات",
   ownerOnly: false,
 
   async run({ sender, text, reply }) {

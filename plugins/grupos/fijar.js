@@ -1,9 +1,9 @@
 import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
 export default {
-  name: ["fijar"],
+  name: ["fijar", "تثبيت"],
   description: "Fija un mensaje respondiendo a él",
-  category: "grupos",
+  category: "grupos, المجموعات",
   groupOnly: true,
   adminOnly: true,
 

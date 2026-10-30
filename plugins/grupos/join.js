@@ -1,7 +1,7 @@
 export default {
-  name: ['join', 'unirse'],
+  name: ["join", "unirse", "انضمام"],
   description: 'El bot se une a un grupo por link',
-  category: 'grupos',
+  category: "grupos, المجموعات",
   ownerOnly: true,
 
   async run({ sock, text, usedPrefix, react, reply }) {

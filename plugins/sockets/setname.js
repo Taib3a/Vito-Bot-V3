@@ -11,9 +11,9 @@ function botMatchesJid(b, targetJid) {
 }
 
 export default {
-  name: ['setname', 'cambiarnombre'],
+  name: ["setname", "cambiarnombre", "اسم-البوت"],
   description: 'Cambia el nombre/label de un bot (principal o subbot)',
-  category: 'sockets',
+  category: "sockets, البوتات الفرعية",
   ownerOnly: false,
 
   async run({ sock, from, msg, args, reply, sender, resolveLid }) {

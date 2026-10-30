@@ -1,9 +1,9 @@
 import { removeSubbot, activeBots } from '../../core/subbotManager.js'
 
 export default {
-  name: ['delbot', 'desconectar'],
+  name: ["delbot", "desconectar", "حذف-بوت"],
   description: 'Desvincula tu número como subbot',
-  category: 'sockets',
+  category: "sockets, البوتات الفرعية",
   ownerOnly: false,
 
   async run({ senderNum, react, reply }) {

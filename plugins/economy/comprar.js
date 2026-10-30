@@ -2,9 +2,9 @@ import { db } from '../../database/db.js'
 import { ITEMS } from '../../core/gamedata.js'
 
 export default {
-  name: ['comprar', 'buy'],
+  name: ["comprar", "buy", "شراء", "اشتري"],
   description: 'Compra un item de la tienda',
-  category: 'economy',
+  category: "economy, الاقتصاد",
   ownerOnly: false,
 
   async run({ sender, args, reply, react }) {

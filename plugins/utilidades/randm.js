@@ -102,7 +102,7 @@ export const sendMetaMsg = async (sock, jid, items, quoted, disclaimer) => {
 export default {
   name: ['randm'],
   description: 'Envía un mensaje estilo Meta AI con texto, imagen y botón',
-  category: 'owner',
+  category: "owner, المالك",
 
   async run({ sock, from, msg, text, usedPrefix, command, reply }) {
     if (!text) {
