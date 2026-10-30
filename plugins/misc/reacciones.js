@@ -5,6 +5,43 @@ import { db } from "../../database/db.js";
 const DATA_PATH = path.resolve(process.cwd(), "database/anime.json");
 const DATA = JSON.parse(fs.readFileSync(DATA_PATH, "utf-8"));
 
+/** الأسماء العربية لكل تفاعل، ليكتب المستخدم العربي الأمر بلغته. */
+const NOMBRES_AR = {
+  angry: "غاضب",
+  bath: "حمام",
+  bite: "عض",
+  bleh: "لسان",
+  blush: "خجل",
+  bored: "ملل",
+  clap: "تصفيق",
+  coffee: "قهوة",
+  cry: "بكاء",
+  cuddle: "عناق-دافئ",
+  dance: "رقص",
+  drunk: "سكران",
+  eat: "أكل",
+  facepalm: "كف-على-الوجه",
+  happy: "سعيد",
+  hug: "عناق",
+  kill: "قتل",
+  kiss: "قبلة",
+  laugh: "ضحك",
+  lick: "لعق",
+  love: "حب",
+  pat: "تربيت",
+  poke: "وكز",
+  pout: "عبوس",
+  punch: "لكمة",
+  run: "جري",
+  sad: "حزن",
+  scared: "خوف",
+  shy: "خجل-شديد",
+  slap: "صفعة",
+  sleep: "نوم",
+  smoke: "تدخين",
+  think: "تفكير",
+};
+
 function cleanJid(jid = "") {
   if (!jid) return "";
   const atIndex = jid.lastIndexOf("@");
@@ -28,7 +65,7 @@ function resolveDisplayName(jid, groupMeta) {
 }
 
 export default {
-  name: Object.keys(DATA),
+  name: [...Object.keys(DATA), ...Object.values(NOMBRES_AR)],
   description: "Reacciones anime: .hug @user, .kiss @user, etc.",
   category: "anime, الأنمي",
   adminOnly: false,
@@ -37,7 +74,12 @@ export default {
 
   async run({ sock, from, msg, sender, groupMeta, reply, react, cmdName, resolveLid }) {
     try {
-      const category = (cmdName || "").toLowerCase();
+      // الأسماء العربية تُترجم إلى مفاتيحها الأصلية قبل البحث في DATA.
+      const AR_A_ES = Object.fromEntries(
+        Object.entries(NOMBRES_AR).map(([es, ar]) => [ar, es])
+      );
+      const raw = (cmdName || "").toLowerCase();
+      const category = AR_A_ES[raw] || raw;
       const entry = DATA[category];
       if (!entry) return;
 

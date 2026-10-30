@@ -51,7 +51,7 @@ const cleanFileName = name =>
   String(name).replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim().slice(0, 100) || 'video'
 
 export default {
-  name: ['play2'],
+  name: ['play2', 'تحميل-صوت'],
   description: 'Descarga video de YouTube',
   category: "dl, التحميل",
   ownerOnly: false,
