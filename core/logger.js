@@ -115,7 +115,10 @@ export const log = {
   },
 
   pairingCode(code) {
-    const pretty = String(code || "").match(/.{1,4}/g)?.join("-") ?? String(code || "");
+    // The caller already regroups the code, so strip any hyphen before
+    // regrouping — otherwise "DASN-ACF4" becomes "DASN--ACF-4".
+    const clean = String(code || "").replace(/[^0-9A-Za-z]/g, "");
+    const pretty = clean.match(/.{1,4}/g)?.join("-") || clean;
     const width = 46;
     const center = (raw, colored) => {
       const p = Math.max(0, width - strip(raw).length);
@@ -126,6 +129,8 @@ export const log = {
     console.log(B("╔" + "═".repeat(width) + "╗"));
     console.log(center(""));
     console.log(center("رمز الاقتران (PAIRING CODE)", BB("رمز الاقتران (PAIRING CODE)")));
+    console.log(center(""));
+    console.log(center(""));
     console.log(center(pretty, GB(pretty)));
     console.log(center(""));
     console.log(B("╚" + "═".repeat(width) + "╝"));
