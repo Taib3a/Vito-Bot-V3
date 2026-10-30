@@ -1,7 +1,7 @@
 import axios from "axios"
 
 export default {
-  name: ["chatgpt", "gpt", "ia", "ذكاء", "اسأل"],
+  name: ["chatgpt", "gpt", "ia", "ذكاء", "اسأل", "بوت"],
   description: "Conversa con ChatGPT",
   category: "ia, الذكاء الاصطناعي",
   ownerOnly: false,

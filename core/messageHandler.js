@@ -7,6 +7,8 @@ import { handleChatXp, handleCommandXp } from "./xp.js";
 import { claimOnce } from "./subbotManager.js";
 import { resolveAlias } from "./aliases.js";
 import { extractButtonId } from "./buttons.js";
+import { isArabic } from "./i18n.js";
+import { traducirContenido } from "./translations.js";
 
 const GROUP_TTL = 10 * 60 * 1000;
 const groupCache = new Map();
@@ -146,6 +148,8 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
     // canonical name, so an Arabic alias behaves exactly like the original.
     const cmdName = rawCmdName;
     const canonicalName = resolveAlias(rawCmdName);
+    // Commands typed in Arabic get Arabic answers (see `reply` below).
+    const lang = isArabic(rawCmdName) ? "ar" : "es";
     const args = isCmd ? afterPrefix.slice(rawCmdName.length).trim().split(/\s+/).filter(Boolean) : [];
     const text = args.join(" ");
 
@@ -275,6 +279,9 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
       resolveLid: (lidJid) => resolveLid(lidJid, groupMeta, sock),
       clearGroupCache: () => groupCache.delete(from),
       reply: async (content) => {
+        // A command typed in Arabic answers in Arabic: the plugin's Spanish
+        // strings are swapped for their Arabic equivalents on the way out.
+        if (lang === "ar") content = traducirContenido(content);
         if (typeof content === "string") content = { text: content };
         if (content.text !== undefined) {
           const extra = content.mentions || [];
