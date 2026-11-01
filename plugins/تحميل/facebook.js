@@ -76,7 +76,7 @@ async function downloadFacebookVideo(url) {
   const data = res.data;
 
   if (!data.status || !Array.isArray(data.resultados) || !data.resultados.length) {
-    throw new Error("No se encontraron formatos disponibles en la respuesta de la API");
+    throw new Error(tr("No se encontraron formatos disponibles en la respuesta de la API", "لم يتم العثور على صيغ متاحة في ردّ الـ API"));
   }
 
   const formatos = data.resultados;
@@ -89,7 +89,7 @@ async function downloadFacebookVideo(url) {
     formatos.find(f => f.url !== "/");
 
   if (!mejorFormato) {
-    throw new Error("No se encontró un enlace de descarga de video válido");
+    throw new Error(tr("No se encontró un enlace de descarga de video válido", "لم يُعثر على رابط تنزيل فيديو صالح"));
   }
 
   const videoUrl = decodeHtmlEntities(mejorFormato.url);
@@ -106,7 +106,7 @@ async function downloadFacebookVideo(url) {
 
   const contentType = videoRes.headers["content-type"] || "";
   if (!contentType.includes("video") || videoRes.data.byteLength < 10000) {
-    throw new Error("El enlace no devolvió un video válido (posible bloqueo del CDN o link expirado)");
+    throw new Error(tr("El enlace no devolvió un video válido (posible bloqueo del CDN o link expirado)", "لم يعِد الرابط فيديو صالحاً (احتمال حجب CDN أو انتهاء الرابط)"));
   }
 
   const rawBuffer = Buffer.from(videoRes.data);
@@ -161,7 +161,7 @@ export default {
     } catch (error) {
       await react("❌");
       await reply({ text: tr(`Error: ${error.message}`, `خطأ: ${error.message}`) });
-      console.error("Error en facebook:", error);
+      console.error(tr("Error en facebook:", "خطأ في facebook:"), error);
     }
   }
 };

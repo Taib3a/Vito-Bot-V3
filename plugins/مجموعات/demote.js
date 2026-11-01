@@ -48,7 +48,7 @@ export default {
 
     const targetNum = targetJid.split('@')[0]
     let textoDemote = `│✐꒷★ @${targetNum} h⍺ sıdo ძᧉgꭇ⍺ძ⍺ძo ძᧉ ⍺dmını𝗌tꭇ⍺doꭇ.\n`
-    textoDemote += `> acción hecha por @${senderNum}`
+    textoDemote += tr(`> acción hecha por @${senderNum}`, `> نُفّذ بواسطة @${senderNum}`)
 
     await sock.sendMessage(from, {
       text: textoDemote,

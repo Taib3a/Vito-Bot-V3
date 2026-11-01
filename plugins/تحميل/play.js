@@ -74,7 +74,7 @@ const cleanFileName = name =>
   String(name).replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim().slice(0, 100) || 'audio'
 
 function formatViews(views) {
-  if (!views) return 'No disponible'
+  if (!views) return tr('No disponible', 'غير متاح')
   if (views >= 1_000_000_000) return `${(views / 1_000_000_000).toFixed(1)}B`
   if (views >= 1_000_000) return `${(views / 1_000_000).toFixed(1)}M`
   if (views >= 1_000) return `${(views / 1_000).toFixed(1)}k`
@@ -113,7 +113,7 @@ export default {
 
       const url = info?.url || urlDirecta
       const title = info?.title || 'Sin título'
-      const duration = info?.timestamp || 'No disponible'
+      const duration = info?.timestamp || tr('No disponible', 'غير متاح')
       const vistas = formatViews(info?.views)
       const thumbnail = info?.thumbnail || `https://i.ytimg.com/vi/${id}/hqdefault.jpg`
 
@@ -123,7 +123,7 @@ export default {
         `⛧ ${title}\n\n` +
         `⛧ vistas › ${vistas}\n` +
         `⛧ duración › ${duration}\n` +
-        `⛧ link › ${url}`
+        tr(`⛧ link › ${url}`, `⛧ الرابط › ${url}`)
 
       const linkPreview = await buildLinkPreview(sock, thumbnail, title, info?.author?.name || 'YouTube', url)
 
@@ -151,7 +151,7 @@ export default {
           document: { url: dl },
           mimetype: 'audio/mpeg',
           fileName,
-          caption: '⛧ audio enviado como documento por peso'
+          caption: tr('⛧ audio enviado como documento por peso', '⛧ أُرسل الصوت كمستند بسبب الحجم')
         }, { quoted: msg, ...MEDIA_OPTS })
       } else {
         await sock.sendMessage(from, {

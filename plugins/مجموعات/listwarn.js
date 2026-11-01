@@ -36,7 +36,7 @@ export default {
         });
       }
 
-      let texto = `📋 *LISTA DE ADVERTENCIAS*\n`;
+      let texto = tr(`📋 *LISTA DE ADVERTENCIAS*\n`, `📋 *قائمة التحذيرات*\n`);
       texto += `━━━━━━━━━━━━━━━━━━\n\n`;
 
       const mentions = [];
@@ -72,7 +72,7 @@ export default {
       );
 
     } catch (err) {
-      console.error("Error en comando listwarn:", err);
+      console.error(tr("Error en comando listwarn:", "خطأ في أمر listwarn:"), err);
 
       await reply({
         text: tr("❌ Ocurrió un error interno al ejecutar el comando.", "❌ حدث خطأ داخلي أثناء تنفيذ الأمر.")

@@ -93,7 +93,7 @@ export default {
         return
       }
 
-      throw new Error('No se encontró contenido descargable')
+      throw new Error(tr('No se encontró contenido descargable', 'لم يُعثر على محتوى قابل للتنزيل'))
     } catch (e) {
       console.error('[reddit]', e?.message || e)
       await react('❌')
@@ -113,11 +113,11 @@ async function fetchMedia(url) {
     body: JSON.stringify({ url, lang: 'en' })
   })
 
-  if (res.statusCode !== 200) throw new Error(`no se pudo procesar el enlace (HTTP ${res.statusCode})`)
+  if (res.statusCode !== 200) throw new Error(tr(`no se pudo procesar el enlace (HTTP ${res.statusCode})`, `تعذّرت معالجة الرابط (HTTP ${res.statusCode})`))
 
   let data = null
   try { data = JSON.parse(String(res.body)) } catch {}
-  if (!data?.success) throw new Error(data?.message || 'el enlace no es válido')
+  if (!data?.success) throw new Error(data?.message || tr('el enlace no es válido', 'الرابط غير صالح'))
 
   const view = data.view || ''
 
@@ -158,10 +158,10 @@ async function downloadWithRetry(token) {
       continue
     }
 
-    if (res.statusCode >= 400) throw new Error(`descarga falló (HTTP ${res.statusCode})`)
+    if (res.statusCode >= 400) throw new Error(tr(`descarga falló (HTTP ${res.statusCode})`, `فشل التنزيل (HTTP ${res.statusCode})`))
   }
 
-  throw new Error('la descarga no estuvo lista a tiempo')
+  throw new Error(tr('la descarga no estuvo lista a tiempo', 'لم يكن التنزيل جاهزاً في الوقت المحدد'))
 }
 
 function sanitize(s) {

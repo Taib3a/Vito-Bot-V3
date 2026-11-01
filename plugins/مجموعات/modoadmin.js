@@ -22,8 +22,8 @@ export default {
 
     await reply({
       text: activar
-        ? '🔒 *Modo admin activado.* Solo admins, owner y coowners pueden usar comandos en este grupo.'
-        : '🔓 *Modo admin desactivado.* Todos los usuarios pueden usar comandos de nuevo.'
+        ? tr('🔒 *Modo admin activado.* Solo admins, owner y coowners pueden usar comandos en este grupo.', '🔒 *تم تفعيل وضع المشرفين.* فقط المشرفون والمالك يمكنهم استخدام الأوامر في هذه المجموعة.')
+        : tr('🔓 *Modo admin desactivado.* Todos los usuarios pueden usar comandos de nuevo.', '🔓 *تم إطفاء وضع المشرفين.* يمكن لجميع المستخدمين استخدام الأوامر مجدداً.')
     })
   }
 }

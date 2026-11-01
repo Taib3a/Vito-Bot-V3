@@ -11,11 +11,11 @@ const MAX_PAGINAS = 20;
 
 const USO = {
   es:
-    '📌 *Uso del comando anime:*\n\n' +
+    tr('📌 *Uso del comando anime:*\n\n', '📌 *استخدام أمر الأنمي:*\n\n') +
     '• `!anime <nombre>` — buscar anime\n' +
-    '• `!anime <nombre> <episodio>` — enlaces del episodio (ej: `!anime one piece 3`)\n' +
-    '• `!anime ep <slug>` — lista de episodios (ej: `!anime ep one-piece`)\n' +
-    '• `!anime links <url>` — enlaces de una página de episodio',
+    tr('• `!anime <nombre> <episodio>` — enlaces del episodio (ej: `!anime one piece 3`)\n', '• `!anime <اسم> <حلقة>` — روابط الحلقة (مثال: `!anime one piece 3`)\n') +
+    tr('• `!anime ep <slug>` — lista de episodios (ej: `!anime ep one-piece`)\n', '• `!anime ep <slug>` — قائمة الحلقات (مثال: `!anime ep one-piece`)\n') +
+    tr('• `!anime links <url>` — enlaces de una página de episodio', '• `!anime links <url>` — روابط صفحة حلقة'),
   ar:
     '📌 *استخدام أمر الأنمي:*\n\n' +
     '• `!anime <الاسم>` — البحث عن أنمي\n' +
@@ -44,7 +44,7 @@ async function pedir(url, tipo) { // tipo: 'text' | 'json'
         signal: ctrl.signal,
         redirect: 'follow'
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status} en ${url}`);
+      if (!res.ok) throw new Error(tr(`HTTP ${res.status} en ${url}`, `HTTP ${res.status} في ${url}`));
       return tipo === 'json' ? await res.json() : await res.text();
     } catch (e) {
       ultimoError = e;
@@ -79,7 +79,7 @@ function limpiarHtml(s = '') {
 }
 
 function hostDe(url) {
-  try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return 'Desconocido'; }
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return tr('Desconocido', 'غير معروف'); }
 }
 
 // Decodifica un valor de data-src: puede ser URL directa, protocol-relative,
@@ -382,7 +382,7 @@ async function mostrarEnlaces(ctx, url) {
     return ctx.reply(tr(`No encontré enlaces en:\n${url}`, `لم أجد روابط في:\n${url}`));
   }
 
-  let msg = `📥 *Enlaces del episodio*\n${url}\n`;
+  let msg = tr(`📥 *Enlaces del episodio*\n${url}\n`, `📥 *روابط الحلقة*\n${url}\n`);
 
   if (descargas.length) {
     msg += `\n⬇️ *Descarga:*\n` + descargas.map(d =>

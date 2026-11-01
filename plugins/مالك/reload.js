@@ -17,14 +17,14 @@ export default {
         await clearSocketFiles(sock.sessionDir);
       }
     } catch (e) {
-      console.error("[reload] Error limpiando sesión:", e.message);
+      console.error(tr("[reload] Error limpiando sesión:", "[reload] خطأ في تنظيف الجلسة:"), e.message);
     }
 
     setTimeout(() => {
       try {
         sock.end(new Error("Reload manual solicitado"));
       } catch (e) {
-        console.error("[reload] Error cerrando socket:", e.message);
+        console.error(tr("[reload] Error cerrando socket:", "[reload] خطأ في إغلاق الاتصال:"), e.message);
       }
     }, 500);
   },

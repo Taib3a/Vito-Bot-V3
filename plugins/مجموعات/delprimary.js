@@ -19,7 +19,7 @@ export default {
       return await reply({
         text:
           tr(`⚠️ *Este grupo no tiene bot primario establecido.*\n\n`, `⚠️ *لا يوجد بوت رئيسي معيّن لهذه المجموعة.*\n\n`) +
-          `💡 Usa *.setprimary* para establecer uno.`
+          tr(`💡 Usa *.setprimary* para establecer uno.`, `💡 استخدم *.setprimary* لتعيين واحد.`)
       })
     }
 
@@ -29,7 +29,7 @@ export default {
     await reply({
       text:
         tr(`✅ *Bot primario eliminado*\n\n`, `✅ *أُزيل البوت الرئيسي*\n\n`) +
-        `Todos los bots y sub-bots responderán en este grupo ahora.`
+        tr(`Todos los bots y sub-bots responderán en este grupo ahora.`, `ستستجيب جميع البوتات والفرعية في هذه المجموعة الآن.`)
     })
   }
 }

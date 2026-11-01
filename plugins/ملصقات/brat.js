@@ -125,7 +125,7 @@ export default {
       await react('✅')
 
     } catch (error) {
-      console.error('🔴 Error en brat:', error)
+      console.error(tr('🔴 Error en brat:', '🔴 خطأ في brat:'), error)
       await react('❌')
       await reply({ text: tr(`❌ *Error:* ${error.message}`, `❌ *خطأ:* ${error.message}`) })
     }

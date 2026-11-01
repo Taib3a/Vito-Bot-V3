@@ -25,7 +25,7 @@ async function obtenerKey(videoId) {
   })
   if (!res.ok) throw new Error(`sanity/key respondió ${res.status}`)
   const data = await res.json()
-  if (!data.key) throw new Error('sanity/key no devolvió key')
+  if (!data.key) throw new Error(tr('sanity/key no devolvió key', 'sanity/key لم يعِد مفتاحاً'))
   return data.key
 }
 
@@ -56,7 +56,7 @@ async function obtenerAudio(videoId) {
   if (!res.ok) throw new Error(`converter respondió ${res.status}`)
 
   const data = await res.json()
-  if (!data.url) throw new Error('converter no devolvió url')
+  if (!data.url) throw new Error(tr('converter no devolvió url', 'converter لم يعِد رابطاً'))
   return { url: data.url, filename: data.filename || `${videoId}.mp3` }
 }
 
@@ -91,7 +91,7 @@ async function buscarYouTube(query, limite = 5) {
   const html = await res.text()
 
   const m = html.match(/var ytInitialData\s*=\s*(\{.+?\});<\/script>/s)
-  if (!m) throw new Error('No se pudo leer la página de YouTube')
+  if (!m) throw new Error(tr('No se pudo leer la página de YouTube', 'تعذّرت قراءة صفحة يوتيوب'))
 
   const data = JSON.parse(m[1])
   const secciones =
@@ -106,7 +106,7 @@ async function buscarYouTube(query, limite = 5) {
       resultados.push({
         id: v.videoId,
         titulo: v.title?.runs?.[0]?.text || 'Sin título',
-        canal: v.ownerText?.runs?.[0]?.text || 'Desconocido',
+        canal: v.ownerText?.runs?.[0]?.text || tr('Desconocido', 'غير معروف'),
         duracion: v.lengthText?.simpleText || '--:--',
         vistas: v.viewCountText?.simpleText || '',
         fecha: v.publishedTimeText?.simpleText || '',
@@ -202,8 +202,8 @@ export default {
       }
 
       const title = info?.title || 'Sin título'
-      const duration = info?.timestamp || 'No disponible'
-      const vistas = info?.views || 'No disponible'
+      const duration = info?.timestamp || tr('No disponible', 'غير متاح')
+      const vistas = info?.views || tr('No disponible', 'غير متاح')
       const thumbnail = info?.thumbnail || `https://i.ytimg.com/vi/${id}/hqdefault.jpg`
 
       if (!descarga) {
@@ -215,7 +215,7 @@ export default {
         `⛧ ${title}\n\n` +
         `⛧ vistas › ${vistas}\n` +
         `⛧ duración › ${duration}\n` +
-        `⛧ link › ${url}`
+        tr(`⛧ link › ${url}`, `⛧ الرابط › ${url}`)
 
       const linkPreview = await buildLinkPreview(sock, thumbnail, title, info?.author?.name || 'YouTube', url)
 
@@ -238,7 +238,7 @@ export default {
           document: buffer,
           mimetype: 'audio/mpeg',
           fileName,
-          caption: '⛧ audio enviado como documento por peso'
+          caption: tr('⛧ audio enviado como documento por peso', '⛧ أُرسل الصوت كمستند بسبب الحجم')
         }, { quoted: msg, ...MEDIA_OPTS })
       } else {
         await sock.sendMessage(from, {

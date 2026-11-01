@@ -15,14 +15,14 @@ const MIMES = {
 };
 
 const ERRORES = {
-  [-3]: "MEGA está ocupado, intenta de nuevo en un momento.",
-  [-4]: "MEGA te está limitando por demasiadas peticiones. Espera unos minutos.",
-  [-6]: "MEGA bloqueó temporalmente la IP de este servidor (demasiadas conexiones). Espera un rato o prueba desde otra IP.",
-  [-19]: "Demasiadas conexiones simultáneas a MEGA. Espera un momento.",
-  [-9]: "El archivo no existe o fue eliminado.",
-  [-16]: "El archivo fue bloqueado por MEGA (términos de servicio).",
-  [-17]: "MEGA limitó el ancho de banda de este servidor. Intenta más tarde.",
-  [-18]: "El archivo no está disponible temporalmente. Intenta más tarde.",
+  [-3]: tr("MEGA está ocupado, intenta de nuevo en un momento.", "MEGA مشغول، حاول مجدداً بعد لحظة."),
+  [-4]: tr("MEGA te está limitando por demasiadas peticiones. Espera unos minutos.", "MEGA يحدّك بسبب طلبات كثيرة. انتظر بضع دقائق."),
+  [-6]: tr("MEGA bloqueó temporalmente la IP de este servidor (demasiadas conexiones). Espera un rato o prueba desde otra IP.", "حجب MEGA مؤقتاً IP هذا الخادم (اتصالات كثيرة). انتظر قليلاً أو جرّب من IP آخر."),
+  [-19]: tr("Demasiadas conexiones simultáneas a MEGA. Espera un momento.", "اتصالات متزامنة كثيرة بـ MEGA. انتظر لحظة."),
+  [-9]: tr("El archivo no existe o fue eliminado.", "الملف غير موجود أو حُذف."),
+  [-16]: tr("El archivo fue bloqueado por MEGA (términos de servicio).", "حجب MEGA الملف (شروط الخدمة)."),
+  [-17]: tr("MEGA limitó el ancho de banda de este servidor. Intenta más tarde.", "حدّ MEGA من نطاق هذا الخادم. حاول لاحقاً."),
+  [-18]: tr("El archivo no está disponible temporalmente. Intenta más tarde.", "الملف غير متاح مؤقتاً. حاول لاحقاً."),
 };
 
 const extDe = (n) => (n.split(".").pop() || "").toLowerCase();
@@ -39,7 +39,7 @@ function parsear(text) {
 /** Clave de archivo (32 bytes) → clave AES (16 bytes, XOR de las mitades) + nonce CTR (8 bytes) */
 function derivarClaves(keyB64) {
   const raw = Buffer.from(keyB64, "base64url");
-  if (raw.length !== 32) throw new Error("La clave del enlace es inválida (¿link incompleto o de carpeta?).");
+  if (raw.length !== 32) throw new Error(tr("La clave del enlace es inválida (¿link incompleto o de carpeta?).", "مفتاح الرابط غير صالح (رابط ناقص أو مجلد؟)."));
   const aes = Buffer.alloc(16);
   for (let i = 0; i < 16; i++) aes[i] = raw[i] ^ raw[i + 16];
   const iv = Buffer.concat([raw.subarray(16, 24), Buffer.alloc(8)]); // nonce + contador en 0
@@ -57,7 +57,7 @@ async function infoArchivo(id, intento = 1) {
     body: JSON.stringify([{ a: "g", g: 1, ssl: 1, p: id }]),
     signal: AbortSignal.timeout(TIMEOUT),
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status} en la API de MEGA`);
+  if (!res.ok) throw new Error(tr(`HTTP ${res.status} en la API de MEGA`, `HTTP ${res.status} في واجهة MEGA`));
 
   const json = await res.json();
   const data = Array.isArray(json) ? json[0] : json;
@@ -68,9 +68,9 @@ async function infoArchivo(id, intento = 1) {
       await espera(2000 * 2 ** (intento - 1));
       return infoArchivo(id, intento + 1);
     }
-    throw new Error(ERRORES[data] || `MEGA devolvió el error ${data}.`);
+    throw new Error(ERRORES[data] || tr(`MEGA devolvió el error ${data}.`, `أعاد MEGA الخطأ ${data}.`));
   }
-  if (!data?.g) throw new Error("MEGA no devolvió enlace de descarga.");
+  if (!data?.g) throw new Error(tr("MEGA no devolvió enlace de descarga.", "لم يعِد MEGA رابط تنزيل."));
   return data; // { g: url, s: tamaño, at: atributos cifrados }
 }
 
@@ -141,7 +141,7 @@ export default {
         clearTimeout(t);
       }
       if (res.status === 509) throw new Error(ERRORES[-17]);
-      if (!res.ok) throw new Error(`HTTP ${res.status} al descargar`);
+      if (!res.ok) throw new Error(tr(`HTTP ${res.status} al descargar`, `HTTP ${res.status} عند التنزيل`));
 
       // Descifrado al vuelo (AES-128-CTR): nada se guarda en disco
       const decipher = createDecipheriv("aes-128-ctr", aes, iv);

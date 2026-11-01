@@ -30,7 +30,7 @@ export default {
       await reply({
         text:
           tr(`✅ *Bot unido al grupo*\n\n`, `✅ *انضم البوت إلى المجموعة*\n\n`) +
-          `🔗 *Link:* ${text.trim()}\n\n` +
+          tr(`🔗 *Link:* ${text.trim()}\n\n`, `🔗 *الرابط:* ${text.trim()}\n\n`) +
           `⚔️ _Yuta Okotsu MD | DuarteXV_`
       })
     } catch (e) {

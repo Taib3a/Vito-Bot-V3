@@ -119,7 +119,7 @@ export default {
       const uploadResult = await subirDix(buffer, filename, mime)
 
       if (!uploadResult || !uploadResult.status || !uploadResult.data?.url) {
-        throw new Error('El servidor de Dix rechazó la subida.')
+        throw new Error(tr('El servidor de Dix rechazó la subida.', 'رفض خادم Dix الرفع.'))
       }
 
       const bannerUrl = uploadResult.data.url

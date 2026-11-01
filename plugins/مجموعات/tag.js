@@ -63,7 +63,7 @@ export default {
 
       await react('✅');
     } catch (error) {
-      console.error("Error en el comando tag:", error);
+      console.error(tr("Error en el comando tag:", "خطأ في أمر tag:"), error);
       await react('❌');
     }
   }

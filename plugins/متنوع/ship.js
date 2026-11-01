@@ -122,9 +122,9 @@ export default {
     const numB = userB.split("@")[0];
 
     let caption;
-    if (percent >= 80) caption = "『💘』¡Son el uno para el otro!";
+    if (percent >= 80) caption = tr("『💘』¡Son el uno para el otro!", "『💘』أنتما مثاليان لبعضكما!");
     else if (percent >= 50) caption = "『💘』Hay potencial ahí...";
-    else if (percent >= 20) caption = "『💘』Mejor quedan como amigos.";
+    else if (percent >= 20) caption = tr("『💘』Mejor quedan como amigos.", "『💘』الأفضل أن تبقيا صديقين.");
     else caption = "『💘』Cero compatibilidad, lo siento.";
 
     await sock.sendMessage(

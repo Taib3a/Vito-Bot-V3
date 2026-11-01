@@ -69,7 +69,7 @@ export default {
       return await reply({
         text: tr(`✅ *¡Plugin guardado con éxito!*\n\n`, `✅ *تم حفظ الإضافة بنجاح!*\n\n`) +
               `📂 *Carpeta:* \`plugins/${path.relative(path.join(baseDir, 'plugins'), targetDir) || 'Raíz'}\`\n` +
-              `📄 *Archivo:* \`${path.basename(targetPath)}\``
+              tr(`📄 *Archivo:* \`${path.basename(targetPath)}\``, `📄 *الملف:* \`${path.basename(targetPath)}\``)
       })
 
     } catch (error) {

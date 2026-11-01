@@ -80,7 +80,7 @@ export default {
         mentions: [target]
       }, { quoted: msg })
     } catch (e) {
-      console.error('Error chetar:', e)
+      console.error(tr('Error chetar:', 'خطأ chetar:'), e)
       await react('❌')
       await reply({ text: tr('⚠︎ No se pudo dar el dinero.', '⚠︎ تعذّر إعطاء المال.') })
     }

@@ -2,7 +2,7 @@ import axios from "axios";
 import { generateWAMessageFromContent, generateWAMessage, delay } from "@whiskeysockets/baileys";
 
 async function sendAlbumMessage(sock, jid, medias, options = {}) {
-  if (medias.length < 2) throw new RangeError("Se necesitan al menos 2 imágenes para un álbum")
+  if (medias.length < 2) throw new RangeError(tr("Se necesitan al menos 2 imágenes para un álbum", "يلزم صورتان على الأقل للألبوم"))
   const caption = options.caption || ""
   const quoted  = options.quoted || null
 
@@ -98,7 +98,7 @@ export default {
           `❌ *Error:* ${error.message}\n\n` +
           `⚔️ _Yuta Okotsu MD | DuarteXV_`
       })
-      console.error("Error en pinterest:", error)
+      console.error(tr("Error en pinterest:", "خطأ في pinterest:"), error)
     }
   }
 }

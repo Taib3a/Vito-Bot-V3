@@ -45,12 +45,12 @@ export default {
     const botsActivos = [...activeBots.entries()].filter(([, bot]) => bot.status === 'online')
 
     if (!quotedSender) {
-      let texto = `¿A qué bot quieres como primario?\n\n`
+      let texto = tr(`¿A qué bot quieres como primario?\n\n`, `أي بوت تريد كرئيسي؟\n\n`)
       for (const [, bot] of botsActivos) {
         const num = parseNum(cleanJid(bot.jid)) || 'N/A'
         texto += `  ✦ *${bot.label || 'Sub-Bot'}* → @${num}\n`
       }
-      texto += `\nMenciona a ese bot (@número) y ejecuta *.setprimary* de nuevo.`
+      texto += tr(`\nMenciona a ese bot (@número) y ejecuta *.setprimary* de nuevo.`, `\nاذكر ذلك البوت (@رقم) ونفّذ *.setprimary* مجدداً.`)
 
       const mentionJids = botsActivos.map(([, bot]) => cleanJid(bot.jid)).filter(Boolean)
       return await reply({ text: texto, mentions: mentionJids })
@@ -77,8 +77,8 @@ export default {
     await reply({
       text:
         tr(`Bot primario establecido\n\n`, `تم تعيين البوت الرئيسي\n\n`) +
-        `@${whoNum} es ahora el bot principal.\n` +
-        `Los demás bots no responderán en este grupo.`,
+        tr(`@${whoNum} es ahora el bot principal.\n`, `@${whoNum} هو الآن البوت الرئيسي.\n`) +
+        tr(`Los demás bots no responderán en este grupo.`, `لن تستجيب بقية البوتات في هذه المجموعة.`),
       mentions: [whoJid]
     })
   }

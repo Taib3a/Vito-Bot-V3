@@ -57,7 +57,7 @@ export default {
       }, { quoted: msg })
 
     } catch (err) {
-      console.error("Error en comando delwarn:", err)
+      console.error(tr("Error en comando delwarn:", "خطأ في أمر delwarn:"), err)
       await reply({ text: tr("❌ Ocurrió un error interno al ejecutar el comando.", "❌ حدث خطأ داخلي أثناء تنفيذ الأمر.") })
     }
   }

@@ -113,14 +113,14 @@ const getPackDetail = (url) =>
   })
 
 const sendStickerPack = async (sock, jid, { name, publisher, description, stickers, cover, quoted }) => {
-  if (!stickers.length) throw new Error('Pack vacío')
-  if (stickers.length > 60) throw new Error('Máximo 60 stickers por pack')
+  if (!stickers.length) throw new Error(tr('Pack vacío', 'حزمة فارغة'))
+  if (stickers.length > 60) throw new Error(tr('Máximo 60 stickers por pack', 'الحد الأقصى 60 ملصقاً لكل حزمة'))
 
   const packId = generateMessageIDV2()
   const files = {}
 
   const meta = stickers.map((s) => {
-    if (s.sticker.length > 1024 * 1024) throw new Error('Un sticker supera 1MB')
+    if (s.sticker.length > 1024 * 1024) throw new Error(tr('Un sticker supera 1MB', 'ملصق واحد يتجاوز 1MB'))
     const fileName = sha256(s.sticker).toString('base64').replace(/\//g, '-') + '.webp'
     files[fileName] = s.sticker
     return {
@@ -196,7 +196,7 @@ export default {
       }
 
       const user = db.getUser(senderNum) || {}
-      const packName = user.text1 || global.packname || 'Yuta Pack'
+      const packName = user.text1 || global.packname || tr('Yuta Pack', 'حزمة Yuta')
       const authorName = user.text2 || global.author || `@${senderNum}`
 
       const detail = await getPackDetail(freePacks[0].url)

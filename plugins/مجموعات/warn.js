@@ -46,7 +46,7 @@ export default {
       if (!currentWarns[targetJid]) currentWarns[targetJid] = []
 
       const adminName = msg.pushName || "Admin"
-      const razon = args.join(" ") || "No se especificó una razón."
+      const razon = args.join(" ") || tr("No se especificó una razón.", "لم يُحدَّد سبب.")
       const targetNum = targetJid.split('@')[0]
 
       currentWarns[targetJid].push({
@@ -61,14 +61,14 @@ export default {
       const totalWarns = currentWarns[targetJid].length
       const willKick = totalWarns >= 3
 
-      let texto = `⚠️ *¡USUARIO ADVERTIDO!* ⚠️\n\n`
-      texto += `👤 *Usuario:* @${targetNum}\n`
+      let texto = tr(`⚠️ *¡USUARIO ADVERTIDO!* ⚠️\n\n`, `⚠️ *تم تحذير المستخدم!* ⚠️\n\n`)
+      texto += tr(`👤 *Usuario:* @${targetNum}\n`, `👤 *المستخدم:* @${targetNum}\n`)
       texto += `👮‍♂️ *Por:* ${adminName}\n`
       texto += `📝 *Razón:* ${razon}\n`
       texto += `📊 *Advertencias:* ${totalWarns}/3\n\n`
 
       if (willKick) {
-        texto += `❗ *Este usuario alcanzó el límite de 3 advertencias y será expulsado del grupo.*`
+        texto += tr(`❗ *Este usuario alcanzó el límite de 3 advertencias y será expulsado del grupo.*`, `❗ *وصل هذا المستخدم إلى حد 3 تحذيرات وسيُطرد من المجموعة.*`)
       }
 
       await sock.sendMessage(from, {
@@ -97,13 +97,13 @@ export default {
             await reply({ text: tr(`👢 @${targetNum} fue expulsado del grupo por acumular 3 advertencias.`, `👢 طُرد @${targetNum} من المجموعة بعد 3 تحذيرات.`), mentions: [targetJid] })
           }
         } catch (kickErr) {
-          console.error("Error al expulsar tras 3 warns:", kickErr)
+          console.error(tr("Error al expulsar tras 3 warns:", "خطأ أثناء الطرد بعد 3 تحذيرات:"), kickErr)
           await reply({ text: tr(`⚠️ No pude expulsar a @${targetNum} (revisa mis permisos de admin).`, `⚠️ لم أستطع طرد @${targetNum} (تحقق من صلاحياتي كمشرف).`), mentions: [targetJid] })
         }
       }
 
     } catch (err) {
-      console.error("Error en comando warn:", err)
+      console.error(tr("Error en comando warn:", "خطأ في أمر warn:"), err)
       await reply({ text: tr("❌ Ocurrió un error interno al ejecutar el comando.", "❌ حدث خطأ داخلي أثناء تنفيذ الأمر.") })
     }
   }

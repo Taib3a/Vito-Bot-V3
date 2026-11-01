@@ -17,7 +17,7 @@ export default {
         text:
           tr(`❌ Uso:\n`, `❌ الاستخدام:\n`) +
           `*.setmeta Autor*\n` +
-          `*.setmeta Pack | Autor*\n\n` +
+          tr(`*.setmeta Pack | Autor*\n\n`, `*.setmeta الحزمة | المؤلف*\n\n`) +
           `Ejemplo:\n` +
           `*.setmeta DuarteXV•404*\n` +
           `*.setmeta Yuta MD | DuarteXV*`
@@ -52,7 +52,7 @@ export default {
     await reply({
       text:
         tr(`✅ *Marca actualizada*\n\n`, `✅ *تم تحديث العلامة*\n\n`) +
-        `📦 *Pack:* ${packName}\n` +
+        tr(`📦 *Pack:* ${packName}\n`, `📦 *الحزمة:* ${packName}\n`) +
         `✍️ *Autor:* ${authorName}`
     })
     await react('✅')

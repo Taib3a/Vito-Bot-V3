@@ -33,7 +33,7 @@ const abrirConTimeout = async (url, headers = {}) => {
 
 async function resolver(url) {
   const res = await abrirConTimeout(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status} al abrir la página`);
+  if (!res.ok) throw new Error(tr(`HTTP ${res.status} al abrir la página`, `HTTP ${res.status} عند فتح الصفحة`));
 
   if (!/text\/html/i.test(res.headers.get("content-type") || "")) {
     return { directo: res.url, nombre: null };
@@ -57,7 +57,7 @@ async function resolver(url) {
     if (any) directo = decode(any[0]);
   }
   if (!directo || !/^https?:\/\//i.test(directo)) {
-    throw new Error("No encontré el enlace directo (archivo borrado, privado o con captcha).");
+    throw new Error(tr("No encontré el enlace directo (archivo borrado, privado o con captcha).", "لم أجد الرابط المباشر (الملف محذوف أو خاص أو محمي بكابتشا)."));
   }
 
   const nombre = html.match(/<div[^>]*class="filename"[^>]*>([^<]+)</i)?.[1]?.trim() || null;
@@ -94,9 +94,9 @@ export default {
       const { directo, nombre: nombreHTML } = await resolver(link);
 
       const res = await abrirConTimeout(directo, { Referer: "https://www.mediafire.com/" });
-      if (!res.ok) throw new Error(`HTTP ${res.status} al descargar`);
+      if (!res.ok) throw new Error(tr(`HTTP ${res.status} al descargar`, `HTTP ${res.status} عند التنزيل`));
       if (/text\/html/i.test(res.headers.get("content-type") || "") && !/\.html?$/i.test(nombreHTML || "")) {
-        throw new Error("El servidor devolvió una página en vez del archivo (enlace caducado).");
+        throw new Error(tr("El servidor devolvió una página en vez del archivo (enlace caducado).", "أعاد الخادم صفحة بدلاً من الملف (الرابط منتهي)."));
       }
 
       const nombre = (

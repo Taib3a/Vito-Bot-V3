@@ -139,15 +139,15 @@ export default {
       if (react && typeof react === "function") await react("✅").catch(() => {});
 
     } catch (error) {
-      console.error("Error crítico en system:", error);
+      console.error(tr("Error crítico en system:", "خطأ حرج في system:"), error);
 
       try {
         if (react && typeof react === "function") await react("❌").catch(() => {});
         await sock.sendMessage(from, {
-          text: "官 Ocurrió un error interno obteniendo el sistema."
+          text: tr("官 Ocurrió un error interno obteniendo el sistema.", "官 حدث خطأ داخلي أثناء جلب معلومات النظام.")
         }, { quoted: msg });
       } catch (e) {
-        console.error("No se pudo enviar el mensaje de error:", e);
+        console.error(tr("No se pudo enviar el mensaje de error:", "تعذّر إرسال رسالة الخطأ:"), e);
       }
     }
   }

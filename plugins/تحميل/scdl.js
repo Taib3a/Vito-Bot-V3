@@ -36,7 +36,7 @@ async function paso(nombre, fn, log) {
 
 async function getClientId(log) {
   if (cachedClientId && Date.now() - cacheTime < 3600000) {
-    log(`ℹ client_id en caché: ${cachedClientId.slice(0, 4)}…`)
+    log(tr(`ℹ client_id en caché: ${cachedClientId.slice(0, 4)}…`, `ℹ client_id في الذاكرة المؤقتة: ${cachedClientId.slice(0, 4)}…`))
     return cachedClientId
   }
 
@@ -116,7 +116,7 @@ function mimeEnvio(mime = '') {
 
 // Intenta bajar un transcoding concreto
 async function bajarTranscoding(t, track, clientId, log) {
-  const streamRes = await paso('URL del stream', () =>
+  const streamRes = await paso(tr('URL del stream', 'رابط البث'), () =>
     http.get(t.url, {
       params: { client_id: clientId, track_authorization: track.track_authorization },
       timeout: 10000
@@ -124,12 +124,12 @@ async function bajarTranscoding(t, track, clientId, log) {
   )
 
   const streamUrl = streamRes.data?.url
-  if (!streamUrl) throw new Error('SoundCloud no devolvió la URL del stream')
+  if (!streamUrl) throw new Error(tr('SoundCloud no devolvió la URL del stream', 'لم يعِد SoundCloud رابط البث'))
   log(`ℹ stream host: ${host(streamUrl)}`)
 
   const buffer = t.format.protocol === 'hls'
     ? await descargarHls(streamUrl, log)
-    : await paso('descarga del audio', () => getBuf(streamUrl), log)
+    : await paso(tr('descarga del audio', 'تنزيل الصوت'), () => getBuf(streamUrl), log)
 
   log(`ℹ descargado: ${(buffer.length / 1024 / 1024).toFixed(2)} MB`)
   return { buffer, mime: t.format.mime_type }
@@ -169,7 +169,7 @@ export default {
       const urlLimpia = text.trim().split('?')[0]
       log(`ℹ url: ${urlLimpia}`)
 
-      const trackRes = await paso('resolve del track', () =>
+      const trackRes = await paso(tr('resolve del track', 'تحليل المقطع'), () =>
         http.get('https://api-v2.soundcloud.com/resolve', {
           params: { url: urlLimpia, client_id: clientId },
           timeout: 10000
@@ -177,9 +177,9 @@ export default {
       )
 
       const track = trackRes.data
-      if (!track || track.kind !== 'track') throw new Error('No se encontró el track en esa URL')
+      if (!track || track.kind !== 'track') throw new Error(tr('No se encontró el track en esa URL', 'لم يُعثر على المقطع في ذلك الرابط'))
       log(`ℹ track: ${track.title} | policy: ${track.policy || '?'} | access: ${track.access || '?'}`)
-      log(`ℹ track_authorization: ${track.track_authorization ? 'sí' : 'NO'}`)
+      log(tr(`ℹ track_authorization: ${track.track_authorization ? 'sí' : 'NO'}`, `ℹ track_authorization: ${track.track_authorization ? 'نعم' : 'لا'}`))
 
       // Candidatos en orden de preferencia: mp3 progresivo > mp3 HLS > cualquier otro HLS
       const transcodings = track.media?.transcodings || []
@@ -192,7 +192,7 @@ export default {
         ...transcodings.filter(t => !esMp3(t) && t.format?.protocol === 'hls')
       ]
 
-      if (!candidatos.length) throw new Error('No hay stream disponible')
+      if (!candidatos.length) throw new Error(tr('No hay stream disponible', 'لا يوجد بث متاح'))
 
       // Prueba cada uno hasta que alguno funcione
       let audio = null
@@ -207,7 +207,7 @@ export default {
           console.error(`scdl: falló ${t.format?.protocol} ${t.format?.mime_type} ->`, e.message)
         }
       }
-      if (!audio) throw ultimoError || new Error('No se pudo descargar ningún stream')
+      if (!audio) throw ultimoError || new Error(tr('No se pudo descargar ningún stream', 'تعذّر تنزيل أي بث'))
 
       let audioBuffer = audio.buffer
       let mimetype = mimeEnvio(audio.mime)
@@ -254,7 +254,7 @@ export default {
       await react('❌')
       await reply({ text: tr(`❌ Error: ${error.message}`, `❌ خطأ: ${error.message}`) })
       await enviarDebug()
-      console.error('Error en scdl:', error)
+      console.error(tr('Error en scdl:', 'خطأ في scdl:'), error)
     }
   }
 }

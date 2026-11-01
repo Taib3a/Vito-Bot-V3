@@ -34,7 +34,7 @@ export default {
       return await reply({
         text:
           tr(`⚠️ No pude detectar tu número automáticamente (esto pasa si tienes activado un *nombre de usuario* de WhatsApp y no me tienes en tus contactos).\n\n`, `⚠️ لم أستطع اكتشاف رقمك تلقائياً (يحدث إذا كان لديك *اسم مستخدم* في واتساب ولست في جهات اتصالي).\n\n`) +
-          `Escribe tu número con código de país así: *.code 5215512345678*`
+          tr(`Escribe tu número con código de país así: *.code 5215512345678*`, `اكتب رقمك مع رمز الدولة هكذا: *.code 5215512345678*`)
       });
     }
 
@@ -62,12 +62,12 @@ export default {
       text:
         tr(`⚔️ *VINCULACIÓN DE SUBBOT*\n\n`, `⚔️ *ربط البوت الفرعي*\n\n`) +
         `📋 *Instrucciones:*\n` +
-        ` ✦ Abre WhatsApp en tu teléfono\n` +
+        tr(` ✦ Abre WhatsApp en tu teléfono\n`, ` ✦ افتح واتساب على هاتفك\n`) +
         ` ✦ Ve a *Dispositivos vinculados*\n` +
         ` ✦ Toca *Vincular dispositivo*\n` +
-        ` ✦ Toca *Vincular con número de teléfono*\n` +
-        ` ✦ Ingresa el código que recibirás ahora\n` +
-        ` ✦ Tienes *60 segundos* antes de que expire\n\n` +
+        tr(` ✦ Toca *Vincular con número de teléfono*\n`, ` ✦ اضغط *الربط برقم الهاتف*\n`) +
+        tr(` ✦ Ingresa el código que recibirás ahora\n`, ` ✦ أدخل الكود الذي سيصلك الآن\n`) +
+        tr(` ✦ Tienes *60 segundos* antes de que expire\n\n`, ` ✦ لديك *60 ثانية* قبل انتهاء صلاحيته\n\n`) +
         `⏳ _Generando código..._`
     });
 

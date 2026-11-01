@@ -38,7 +38,7 @@ export default {
       const buffer = Buffer.from(response.data)
 
       if (!buffer || buffer.length === 0) {
-        throw new Error('El servidor devolvió un archivo vacío.')
+        throw new Error(tr('El servidor devolvió un archivo vacío.', 'أعاد الخادم ملفاً فارغاً.'))
       }
 
       const detected = await fileTypeFromBuffer(buffer)
@@ -47,13 +47,13 @@ export default {
       if (mime.startsWith('image/')) {
         await sock.sendMessage(from, {
           image: buffer,
-          caption: `✅ *Imagen obtenida con éxito*`
+          caption: tr(`✅ *Imagen obtenida con éxito*`, `✅ *تم الحصول على الصورة بنجاح*`)
         }, { quoted: msg })
 
       } else if (mime.startsWith('video/')) {
         await sock.sendMessage(from, {
           video: buffer,
-          caption: `✅ *Video obtenido con éxito*`
+          caption: tr(`✅ *Video obtenido con éxito*`, `✅ *تم الحصول على الفيديو بنجاح*`)
         }, { quoted: msg })
 
       } else if (mime.startsWith('audio/')) {
@@ -97,9 +97,9 @@ export default {
 
       let errMsg = e.message
       if (e.response) {
-        errMsg = `El servidor respondió con código de estado ${e.response.status}`
+        errMsg = tr(`El servidor respondió con código de estado ${e.response.status}`, `أجاب الخادم برمز الحالة ${e.response.status}`)
       } else if (e.code === 'ECONNABORTED') {
-        errMsg = 'Tiempo de espera agotado al descargar el archivo.'
+        errMsg = tr('Tiempo de espera agotado al descargar el archivo.', 'انتهت مهلة الانتظار أثناء تنزيل الملف.')
       }
 
       await reply({

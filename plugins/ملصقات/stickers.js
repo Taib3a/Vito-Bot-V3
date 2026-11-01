@@ -199,7 +199,7 @@ export default {
         return await reply({
           text:
             tr(`❌ Envía o responde una imagen, video máx 15s o sticker.\n\n`, `❌ أرسل أو ردّ على صورة، فيديو بحد أقصى 15 ثانية أو ملصق.\n\n`) +
-            `💡 *${usedPrefix}s* ➔ sticker normal\n` +
+            tr(`💡 *${usedPrefix}s* ➔ sticker normal\n`, `💡 *${usedPrefix}s* ➔ ملصق عادي\n`) +
             `💡 *${usedPrefix}s MiMarca* ➔ marca temporal\n` +
             `💡 *${usedPrefix}setmeta MiMarca* ➔ marca fija`
         })
@@ -222,7 +222,7 @@ export default {
     } catch (error) {
       await react('❌')
       await reply({ text: `❌ ${error.message}` })
-      console.error('Error en sticker:', error)
+      console.error(tr('Error en sticker:', 'خطأ في الملصق:'), error)
     }
   }
 }

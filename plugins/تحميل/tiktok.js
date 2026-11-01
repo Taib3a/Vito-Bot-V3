@@ -40,16 +40,16 @@ async function downloadTikTokNormal(url) {
       return {
         videoUrl: d.play,
         title: d.title,
-        authorNick: d.author?.nickname || 'Desconocido',
+        authorNick: d.author?.nickname || tr('Desconocido', 'غير معروف'),
         likes: d.digg_count,
         shares: d.share_count,
         downloads: d.download_count,
         comments: d.comment_count
       };
     }
-    throw new Error('No video data found');
+    throw new Error(tr('No video data found', 'لا توجد بيانات فيديو'));
   } catch (error) {
-    throw new Error(`TikWM API error: ${error.message}`);
+    throw new Error(tr(`TikWM API error: ${error.message}`, `خطأ واجهة TikWM: ${error.message}`));
   }
 }
 
@@ -180,7 +180,7 @@ export default {
         await processVideoFile(inputP, outP);
         finalPath = outP;
       } catch (e) {
-        console.error('No se pudo procesar el video:', e?.stack || e.message);
+        console.error(tr('No se pudo procesar el video:', 'تعذّرت معالجة الفيديو:'), e?.stack || e.message);
 
         const inputSizeMB = fs.statSync(inputP).size / (1024 * 1024);
         if (inputSizeMB > 60) {
@@ -193,10 +193,10 @@ export default {
 
       const titulo = result.title?.trim() || 'Sin título';
 
-      let caption = `☑ *Video de TikTok descargado*\n`;
+      let caption = tr(`☑ *Video de TikTok descargado*\n`, `☑ *تم تنزيل فيديو تيك توك*\n`);
       caption += `─╮\n`;
       caption += `   ╰━━━━━━(☆)━━━━━━─╮\n`;
-      caption += `*👤 ᴀᴜᴛᴏʀ:* ${result.authorNick || 'Desconocido'}\n`;
+      caption += tr(`*👤 ᴀᴜᴛᴏʀ:* ${result.authorNick || 'Desconocido'}\n`, `*👤 الناشر:* ${result.authorNick || 'غير معروف'}\n`);
       caption += `*♡ ʟɪᴋᴇs:* ${result.likes ?? 'N/A'}\n`;
       caption += `*⌲ sʜᴀʀᴇ:* ${result.shares ?? 'N/A'}\n`;
       caption += `*⎙ sᴀᴠᴇ:* ${result.downloads ?? 'N/A'}\n`;
@@ -213,7 +213,7 @@ export default {
       await react('✅');
 
     } catch (error) {
-      console.error('Error en TikTok download:', error?.stack || error);
+      console.error(tr('Error en TikTok download:', 'خطأ في تنزيل تيك توك:'), error?.stack || error);
       await react('❌');
       await reply({
         text: tr(`❌ Error al procesar la descarga: ${error.message}`, `❌ خطأ في معالجة التحميل: ${error.message}`)

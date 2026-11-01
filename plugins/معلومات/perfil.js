@@ -92,7 +92,7 @@ export default {
       );
     } catch (error) {
       await reply({ text: tr(`Error al mostrar el perfil: ${error.message}`, `خطأ في عرض الملف الشخصي: ${error.message}`) });
-      console.error("Error en perfil:", error);
+      console.error(tr("Error en perfil:", "خطأ في الملف الشخصي:"), error);
     }
   }
 };

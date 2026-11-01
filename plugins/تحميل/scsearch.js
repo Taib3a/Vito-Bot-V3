@@ -57,9 +57,9 @@ export default {
       })
 
       const results = r.data.collection
-      if (!results?.length) throw new Error('No se encontraron resultados')
+      if (!results?.length) throw new Error(tr('No se encontraron resultados', 'لم يتم العثور على نتائج'))
 
-      let txt = `🎵 *Resultados para:* _${text}_\n\n`
+      let txt = tr(`🎵 *Resultados para:* _${text}_\n\n`, `🎵 *نتائج البحث عن:* _${text}_\n\n`)
 
       results.forEach((t, i) => {
         txt += `*${i + 1}.* *${t.title}*\n`
@@ -68,7 +68,7 @@ export default {
         txt += `   🔗 ${t.permalink_url}\n\n`
       })
 
-      txt += `💡 Descarga con *${usedPrefix}scdl <url>*\n`
+      txt += tr(`💡 Descarga con *${usedPrefix}scdl <url>*\n`, `💡 نزّل بـ *${usedPrefix}scdl <url>*\n`)
       txt += `⚔️ _Yuta Okotsu MD | DuarteXV_`
 
       await reply({ text: txt })
