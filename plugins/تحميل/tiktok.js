@@ -191,7 +191,7 @@ export default {
         }
       }
 
-      const titulo = result.title?.trim() || 'Sin título';
+      const titulo = result.title?.trim() || tr('Sin título', 'بدون عنوان');
 
       let caption = tr(`☑ *Video de TikTok descargado*\n`, `☑ *تم تنزيل فيديو تيك توك*\n`);
       caption += `─╮\n`;

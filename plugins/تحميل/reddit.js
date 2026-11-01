@@ -48,7 +48,7 @@ export default {
       await react('🕒')
 
       const info = await fetchMedia(url)
-      console.log('[reddit]', info.mediaType, '| video:', !!info.videoToken, '| audio:', !!info.audioToken, '| pidió audio:', wantAudio)
+      console.log('[reddit]', info.mediaType, '| video:', !!info.videoToken, '| audio:', !!info.audioToken, tr('| pidió audio:', '| طلب صوتاً:'), wantAudio)
 
       if (info.mediaType === 'image' && info.images.length) {
         for (const img of info.images.slice(0, 10)) {

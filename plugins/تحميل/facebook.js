@@ -152,7 +152,7 @@ export default {
 
       await sock.sendMessage(
         from,
-        { video: result.buffer, mimetype: "video/mp4", caption: "Aquí tienes :D" },
+        { video: result.buffer, mimetype: "video/mp4", caption: tr("Aquí tienes :D", "تفضل :D") },
         { quoted: msg }
       );
 

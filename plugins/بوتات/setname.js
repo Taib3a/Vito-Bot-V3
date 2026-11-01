@@ -68,7 +68,7 @@ export default {
       db.setBot(targetBotJid, { label: nuevoNombre })
 
       const targetNum = targetBotJid.split('@')[0]
-      let textoConfirmacion = `✅ *Nombre actualizado con éxito*\n\n🤖 *Bot:* @${targetNum}\n📝 *Nuevo Nombre:* ${nuevoNombre}`
+      let textoConfirmacion = tr(`✅ *Nombre actualizado con éxito*\n\n🤖 *Bot:* @${targetNum}\n📝 *Nuevo Nombre:* ${nuevoNombre}`, `✅ *تم تحديث الاسم بنجاح*\n\n🤖 *البوت:* @${targetNum}\n📝 *الاسم الجديد:* ${nuevoNombre}`)
 
       await sock.sendMessage(from, {
         text: textoConfirmacion,

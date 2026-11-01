@@ -26,7 +26,7 @@ async function buscarYouTube(query, limite = 5) {
 
       resultados.push({
         id: v.videoId,
-        titulo: v.title?.runs?.[0]?.text || 'Sin título',
+        titulo: v.title?.runs?.[0]?.text || tr('Sin título', 'بدون عنوان'),
         canal: v.ownerText?.runs?.[0]?.text || tr('Desconocido', 'غير معروف'),
         duracion: v.lengthText?.simpleText || '--:--',
         vistas: v.viewCountText?.simpleText || '',

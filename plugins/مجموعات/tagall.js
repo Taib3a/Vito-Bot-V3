@@ -37,11 +37,11 @@ export default {
         .map((p) => cleanJid(p.id))
         .filter(Boolean);
 
-      const report = `⛧ *Invocación general*
+      const report = tr(`⛧ *Invocación general*`, `⛧ *نداء عام*`) + `
 
 *${mensaje}*
 
-⛧ miembros › \`${participants.length}\`
+` + tr(`⛧ miembros › \`${participants.length}\``, `⛧ الأعضاء › \`${participants.length}\``) + `
 
 ${participants.map((jid) => `> @${jid.split("@")[0]}`).join("\n")}`;
 

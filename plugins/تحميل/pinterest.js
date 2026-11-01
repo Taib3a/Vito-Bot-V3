@@ -82,8 +82,8 @@ export default {
 
       const caption =
         tr(`✨ ═══ 🫧 *PINTEREST* 🫧 ═══ ✨\n\n`, `✨ ═══ 🫧 *بينتريست* 🫧 ═══ ✨\n\n`) +
-        `🔎 *Búsqueda:* ${text}\n` +
-        `🖼️ *Imágenes:* ${total}\n\n` +
+        tr(`🔎 *Búsqueda:* ${text}\n`, `🔎 *البحث:* ${text}\n`) +
+        tr(`🖼️ *Imágenes:* ${total}\n\n`, `🖼️ *الصور:* ${total}\n\n`) +
         `⚔️ _Yuta Okotsu MD | DuarteXV_`
 
       await sendAlbumMessage(sock, from, images, { caption, quoted: msg })
@@ -95,7 +95,7 @@ export default {
       await reply({
         text:
           tr(`✨ ═══ 🫧 *PINTEREST* 🫧 ═══ ✨\n\n`, `✨ ═══ 🫧 *بينتريست* 🫧 ═══ ✨\n\n`) +
-          `❌ *Error:* ${error.message}\n\n` +
+          tr(`❌ *Error:* ${error.message}\n\n`, `❌ *خطأ:* ${error.message}\n\n`) +
           `⚔️ _Yuta Okotsu MD | DuarteXV_`
       })
       console.error(tr("Error en pinterest:", "خطأ في pinterest:"), error)

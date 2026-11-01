@@ -73,14 +73,14 @@ export default {
 
     const parejaLine = partner
       ? `𓂃ෆ˚ 💍 ${labelPorGenero(partner)}: @${partner.split("@")[0]} ˃͈◡˂͈\n`
-      : `𓂃ෆ˚ 💔 ⍴ᥲrᥱjᥲ: ${labelSoltero(target)}\n`;
+      : `𓂃ෆ˚ 💔 ${tr("⍴ᥲrᥱjᥲ", "الحالة")}: ${labelSoltero(target)}\n`;
 
     const caption =
-      `𓂃ෆ˚ 🍮 ⍴ᥱr𝖿іᥣ ძᥱ ${mention} ౨ৎ\n\n` +
-      `𓂃ෆ˚ 🍮 m᥆ᥒᥱძᥲs ${total} [ᑲ᥆ᥣsіᥣᥣ᥆: ${eco.bolsillo} | ᑲᥲᥒᥴ᥆: ${eco.banco}]\n` +
-      `⏤͟͟͞͞  ⚡ ᥒі᥎ᥱᥣ: ${level}\n` +
+      tr(`𓂃ෆ˚ 🍮 ⍴ᥱr𝖿іᥣ ძᥱ ${mention} ౨ৎ\n\n`, `𓂃ෆ˚ 🍮 ملف ${mention} ౨ৎ\n\n`) +
+      tr(`𓂃ෆ˚ 🍮 m᥆ᥒᥱძᥲs ${total} [ᑲ᥆ᥣsіᥣᥣ᥆: ${eco.bolsillo} | ᑲᥲᥒᥴ᥆: ${eco.banco}]\n`, `𓂃ෆ˚ 🍮 العملات ${total} [المحفظة: ${eco.bolsillo} | البنك: ${eco.banco}]\n`) +
+      tr(`⏤͟͟͞͞  ⚡ ᥒі᥎ᥱᥣ: ${level}\n`, `⏤͟͟͞͞  ⚡ المستوى: ${level}\n`) +
       parejaLine +
-      `𓂃ෆ˚ *᥊⍴:* ${xp} [𝖿ᥲᥣ𝗍ᥲᥒ ${missing} ⍴ᥲrᥲ ᥒі᥎ᥱᥣ${level + 1}]`;
+      tr(`𓂃ෆ˚ *᥊⍴:* ${xp} [𝖿ᥲᥣ𝗍ᥲᥒ ${missing} ⍴ᥲrᥲ ᥒі᥎ᥱᥣ${level + 1}]`, `𓂃ෆ˚ *الخبرة:* ${xp} [المتبقي ${missing} للمستوى ${level + 1}]`);
 
     const mentions = partner ? [target, partner] : [target];
 

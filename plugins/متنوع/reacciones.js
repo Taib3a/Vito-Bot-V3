@@ -120,9 +120,11 @@ export default {
       const authorTag = `\`${authorName}\``;
       const targetTag = targetName ? `\`${targetName}\`` : null;
 
+      const selfTxt = lang === "ar" ? (entry.selfAr || entry.self) : entry.self;
+      const targetTxt = lang === "ar" ? (entry.targetAr || entry.target) : entry.target;
       const caption = isSelf
-        ? `${authorTag} ${entry.self}`
-        : `${authorTag} ${entry.target} ${targetTag}`;
+        ? `${authorTag} ${selfTxt}`
+        : `${authorTag} ${targetTxt} ${targetTag}`;
 
       const mentions = isSelf ? [authorJid] : [authorJid, mentionedJid];
 

@@ -105,7 +105,7 @@ async function buscarYouTube(query, limite = 5) {
 
       resultados.push({
         id: v.videoId,
-        titulo: v.title?.runs?.[0]?.text || 'Sin título',
+        titulo: v.title?.runs?.[0]?.text || tr('Sin título', 'بدون عنوان'),
         canal: v.ownerText?.runs?.[0]?.text || tr('Desconocido', 'غير معروف'),
         duracion: v.lengthText?.simpleText || '--:--',
         vistas: v.viewCountText?.simpleText || '',
@@ -201,7 +201,7 @@ export default {
         return reply({ text: tr('⛧ no pude sacar el ID del video', '⛧ لم أستطع استخراج معرّف الفيديو') })
       }
 
-      const title = info?.title || 'Sin título'
+      const title = info?.title || tr('Sin título', 'بدون عنوان')
       const duration = info?.timestamp || tr('No disponible', 'غير متاح')
       const vistas = info?.views || tr('No disponible', 'غير متاح')
       const thumbnail = info?.thumbnail || `https://i.ytimg.com/vi/${id}/hqdefault.jpg`
@@ -228,7 +228,7 @@ export default {
         return reply({ text: tr('⛧ error: no se obtuvo el link de audio', '⛧ خطأ: لم يُحصل على رابط الصوت') })
       }
 
-      const fileName = `${cleanFileName(title !== 'Sin título' ? title : resDl.filename.replace(/\.mp3$/i, ''))}.mp3`
+      const fileName = `${cleanFileName(title !== tr('Sin título', 'بدون عنوان') ? title : resDl.filename.replace(/\.mp3$/i, ''))}.mp3`
 
       const buffer = await descargarBuffer(dl)
       const sizeMB = buffer.length / 1024 / 1024

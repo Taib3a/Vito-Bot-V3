@@ -50,15 +50,15 @@ export default {
       let texto = `乂 *B A N W A*\n\n`;
       texto += `乂 *D E T A L L E*\n\n`;
       texto += `┌  ◦  *ɴᴜᴍᴇʀᴏ:* ${data.resultado.number}\n`;
-      texto += `│  ◦  *ʙᴀɴᴇᴀᴅᴏ:* ${d.isBanned ? '✅ sí' : '❌ no'}\n`;
-      texto += `│  ◦  *ᴘᴇʀᴍᴀɴᴇɴᴛᴇ:* ${d.isPermanent ? '✅ sí' : '❌ no'}\n`;
-      texto += `│  ◦  *ɴᴇᴄᴇѕɪᴛᴀ ᴡᴀ ᴏꜰɪᴄɪᴀʟ:* ${d.isNeedOfficialWa ? '✅ sí' : '❌ no'}\n`;
+      texto += tr(`│  ◦  *ʙᴀɴᴇᴀᴅᴏ:* ${d.isBanned ? '✅ sí' : '❌ no'}\n`, `│  ◦  *محظور:* ${d.isBanned ? '✅ نعم' : '❌ لا'}\n`);
+      texto += tr(`│  ◦  *ᴘᴇʀᴍᴀɴᴇɴᴛᴇ:* ${d.isPermanent ? '✅ sí' : '❌ no'}\n`, `│  ◦  *دائم:* ${d.isPermanent ? '✅ نعم' : '❌ لا'}\n`);
+      texto += tr(`│  ◦  *ɴᴇᴄᴇѕɪᴛᴀ ᴡᴀ ᴏꜰɪᴄɪᴀʟ:* ${d.isNeedOfficialWa ? '✅ sí' : '❌ no'}\n`, `│  ◦  *يحتاج واتساب رسمي:* ${d.isNeedOfficialWa ? '✅ نعم' : '❌ لا'}\n`);
       texto += `│  ◦  *ᴛɪᴘᴏ ᴅᴇ ᴠɪᴏʟᴀᴄɪᴏɴ:* ${d.violation_type ?? '-'}\n`;
       texto += `│  ◦  *ᴍᴏᴛɪᴠᴏ:* ${d.status_message ?? '-'}\n`;
       texto += `│  ◦  *ᴅᴇѕᴄʀɪᴘᴄɪᴏɴ:* ${info.description ?? '-'}\n`;
       texto += `│  ◦  *ᴅᴜʀᴀᴄɪᴏɴ:* ${info.duration ?? '-'}\n`;
       texto += `│  ◦  *ʀɪᴇѕɢᴏ:* ${info.risk ?? '-'}\n`;
-      texto += `└  ◦  *ᴀᴘᴇʟᴀʙʟᴇ ᴇɴ ᴀᴘᴘ:* ${d.in_app_ban_appeal ? '✅ sí' : '❌ no'}`;
+      texto += tr(`└  ◦  *ᴀᴘᴇʟᴀʙʟᴇ ᴇɴ ᴀᴘᴘ:* ${d.in_app_ban_appeal ? '✅ sí' : '❌ no'}`, `└  ◦  *قابل للاستئناف:* ${d.in_app_ban_appeal ? '✅ نعم' : '❌ لا'}`);
 
       await reply({ text: texto });
 

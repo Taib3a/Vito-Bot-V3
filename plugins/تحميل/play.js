@@ -112,7 +112,7 @@ export default {
       }
 
       const url = info?.url || urlDirecta
-      const title = info?.title || 'Sin título'
+      const title = info?.title || tr('Sin título', 'بدون عنوان')
       const duration = info?.timestamp || tr('No disponible', 'غير متاح')
       const vistas = formatViews(info?.views)
       const thumbnail = info?.thumbnail || `https://i.ytimg.com/vi/${id}/hqdefault.jpg`

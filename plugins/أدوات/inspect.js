@@ -56,19 +56,19 @@ export default {
                 const meta = info.thread_metadata || {}
 
                 const id = info.id || tr('No encontrado', 'غير موجود')
-                const nombre = meta.name?.text || 'Sin nombre'
-                const descripcion = meta.description?.text || 'Sin descripción'
+                const nombre = meta.name?.text || tr('Sin nombre', 'بدون اسم')
+                const descripcion = meta.description?.text || tr('Sin descripción', 'بدون وصف')
                 const suscriptores = meta.subscribers_count ?? tr('No disponible', 'غير متاح')
-                const verificado = meta.verification === 'VERIFIED' ? '✅ Verificado' : tr('❌ No verificado', '❌ غير موثّق')
+                const verificado = meta.verification === 'VERIFIED' ? tr('✅ Verificado', '✅ موثّق') : tr('❌ No verificado', '❌ غير موثّق')
 
                 caption =
-`📢 *INFORMACIÓN DEL CANAL*
+tr(`📢 *INFORMACIÓN DEL CANAL*`, `📢 *معلومات القناة*`) + `
 
-🪪 *Nombre:* ${nombre}
-🆔 *ID:* ${id}
-👥 *Suscriptores:* ${suscriptores}
+` + tr(`🪪 *Nombre:* ${nombre}`, `🪪 *الاسم:* ${nombre}`) + `
+` + tr(`🆔 *ID:* ${id}`, `🆔 *المعرّف:* ${id}`) + `
+` + tr(`👥 *Suscriptores:* ${suscriptores}`, `👥 *المشتركون:* ${suscriptores}`) + `
 ${verificado}
-📝 *Descripción:* ${descripcion}`
+` + tr(`📝 *Descripción:* ${descripcion}`, `📝 *الوصف:* ${descripcion}`)
 
             } catch (e) {
                 console.error(tr('Error canal:', 'خطأ في القناة:'), e)
@@ -85,8 +85,8 @@ ${verificado}
                 }
 
                 const id = info.id || tr('No encontrado', 'غير موجود')
-                const nombre = info.subject || 'Sin nombre'
-                const descripcion = info.desc || 'Sin descripción'
+                const nombre = info.subject || tr('Sin nombre', 'بدون اسم')
+                const descripcion = info.desc || tr('Sin descripción', 'بدون وصف')
                 const participantes = info.size ?? info.participants?.length ?? tr('No disponible', 'غير متاح')
                 const esComunidad = !!info.isCommunity
 
@@ -103,14 +103,14 @@ ${verificado}
                     : tr('No disponible', 'غير متاح')
 
                 caption =
-`${esComunidad ? '🏘️ *INFORMACIÓN DE LA COMUNIDAD*' : '👥 *INFORMACIÓN DEL GRUPO*'}
+tr(esComunidad ? '🏘️ *INFORMACIÓN DE LA COMUNIDAD*' : '👥 *INFORMACIÓN DEL GRUPO*', esComunidad ? '🏘️ *معلومات المجتمع*' : '👥 *معلومات المجموعة*') + `
 
-📛 *Nombre:* ${nombre}
-🆔 *ID:* ${id}
-👑 *Creador:* ${creador}
-👥 *Participantes:* ${participantes}
-📅 *Creado:* ${creacion}
-📝 *Descripción:* ${descripcion}`
+` + tr(`📛 *Nombre:* ${nombre}`, `📛 *الاسم:* ${nombre}`) + `
+` + tr(`🆔 *ID:* ${id}`, `🆔 *المعرّف:* ${id}`) + `
+` + tr(`👑 *Creador:* ${creador}`, `👑 *المُنشئ:* ${creador}`) + `
+` + tr(`👥 *Participantes:* ${participantes}`, `👥 *المشاركون:* ${participantes}`) + `
+` + tr(`📅 *Creado:* ${creacion}`, `📅 *تاريخ الإنشاء:* ${creacion}`) + `
+` + tr(`📝 *Descripción:* ${descripcion}`, `📝 *الوصف:* ${descripcion}`)
 
             } catch (e) {
                 console.error(tr('Error grupo/comunidad:', 'خطأ في المجموعة/المجتمع:'), e)

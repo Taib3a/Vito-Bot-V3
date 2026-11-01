@@ -70,7 +70,7 @@ export default {
     const total = [...colas.values()].reduce((a, q) => a + q.length, 0);
     let ok = 0, fail = 0, hechos = 0;
 
-    await edit(`📢 \`difusión\`\n> ⏤͟͟͞͞⊱☕︎ *enviando:* 0/${total} (${colas.size} bots)`);
+    await edit(tr(`📢 \`difusión\`\n> ⏤͟͟͞͞⊱☕︎ *enviando:* 0/${total} (${colas.size} bots)`, `📢 \`بث\`\n> ⏤͟͟͞͞⊱☕︎ *جارٍ الإرسال:* 0/${total} (${colas.size} بوت)`));
 
     // 3) Todos los bots mandan al mismo tiempo
     await Promise.all(
@@ -79,7 +79,7 @@ export default {
           try { await bot.sendMessage(gid, { text }); ok++; } catch { fail++; }
           hechos++;
           if (hechos % 25 === 0) {
-            edit(`📢 \`difusión\`\n> ⏤͟͟͞͞⊱☕︎ *progreso:* ${hechos}/${total}`).catch(() => {});
+            edit(tr(`📢 \`difusión\`\n> ⏤͟͟͞͞⊱☕︎ *progreso:* ${hechos}/${total}`, `📢 \`بث\`\n> ⏤͟͟͞͞⊱☕︎ *التقدّم:* ${hechos}/${total}`)).catch(() => {});
           }
           await sleep(2000 + Math.random() * 2000);
         }
@@ -87,10 +87,10 @@ export default {
     );
 
     await edit(
-      `📢 \`difusión terminada\`\n` +
-      `> ✅ *Enviados:* ${ok}\n` +
-      `> ❌ *Fallidos:* ${fail}\n` +
-      `> ⏭️ *Omitidos:* ${skip}`
+      tr(`📢 \`difusión terminada\`\n`, `📢 \`انتهى البث\`\n`) +
+      tr(`> ✅ *Enviados:* ${ok}\n`, `> ✅ *أُرسلت:* ${ok}\n`) +
+      tr(`> ❌ *Fallidos:* ${fail}\n`, `> ❌ *فشلت:* ${fail}\n`) +
+      tr(`> ⏭️ *Omitidos:* ${skip}`, `> ⏭️ *تم تخطيها:* ${skip}`)
     );
   },
 };

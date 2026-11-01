@@ -56,18 +56,18 @@ export default {
     }
     const senderNumResolved = senderJid.split('@')[0]
 
-    const origen = isGroup ? tr(`Grupo: ${groupName}`, `المجموعة: ${groupName}`) : "Chat privado"
+    const origen = isGroup ? tr(`Grupo: ${groupName}`, `المجموعة: ${groupName}`) : tr("Chat privado", "دردشة خاصة")
 
     let textoReporte = `╭━━━━━━━━━━━○\n`
-    textoReporte += `│⏤͟͟͞͞🚨 *NUEVO REPORTE*\n`
+    textoReporte += tr(`│⏤͟͟͞͞🚨 *NUEVO REPORTE*\n`, `│⏤͟͟͞͞🚨 *تقرير جديد*\n`)
     textoReporte += `│\n`
-    textoReporte += `│【👤】 *𝐃𝐄:* ↷\n @${senderNumResolved}\n`
-    textoReporte += `│【📍】 *𝐎𝐫𝐢𝐠𝐞𝐧:* ${origen.startsWith("Grupo:") ? "Grupo: ↷\n \"" + groupName + "\"" : origen}\n`
+    textoReporte += tr(`│【👤】 *𝐃𝐄:* ↷\n @${senderNumResolved}\n`, `│【👤】 *من:* ↷\n @${senderNumResolved}\n`)
+    textoReporte += tr(`│【📍】 *𝐎𝐫𝐢𝐠𝐞𝐧:* ${isGroup ? `Grupo: ↷\n "${groupName}"` : origen}\n`, `│【📍】 *المصدر:* ${isGroup ? `المجموعة: ↷\n "${groupName}"` : origen}\n`)
 
     if (text) {
-      textoReporte += `│【📝】 *𝐌𝐨𝐭𝐢𝐯𝐨:* ↷\n"${text}"\n`
+      textoReporte += tr(`│【📝】 *𝐌𝐨𝐭𝐢𝐯𝐨:* ↷\n"${text}"\n`, `│【📝】 *السبب:* ↷\n"${text}"\n`)
     } else {
-      textoReporte += `│【📝】 *𝐌𝐨𝐭𝐢𝐯𝐨:* ↷\n"(mensaje citado abajo)"\n`
+      textoReporte += tr(`│【📝】 *𝐌𝐨𝐭𝐢𝐯𝐨:* ↷\n"(mensaje citado abajo)"\n`, `│【📝】 *السبب:* ↷\n"(الرسالة المقتبسة أدناه)"\n`)
     }
 
     textoReporte += `╰━━━━━━━━━━━━━○`

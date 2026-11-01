@@ -42,7 +42,7 @@ export default {
         await react('💡')
         return await reply({ 
           text: tr(`💡 *Uso correcto:* 💡\n`, `💡 *الاستخدام الصحيح:* 💡\n`) +
-                `Responde al código y usa: *${usedPrefix}saveplugin [carpeta]/[nombre].js*\n\n` +
+                tr(`Responde al código y usa: *${usedPrefix}saveplugin [carpeta]/[nombre].js*\n\n`, `ردّ على الكود واستخدم: *${usedPrefix}saveplugin [مجلد]/[اسم].js*\n\n`) +
                 `*Ejemplos:*\n` +
                 `• ${usedPrefix}saveplugin owner/prueba.js\n` +
                 `• ${usedPrefix}saveplugin herramientas/calculadora.js\n` +

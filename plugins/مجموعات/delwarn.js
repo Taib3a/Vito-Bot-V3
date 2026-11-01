@@ -52,7 +52,7 @@ export default {
       db.setGroup(from, { ...groupData, warns: currentWarns })
 
       await sock.sendMessage(from, {
-        text: `✅ Se ha removido una advertencia a @${targetJid.split('@')[0]}.\n📊 *Advertencias restantes:* ${userWarns.length}/3`,
+        text: tr(`✅ Se ha removido una advertencia a @${targetJid.split('@')[0]}.\n📊 *Advertencias restantes:* ${userWarns.length}/3`, `✅ أُزيل تحذير من @${targetJid.split('@')[0]}.\n📊 *التحذيرات المتبقية:* ${userWarns.length}/3`),
         mentions: [targetJid]
       }, { quoted: msg })
 

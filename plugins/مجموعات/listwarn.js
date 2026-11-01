@@ -48,19 +48,19 @@ export default {
         mentions.push(cleanJidUser);
 
         texto += `👤 *${index + 1}. @${number}*\n`;
-        texto += `📊 *Advertencias:* ${warns.length}/3\n`;
+        texto += tr(`📊 *Advertencias:* ${warns.length}/3\n`, `📊 *التحذيرات:* ${warns.length}/3\n`);
 
         warns.forEach((warn, warnIndex) => {
-          texto += `\n   ⚠️ *Warn #${warnIndex + 1}*\n`;
-          texto += `   📝 *Razón:* ${warn.razon || "No especificada"}\n`;
-          texto += `   📅 *Fecha:* ${warn.fecha || "Desconocida"}\n`;
-          texto += `   👮‍♂️ *Por:* ${warn.by || "Desconocido"}\n`;
+          texto += tr(`\n   ⚠️ *Warn #${warnIndex + 1}*\n`, `\n   ⚠️ *تحذير رقم ${warnIndex + 1}*\n`);
+          texto += tr(`   📝 *Razón:* ${warn.razon || "No especificada"}\n`, `   📝 *السبب:* ${warn.razon || "غير محدد"}\n`);
+          texto += tr(`   📅 *Fecha:* ${warn.fecha || "Desconocida"}\n`, `   📅 *التاريخ:* ${warn.fecha || "غير معروف"}\n`);
+          texto += tr(`   👮‍♂️ *Por:* ${warn.by || "Desconocido"}\n`, `   👮‍♂️ *بواسطة:* ${warn.by || "غير معروف"}\n`);
         });
 
         texto += `\n━━━━━━━━━━━━━━━━━━\n\n`;
       });
 
-      texto += `👥 *Usuarios advertidos:* ${users.length}`;
+      texto += tr(`👥 *Usuarios advertidos:* ${users.length}`, `👥 *المستخدمون المحذَّرون:* ${users.length}`);
 
       await sock.sendMessage(
         from,

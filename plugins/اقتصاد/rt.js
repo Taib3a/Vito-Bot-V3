@@ -65,7 +65,7 @@ export default {
       await react('🏆')
     } else {
       db.setEco(sender, { bolsillo: eco.bolsillo - apuesta })
-      mensaje += `💸 @${numero} perdió su apuesta.`
+      mensaje += tr(`💸 @${numero} perdió su apuesta.`, `💸 @${numero} خسر رهانه.`)
       await react('💸')
     }
 

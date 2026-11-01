@@ -75,7 +75,7 @@ export default {
       }
 
       const { data } = result;
-      const caption = data.title ? `Aquí tienes :D\n\n${data.title}` : "Aquí tienes :D";
+      const caption = data.title ? tr(`Aquí tienes :D\n\n${data.title}`, `تفضل :D\n\n${data.title}`) : tr("Aquí tienes :D", "تفضل :D");
 
       const tipoReal = inferirTipoReal(data.dl) || data.type;
 
