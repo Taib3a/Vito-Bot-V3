@@ -16,17 +16,15 @@ core/
   messageHandler.js           permission model + command routing
   pluginLoader.js             loads plugins/, registers Arabic aliases
   aliases.js                  Arabic name → canonical plugin name
+  antilink.js                 anti-link     (flag: antilink)
+  antispam.js                 anti-spam     (flag: antispam)
+  antibot.js                  anti-bots     (flag: antibot)
+  welcome.js                  welcome/goodbye (flag: welcome)
   buttons.js                  interactive buttons / lists (native flow)
   subbotManager.js            subbots (extra paired numbers)
   logger.js                   console output
   economy.js xp.js gamedata.js
   sqlite.js                   node:sqlite wrapper
-  مضاد/                       anti-features — one flat file per anti-feature
-    index.js                  loader + runAntifeatures + registerAntifeatures
-    مضاد-روابط.js             anti-link       (flag: antilink)
-    مضاد-سبام.js              anti-spam       (flag: antispam)
-    مضاد-بوتات.js             anti-bots       (flag: antibot)
-    ترحيب-وداع.js             welcome/goodbye (flag: welcome)
 database/db.js                users / groups / bots store (node:sqlite)
 plugins/<category>/*.js       all commands, auto-loaded
 sessions/main/auth.db         the live session (gitignored)
@@ -122,24 +120,62 @@ is `.ping` behaves exactly as if the user had typed it.
    then hold the socket for `PAIRING_GRACE_MS` (120s) so the user can link.
 4. Never add a timer that wipes the session while a code is on screen.
 
-## The anti-features section (`core/مضاد/`)
+## Anti-features (one plain file each, no loader)
 
-Group protections, one **flat `.js` file per anti-feature** inside
-`core/مضاد/`. The loader discovers the files automatically — adding a
-protection means dropping in a file, never editing the loader.
+Group protections live as **one flat file per feature in `core/`**, exactly
+like the original reference (`core/antilink.js`). There is no registry, no
+dynamic discovery and no folder: `messageHandler.js` imports each one directly
+and calls it. A new protection means a new `core/<name>.js` plus one import.
 
-| File | Flag | Fires on |
-|---|---|---|
-| `مضاد-روابط.js` | `antilink` | message |
-| `مضاد-سبام.js` | `antispam` | message |
-| `مضاد-بوتات.js` | `antibot` | join |
-| `ترحيب-وداع.js` | `welcome` | join + leave |
+| File | Flag | Exported function | Fires on |
+|---|---|---|---|
+| `core/antilink.js` | `antilink` | `checkAntilink` | message |
+| `core/antispam.js` | `antispam` | `checkAntispam` | message |
+| `core/antibot.js` | `antibot` | `checkAntibot` | join |
+| `core/welcome.js` | `welcome` | `welcomeOnJoin` / `welcomeOnLeave` | join + leave |
+
+### Where the flags come from
+
+`database/db.js` is the single source of truth for the flag names. It exports
+`ANTIFEATURES`, and `getGroup()` builds the per-group defaults from it — so a
+new protection is declared once, in the database layer:
+
+```js
+export const ANTIFEATURES = [
+  { flag: "antilink", name: "مضاد الروابط" },
+  { flag: "antispam", name: "مضاد السبام" },
+  { flag: "antibot",  name: "مضاد البوتات" },
+  { flag: "welcome",  name: "الترحيب والوداع" },
+];
+```
+
+The handler reads the same flags off `db.getGroup(from)`:
+
+```js
+if (body && !isAdmin && !isMod && !isCmd) {
+  if (groupData?.antilink) {
+    if (await checkAntilink({ sock, msg, from, sender, body, isBotAdmin, botLabel })) return;
+  }
+  if (groupData?.antispam) {
+    if (await checkAntispam({ sock, from, sender, body, isBotAdmin, botLabel })) return;
+  }
+}
+```
+
+Join/leave protections are wired by `registerGroupEvents(sock, label)` in
+`messageHandler.js`, called from both `core/connection.js` and
+`core/subbotManager.js` so subbots are covered too:
+
+```js
+if (groupData?.antibot && action === "add") await checkAntibot({ ... });
+if (groupData?.welcome) action === "add" ? welcomeOnJoin(...) : welcomeOnLeave(...);
+```
 
 ### One command controls them all
 
-`plugins/مجموعات/مضاد.js` is the only toggle. It imports the registry from
-`core/مضاد/index.js`, so a new anti-feature shows up in the panel and can be
-switched on without touching the command.
+`plugins/مجموعات/مضاد.js` is the only toggle. It imports `ANTIFEATURES` from
+`database/db.js`, so a new flag appears in the panel without touching the
+command.
 
 ```
 .مضاد                show the panel (state of every anti-feature)
@@ -152,38 +188,22 @@ switched on without touching the command.
 Either the Arabic name or the flag works as the target. Aliases: `مضادات`,
 `حماية`, `antifeatures`, `تشغيل`, `تعطيل`.
 
-### Contract
+A message anti-feature returns `true` to claim the message (it is then not
+treated as a command), `false` to pass it on. Every call is isolated, so a
+throw in one protection never reaches the others or the handler.
 
-A module is the default export of its file in `core/مضاد/` (same shape the
-old `core/antilink.js` used):
-
-```js
-export default {
-  name: "مضاد-روابط",        // shown in the startup log
-  flag: "antilink",           // db.getGroup(group).antilink gates it
-  async check({ sock, msg, from, sender, body, isBotAdmin, botLabel }) {},
-  async onJoin({ sock, groupJid, participants, isBotAdmin, botLabel }) {},
-  async onLeave({ sock, groupJid, participants, isBotAdmin, botLabel }) {},
-};
-```
-
-Only `name` is required. A module may implement `check`, `onJoin`, `onLeave`,
-or any combination. `check` returns `true` to claim the message (it is then
-not treated as a command); `false`/`undefined` to pass it on.
-
-`runAntifeatures` runs every enabled `check` in order and stops at the first
-claim. `registerAntifeatures(sock, label)` wires `group-participants.update`
-and is called from both `core/connection.js` and `core/subbotManager.js`, so
-subbots are protected too.
+Note: an admin, a mod or the owner is never acted on — that is why the checks
+are gated by `!isAdmin && !isMod` before they run.
 
 ### Two rules learned the hard way
 
-1. **Every call is wrapped in try/catch, per module.** A malformed event
-   (`participants: null`) or one broken protection must log and continue —
-   never throw. The previous version took the whole process down this way.
-2. **Kicking needs the bot to be an admin.** Each module checks `isBotAdmin`
-   itself and, when it is false, still deletes/warns and says why instead of
-   failing silently on a `forbidden` from `groupParticipantsUpdate`.
+1. **Every call is wrapped in try/catch, one block per protection.** A
+   malformed event (`participants: null`) or one broken protection must log and
+   continue — never throw. The previous version took the whole process down
+   this way.
+2. **Kicking needs the bot to be an admin.** Each protection checks
+   `isBotAdmin` itself and, when it is false, still deletes/warns and says why
+   instead of failing silently on a `forbidden` from `groupParticipantsUpdate`.
 
 ## Post-pairing sync: the 515 trap
 

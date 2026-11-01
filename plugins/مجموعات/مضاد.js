@@ -1,5 +1,6 @@
-import { db } from "../../database/db.js";
-import { antifeatures } from "../../core/مضاد/index.js";
+import { db, ANTIFEATURES } from "../../database/db.js";
+
+const antifeatures = ANTIFEATURES;
 
 const ON = new Set(["تفعيل", "on", "تشغيل"]);
 const OFF = new Set(["ايقاف", "إيقاف", "off", "تعطيل"]);
