@@ -150,14 +150,22 @@ function getUser(jid) {
   return JSON.parse(row.data);
 }
 
+/** كل مضاد: علمه في المجموعة واسمه المعروض. مصدر الحقيقة الوحيد للأعلام. */
+export const ANTIFEATURES = [
+  { flag: "antilink", name: "مضاد الروابط" },
+  { flag: "antispam", name: "مضاد السبام" },
+  { flag: "antibot", name: "مضاد البوتات" },
+  { flag: "welcome", name: "الترحيب والوداع" },
+];
+
+/** أعلام المضادات تُبنى من ANTIFEATURES حتى لا تتكرر القائمة. */
+const antifeatureDefaults = Object.fromEntries(ANTIFEATURES.map((a) => [a.flag, false]));
+
 function getGroup(jid) {
   const row = stmts.getGroup.get(jid);
   if (!row) {
     const defaultGroup = {
-      welcome: false,
-      antilink: false,
-      antispam: false,
-      antibot: false,
+      ...antifeatureDefaults,
       primaryBot: null,
       adminMode: false,
       selfMode: false,
