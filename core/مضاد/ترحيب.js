@@ -1,5 +1,5 @@
-import { log } from "./logger.js";
-import { db } from "../database/db.js";
+import { log } from "../logger.js";
+import { db } from "../../database/db.js";
 
 export async function welcomeOnJoin({ sock, groupJid, participants, botLabel }) {
   for (const jid of participants) {

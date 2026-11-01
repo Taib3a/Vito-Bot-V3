@@ -1,4 +1,4 @@
-import { log } from "./logger.js";
+import { log } from "../logger.js";
 
 /** رقم يبدو حساباً آلياً: قصير جداً أو فيه تكرار غير طبيعي. */
 function looksLikeBot(jid = "") {

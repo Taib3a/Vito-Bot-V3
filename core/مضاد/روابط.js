@@ -1,4 +1,4 @@
-import { log } from "./logger.js";
+import { log } from "../logger.js";
 
 const linkRegex = /(?:^|[\s/])(?:chat\.whatsapp\.com\/[0-9A-Za-z]{20,24}|(?:www\.|web\.)?whatsapp\.com\/channel\/[0-9A-Za-z]{10,30})(?:[\s?]|$)/i;
 

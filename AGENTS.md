@@ -16,10 +16,11 @@ core/
   messageHandler.js           permission model + command routing
   pluginLoader.js             loads plugins/, registers Arabic aliases
   aliases.js                  Arabic name → canonical plugin name
-  antilink.js                 anti-link     (flag: antilink)
-  antispam.js                 anti-spam     (flag: antispam)
-  antibot.js                  anti-bots     (flag: antibot)
-  welcome.js                  welcome/goodbye (flag: welcome)
+  مضاد/                       anti-features — one plain file each, no loader
+    روابط.js                  anti-link     (flag: antilink)
+    سبام.js                   anti-spam     (flag: antispam)
+    بوتات.js                  anti-bots     (flag: antibot)
+    ترحيب.js                  welcome/goodbye (flag: welcome)
   buttons.js                  interactive buttons / lists (native flow)
   subbotManager.js            subbots (extra paired numbers)
   logger.js                   console output
@@ -120,19 +121,29 @@ is `.ping` behaves exactly as if the user had typed it.
    then hold the socket for `PAIRING_GRACE_MS` (120s) so the user can link.
 4. Never add a timer that wipes the session while a code is on screen.
 
-## Anti-features (one plain file each, no loader)
+## Anti-features (folder of plain files, no loader)
 
-Group protections live as **one flat file per feature in `core/`**, exactly
-like the original reference (`core/antilink.js`). There is no registry, no
-dynamic discovery and no folder: `messageHandler.js` imports each one directly
-and calls it. A new protection means a new `core/<name>.js` plus one import.
+Group protections live in **`core/مضاد/`, one plain file per feature** — the
+shape the original reference used (`core/antilink.js`), only grouped. There is
+no `index.js`, no registry and no dynamic discovery: `messageHandler.js` imports
+each file directly and calls it. A new protection means a new file in the
+folder plus one import.
 
 | File | Flag | Exported function | Fires on |
 |---|---|---|---|
-| `core/antilink.js` | `antilink` | `checkAntilink` | message |
-| `core/antispam.js` | `antispam` | `checkAntispam` | message |
-| `core/antibot.js` | `antibot` | `checkAntibot` | join |
-| `core/welcome.js` | `welcome` | `welcomeOnJoin` / `welcomeOnLeave` | join + leave |
+| `core/مضاد/روابط.js` | `antilink` | `checkAntilink` | message |
+| `core/مضاد/سبام.js` | `antispam` | `checkAntispam` | message |
+| `core/مضاد/بوتات.js` | `antibot` | `checkAntibot` | join |
+| `core/مضاد/ترحيب.js` | `welcome` | `welcomeOnJoin` / `welcomeOnLeave` | join + leave |
+
+Imports use the folder path:
+
+```js
+import { checkAntilink } from "./مضاد/روابط.js";
+import { checkAntispam } from "./مضاد/سبام.js";
+import { checkAntibot } from "./مضاد/بوتات.js";
+import { welcomeOnJoin, welcomeOnLeave } from "./مضاد/ترحيب.js";
+```
 
 ### Where the flags come from
 
