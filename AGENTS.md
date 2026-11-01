@@ -127,7 +127,7 @@ protection means dropping in a file, never editing the loader.
 
 ### One command controls them all
 
-`plugins/grupos/مضاد.js` is the only toggle. It imports the registry from
+`plugins/مجموعات/مضاد.js` is the only toggle. It imports the registry from
 `core/مضاد/index.js`, so a new anti-feature shows up in the panel and can be
 switched on without touching the command.
 
@@ -217,8 +217,8 @@ mismatch. Users are keyed by **bare number** (`normalizeJid`), so
 ```
 
 nextgen does **not** export `Button`, `Carousel` or `AIRich`. Plugins needing an
-interactive list must render text instead (see `plugins/economy/comprarpersonaje.js`).
-`plugins/owner/crash.js` from the reference was **not** ported — it is a
+interactive list must render text instead (see `plugins/اقتصاد/comprarpersonaje.js`).
+`plugins/مالك/crash.js` from the reference was **not** ported — it is a
 denial-of-service tool (floods a group to freeze clients).
 
 ## Environment gotcha
