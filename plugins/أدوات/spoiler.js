@@ -1,6 +1,6 @@
 export default {
   name: ["spoiler", "تخفي"],
-  description: "Envía un mensaje largo que WhatsApp trunca con tr('Leer más', 'قراءة المزيد') en la misma línea",
+  description: { es: "Envía un mensaje largo que WhatsApp trunca con 'Leer más' en la misma línea", ar: "يرسل رسالة طويلة يقطعها واتساب بـ«قراءة المزيد» في نفس السطر" },
   category: "utils, الأدوات",
   ownerOnly: false,
 
