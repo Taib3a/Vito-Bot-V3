@@ -1,0 +1,56 @@
+import axios from 'axios';
+
+export default {
+  name: ["ip", "ايبي"],
+  description: { es: "Busca información de una dirección IP", ar: "يبحث عن معلومات عنوان IP" },
+  category: "utils, الأدوات",
+  ownerOnly: false,
+
+  async run({ text, reply, usedPrefix, cmdName }) {
+    const lang = /[\u0600-\u06FF]/.test(cmdName || "") ? "ar" : "es";
+    const tr = (es, ar) => (lang === "ar" ? ar : es);
+
+    if (!text) {
+      return await reply({
+        text: tr(`⚠️ Por favor, ingresa una *IP*.\n\n📝 *Ejemplo:* ${usedPrefix}${cmdName} 8.8.8.8`, `⚠️ من فضلك، أدخل *IP*.\n\n📝 *مثال:* ${usedPrefix}${cmdName} 8.8.8.8`)
+      });
+    }
+
+    await reply({ text: tr(`🌾 Buscando, espere un momento...`, `🌾 جارٍ البحث، انتظر لحظة...`) });
+
+    try {
+      const res = await axios.get(
+        `http://ip-api.com/json/${text}?fields=status,message,country,countryCode,region,regionName,city,district,zip,lat,lon,timezone,isp,org,as,mobile,hosting,query`
+      );
+      const data = res.data;
+
+      if (String(data.status) !== 'success') {
+        throw new Error(data.message || 'Falló');
+      }
+
+      const ipsearch = `
+☁️ *I N F O - I P* ☁️
+
+IP : ${data.query}
+País : ${data.country}
+Código de País : ${data.countryCode}
+Provincia : ${data.regionName}
+Código de Provincia : ${data.region}
+Ciudad : ${data.city}
+Distrito : ${data.district}
+Código Postal : ${data.zip}
+Zona Horaria : ${data.timezone}
+ISP : ${data.isp}
+Organización : ${data.org}
+AS : ${data.as}
+Mobile : ${data.mobile ? 'Si' : 'No'}
+Hosting : ${data.hosting ? 'Si' : 'No'}
+`.trim();
+
+      await reply({ text: ipsearch });
+
+    } catch (e) {
+      await reply({ text: tr(`❌ Error: ${e.message}`, `❌ خطأ: ${e.message}`) });
+    }
+  }
+};

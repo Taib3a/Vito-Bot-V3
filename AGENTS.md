@@ -229,6 +229,34 @@ only occasionally, for both the pairing and QR flows. This is **not a code bug**
 run on a residential host to pair. Check the egress IP with
 `curl -s https://ipinfo.io/json`.
 
+
+## Reply language: per-file, not a central dictionary
+
+Every plugin decides its own reply language from the command name the user
+typed — an Arabic command answers in Arabic, a Latin one answers in Spanish.
+The helper lives **inside each plugin file**, and this is deliberate: a central
+translation layer (a shared dictionary applied in `messageHandler`) was tried
+and rejected. Do not reintroduce one.
+
+```js
+const lang = /[\u0600-\u06FF]/.test(cmdName || "") ? "ar" : "es";
+const tr = (es, ar) => (lang === "ar" ? ar : es);
+```
+
+The helper is named `tr`, not `t`: several files already declare a local `t`
+(`setTimeout` handles in mega/mediafire/anime, a sample value in tono), and `t`
+as the translator shadows them. Keep `cmdName` in the `run()` destructuring of
+every plugin that calls `tr`, or `lang` silently evaluates to `"es"`.
+
+## Prompting for the pairing code
+
+`core/prompt.js` holds the stdin logic. It reuses **one** readline interface for
+both questions and queues any line that arrives before a question is asked. Two
+separate interfaces would drop the phone number when the user pastes the choice
+and the number together (or a hosting panel delivers both lines on one tick) —
+the first interface buffers the second line and discards it on close. If you
+touch that file, keep the shared-prompter design and re-test the paste case.
+
 ## Repo conventions
 
 - Source comments are Arabic; commit messages and this file are English.
