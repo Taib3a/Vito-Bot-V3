@@ -61,9 +61,19 @@ fails, and it always mentions the sender.
 
 ### Arabic command names
 
-Plugins keep their original names so upstream fixes stay applicable. Arabic
-names live in `core/aliases.js` and are registered by `pluginLoader.js` after
-loading. Add an entry there instead of editing a plugin's `name` field.
+A plugin's `name` array carries both languages: `["facebook", "fb", "فيسبوك"]`.
+`core/aliases.js` holds extra Arabic aliases (e.g. `القائمة` → `menu`) that
+`pluginLoader.js` registers after loading, so a synonym can be added without
+touching the plugin. When adding a name, prefer the plugin's own `name` array;
+use `aliases.js` only for a synonym you do not want in the file.
+
+### Arabic filenames and categories
+
+Folders and filenames are Arabic: `plugins/بوتات/بوتات.js`. The loader ignores
+the path when naming a command — it reads `name` from the default export — so a
+file may be renamed freely. When renaming, keep the file matching its canonical
+Arabic name and never reference a plugin by path: nothing imports
+`plugins/**/*.js` directly, and `AGENTS.md` examples must be updated by hand.
 
 ## Interactive buttons and lists
 
@@ -217,7 +227,7 @@ mismatch. Users are keyed by **bare number** (`normalizeJid`), so
 ```
 
 nextgen does **not** export `Button`, `Carousel` or `AIRich`. Plugins needing an
-interactive list must render text instead (see `plugins/اقتصاد/comprarpersonaje.js`).
+interactive list must render text instead (see `plugins/اقتصاد/شخصية.js`).
 `plugins/مالك/crash.js` from the reference was **not** ported — it is a
 denial-of-service tool (floods a group to freeze clients).
 
