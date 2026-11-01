@@ -23,7 +23,7 @@ core/
     ترحيب.js                  welcome/goodbye (flag: welcome)
   buttons.js                  interactive buttons / lists (native flow)
   subbotManager.js            subbots (extra paired numbers)
-  logger.js                   console output
+  logger.js                   banner (figlet+gradient) + log.* + pairingCode
   economy.js xp.js gamedata.js
   sqlite.js                   node:sqlite wrapper
 database/db.js                users / groups / bots store (node:sqlite)
