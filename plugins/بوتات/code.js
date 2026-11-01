@@ -5,7 +5,7 @@ const cooldowns = new Map();
 
 export default {
   name: ["code", "كود"],
-  description: "Vincula tu número como subbot",
+  description: { es: "Vincula tu número como subbot", ar: "يربط رقمك كبوت فرعي" },
   category: "sockets, البوتات الفرعية",
   ownerOnly: false,
 

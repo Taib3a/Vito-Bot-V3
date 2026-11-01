@@ -3,14 +3,14 @@ import { db } from '../../database/db.js'
 const COOLDOWN = 60 * 60 * 1000 // 1 hora en ms
 
 const TRABAJOS = [
-  { texto: '⚔️ Exterminaste una maldición de grado 2', base: 150 },
-  { texto: '🩸 Completaste una misión de grado 3', base: 100 },
-  { texto: '📜 Entregaste un informe al Jujutsu Tech', base: 80 },
-  { texto: '🗡️ Sobreviviste a un dominio expandido', base: 200 },
-  { texto: '🏯 Patrullaste el perímetro de la escuela', base: 70 },
-  { texto: '💀 Sellaste una maldición especial de grado 1', base: 300 },
-  { texto: '🔮 Recolectaste energía maldita del ambiente', base: 120 },
-  { texto: '📦 Transportaste objetos malditos con seguridad', base: 90 },
+  { texto: tr('⚔️ Exterminaste una maldición de grado 2', '⚔️ أهلكت لعنة من الدرجة الثانية'), base: 150 },
+  { texto: tr('🩸 Completaste una misión de grado 3', '🩸 أكملت مهمة من الدرجة الثالثة'), base: 100 },
+  { texto: tr('📜 Entregaste un informe al Jujutsu Tech', '📜 سلّمت تقريراً إلى Jujutsu Tech'), base: 80 },
+  { texto: tr('🗡️ Sobreviviste a un dominio expandido', '🗡️ نجوت من سيطرة موسّعة'), base: 200 },
+  { texto: tr('🏯 Patrullaste el perímetro de la escuela', '🏯 حرسْت محيط المدرسة'), base: 70 },
+  { texto: tr('💀 Sellaste una maldición especial de grado 1', '💀 ختمت لعنة خاصة من الدرجة الأولى'), base: 300 },
+  { texto: tr('🔮 Recolectaste energía maldita del ambiente', '🔮 جمعت طاقة ملعونة من المحيط'), base: 120 },
+  { texto: tr('📦 Transportaste objetos malditos con seguridad', '📦 نقلت أشياء ملعونة بأمان'), base: 90 },
 ]
 
 const BONUS_ITEMS = {
@@ -22,7 +22,7 @@ const BONUS_ITEMS = {
 
 export default {
   name: ["work", "trabajar", "عمل", "اعمل"],
-  description: 'Trabaja para ganar Fragmentos',
+  description: { es: 'Trabaja para ganar Fragmentos', ar: 'اعمل لتكسب الشظايا' },
   category: "economy, الاقتصاد",
   ownerOnly: false,
 
@@ -66,7 +66,7 @@ export default {
       text: `${trabajo.texto}\n\n` +
         `💰 *Ganaste:* ${ganado} Fragmentos${bonus > 0 ? ` *(+${bonus} bonus de items)*` : ''}\n` +
         `👜 *Bolsillo actual:* ${nuevoBolsillo} Fragmentos\n\n` +
-        `> ⏳ Próximo trabajo en *1 hora*`
+        tr(`> ⏳ Próximo trabajo en *1 hora*`, `> ⏳ العمل التالي بعد *ساعة واحدة*`)
     })
   }
 }

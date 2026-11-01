@@ -24,7 +24,7 @@ const http = gotScraping.extend({
 
 export default {
   name: ["reddit", "redditdl", "rddl", "ريديت"],
-  description: 'Descarga videos, audio o imágenes desde un enlace de Reddit usando RedVid',
+  description: { es: 'Descarga videos, audio o imágenes desde un enlace de Reddit usando RedVid', ar: 'ينزّل فيديوهات أو صوتيات أو صوراً من رابط Reddit عبر RedVid' },
   category: "dl, التحميل",
   ownerOnly: false,
 

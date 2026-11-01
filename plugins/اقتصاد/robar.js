@@ -4,7 +4,7 @@ import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
 export default {
   name: ["rob", "robar", "سرقة", "اسرق"],
-  description: "Intenta robarle plata a otro usuario",
+  description: { es: "Intenta robarle plata a otro usuario", ar: "يحاول سرقة المال من مستخدم آخر" },
   category: "economy, الاقتصاد",
   groupOnly: true,
 

@@ -93,7 +93,7 @@ async function convertirWebpVideo(buffer) {
 
 export default {
   name: ['bratv', 'برات-فيديو'],
-  description: 'Crea sticker animado estilo brat (texto en fondo blanco)',
+  description: { es: 'Crea sticker animado estilo brat (texto en fondo blanco)', ar: 'ينشئ ملصقاً متحركاً بنمط brat (نص على خلفية بيضاء)' },
   category: "stickers, الملصقات",
   ownerOnly: false,
 

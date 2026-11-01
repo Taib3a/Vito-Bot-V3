@@ -4,7 +4,7 @@ import { db } from "../../database/db.js";
 
 export default {
   name: ["eval", "exec", ">", "تنفيذ"],
-  description: "Evalúa código JavaScript",
+  description: { es: "Evalúa código JavaScript", ar: "ينفّذ كود JavaScript" },
   category: "owner, المالك",
   ownerOnly: true,
 

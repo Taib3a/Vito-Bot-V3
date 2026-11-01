@@ -9,7 +9,7 @@ function limpiarNumero(input) {
 
 export default {
   name: ["checkban", "banwa", "تحقق"],
-  description: "Verifica si un número de WhatsApp está baneado",
+  description: { es: "Verifica si un número de WhatsApp está baneado", ar: "يتحقق مما إذا كان رقم واتساب محظوراً" },
   category: "utils, الأدوات",
   ownerOnly: false,
 

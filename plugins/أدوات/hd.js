@@ -30,7 +30,7 @@ function multipart(fields, fileField) {
 
 async function startTask() {
   const resp = await fetch(`https://api.iloveimg.com/v1/start/${TOOL}`, { headers: BASE_HEADERS });
-  if (!resp.ok) throw new Error(`Error inicio tarea (${resp.status})`);
+  if (!resp.ok) throw new Error(tr(`Error inicio tarea (${resp.status})`, `خطأ في بدء المهمة (${resp.status})`));
   const data = await resp.json();
   return { server: data.server, task: data.task };
 }
@@ -42,7 +42,7 @@ async function uploadImage(server, task, imageBuffer, filename) {
     headers: { ...BASE_HEADERS, "content-type": contentType },
     body
   });
-  if (!resp.ok) throw new Error(`Error subiendo imagen (${resp.status})`);
+  if (!resp.ok) throw new Error(tr(`Error subiendo imagen (${resp.status})`, `خطأ في رفع الصورة (${resp.status})`));
   return await resp.json();
 }
 
@@ -60,7 +60,7 @@ async function processImage(server, task, serverFilename, filename, multiplier =
     headers: { ...BASE_HEADERS, "content-type": contentType },
     body
   });
-  if (!resp.ok) throw new Error(`Error procesando imagen (${resp.status})`);
+  if (!resp.ok) throw new Error(tr(`Error procesando imagen (${resp.status})`, `خطأ في معالجة الصورة (${resp.status})`));
   return await resp.json();
 }
 
@@ -68,7 +68,7 @@ async function downloadResult(server, task) {
   const resp = await fetch(`https://${server}/v1/download/${task}`, {
     headers: { "user-agent": UA, referer: "https://www.iloveimg.com/" }
   });
-  if (!resp.ok) throw new Error(`Error descargando resultado (${resp.status})`);
+  if (!resp.ok) throw new Error(tr(`Error descargando resultado (${resp.status})`, `خطأ في تنزيل النتيجة (${resp.status})`));
   return Buffer.from(await resp.arrayBuffer());
 }
 
@@ -81,7 +81,7 @@ async function iloveimgUpscale(imageBuffer, filename) {
 
 export default {
   name: ["hd", "upscale", "mejorar", "جودة"],
-  description: "Mejora la calidad de una imagen (x4) usando IA",
+  description: { es: "Mejora la calidad de una imagen (x4) usando IA", ar: "يحسّن جودة الصورة (x4) باستخدام الذكاء الاصطناعي" },
   category: "utils, الأدوات",
 
   async run({ sock, from, msg, usedPrefix, cmdName, reply, react }) {
@@ -119,7 +119,7 @@ export default {
         from,
         {
           image: resultBuffer,
-          caption: "✅ *Imagen mejorada (x4)*\n\n> ✨ Calidad aumentada con IA"
+          caption: tr("✅ *Imagen mejorada (x4)*\n\n> ✨ Calidad aumentada con IA", "✅ *تم تحسين الصورة (x4)*\n\n> ✨ تمت زيادة الجودة بالذكاء الاصطناعي")
         },
         { quoted: msg }
       );

@@ -11,7 +11,7 @@ function cleanJid(jid = "") {
 
 export default {
   name: ["warn", "advertir", "تحذير", "انذار"],
-  description: 'Advierte a un miembro del grupo',
+  description: { es: 'Advierte a un miembro del grupo', ar: 'ينبّه عضواً في المجموعة' },
   category: "grupos, المجموعات",
   groupOnly: true,
   adminOnly: true,

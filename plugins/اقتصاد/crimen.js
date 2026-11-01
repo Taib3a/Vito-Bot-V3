@@ -2,22 +2,22 @@ import { db } from "../../database/db.js";
 import { checkCooldown, setCooldown, formatTime } from "../../core/economy.js";
 
 const CRIMENES_EXITO = [
-  "Robaste una tienda y escapaste sin que nadie te viera.",
-  "Le hackeaste la cuenta a un banco y sacaste una parte.",
-  "Vendiste productos falsificados sin que te descubrieran.",
-  "Estafaste a un turista despistado."
+  tr("Robaste una tienda y escapaste sin que nadie te viera.", "سرقت متجراً وهربت دون أن يراك أحد."),
+  tr("Le hackeaste la cuenta a un banco y sacaste una parte.", "اخترقت حساب بنك وأخذت جزءاً منه."),
+  tr("Vendiste productos falsificados sin que te descubrieran.", "بعت منتجات مقلّدة دون أن يُكشف أمرك."),
+  tr("Estafaste a un turista despistado.", "خدعت سائحاً غافلاً.")
 ];
 
 const CRIMENES_FALLO = [
-  "Intentaste robar una tienda pero saltó la alarma y te atraparon.",
-  "La policía te agarró vendiendo productos falsos.",
-  "Tu estafa fue tan mala que la víctima llamó a la policía.",
-  "Te descubrieron las cámaras de seguridad."
+  tr("Intentaste robar una tienda pero saltó la alarma y te atraparon.", "حاولت سرقة متجر لكن انطلق الإنذار وأمسكوا بك."),
+  tr("La policía te agarró vendiendo productos falsos.", "أمسكت بك الشرطة تبيع منتجات مقلّدة."),
+  tr("Tu estafa fue tan mala que la víctima llamó a la policía.", "كانت عملية نصبك سيئة لدرجة أن الضحية اتصلت بالشرطة."),
+  tr("Te descubrieron las cámaras de seguridad.", "كشفتك كاميرات المراقبة.")
 ];
 
 export default {
   name: ["crimen", "crime", "جريمة"],
-  description: "Cometé un crimen random, con riesgo de multa",
+  description: { es: "Cometé un crimen random, con riesgo de multa", ar: "يرتكب جريمة عشوائية مع خطر الغرامة" },
   category: "economy, الاقتصاد",
 
   async run({ sender, reply, cmdName }) {

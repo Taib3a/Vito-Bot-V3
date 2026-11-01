@@ -2,7 +2,7 @@ import { broadcastReaccionCanal } from '../../core/subbotManager.js'
 
 export default {
   name: ["reactcanal", "تفاعل-قناة"],
-  description: 'Hace que todos los bots reaccionen a un mensaje de canal',
+  description: { es: 'Hace que todos los bots reaccionen a un mensaje de canal', ar: 'يجعل جميع البوتات تتفاعل مع رسالة قناة' },
   category: "utils, الأدوات",
   ownerOnly: false,
 
@@ -32,7 +32,7 @@ export default {
       const meta = await sock.newsletterMetadata('invite', invite)
       canalJid = meta.id
     } catch (e) {
-      console.error('No se pudo obtener el canal:', e)
+      console.error(tr('No se pudo obtener el canal:', 'تعذّر الحصول على القناة:'), e)
       await react('❌')
       return await reply({ text: tr('❌ No se pudo encontrar el canal. Verifica el link.', '❌ تعذّر العثور على القناة. تحقق من الرابط.') })
     }
@@ -41,7 +41,7 @@ export default {
     try {
       res = await broadcastReaccionCanal({ canalJid, serverId, emoji, ventanaMs: 5000 })
     } catch (e) {
-      console.error('Error en broadcast:', e)
+      console.error(tr('Error en broadcast:', 'خطأ في البث:'), e)
       await react('❌')
       return await reply({ text: tr('❌ Ocurrió un error al reaccionar.', '❌ حدث خطأ أثناء التفاعل.') })
     }

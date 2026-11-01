@@ -1,22 +1,22 @@
 import { checkCooldown, setCooldown, addBolsillo, formatTime } from "../../core/economy.js";
 
 const FRASES_EXITO = [
-  "Un señor te dio unas monedas por lástima.",
-  "Una viejita te regaló su cambio.",
-  "Alguien te tiró plata desde su carro.",
-  "Encontraste una moneda en el piso mientras mendigabas."
+  tr("Un señor te dio unas monedas por lástima.", "أعطاك رجل بعض العملات شفقةً."),
+  tr("Una viejita te regaló su cambio.", "أهدتك امرأة عجوز باقي نقودها."),
+  tr("Alguien te tiró plata desde su carro.", "أحدهم رمى لك مالاً من سيارته."),
+  tr("Encontraste una moneda en el piso mientras mendigabas.", "وجدت عملة على الأرض أثناء التسوّل.")
 ];
 
 const FRASES_FALLO = [
-  "Nadie te dio nada, te ignoraron por completo.",
-  "Un guardia te corrió del lugar.",
-  "La gente pasó de largo sin mirarte.",
-  "Te dijeron \"consíguete un trabajo\" y siguieron caminando."
+  tr("Nadie te dio nada, te ignoraron por completo.", "لم يعطك أحد شيئاً، تجاهلوك تماماً."),
+  tr("Un guardia te corrió del lugar.", "طردك حارس من المكان."),
+  tr("La gente pasó de largo sin mirarte.", "مرّ الناس دون أن ينظروا إليك."),
+  tr("Te dijeron \"consíguete un trabajo\" y siguieron caminando.", "قالوا لك «ابحث عن عمل» وأكملوا طريقهم.")
 ];
 
 export default {
   name: ["mendigar", "beg", "شحاذة", "تسول"],
-  description: "Pide limosna a ver si alguien te da algo",
+  description: { es: "Pide limosna a ver si alguien te da algo", ar: "يتسوّل لعلّ أحداً يعطيك شيئاً" },
   category: "economy, الاقتصاد",
 
   async run({ sender, reply, cmdName }) {

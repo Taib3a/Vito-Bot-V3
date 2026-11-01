@@ -2,7 +2,7 @@ import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
 export default {
   name: ["del", "delete", "eliminar", "حذف"],
-  description: "Elimina un mensaje respondiendo a él",
+  description: { es: "Elimina un mensaje respondiendo a él", ar: "يحذف رسالة بالردّ عليها" },
   category: "grupos, المجموعات",
   groupOnly: true,
   adminOnly: true,

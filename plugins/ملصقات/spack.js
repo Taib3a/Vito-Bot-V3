@@ -169,7 +169,7 @@ const sendStickerPack = async (sock, jid, { name, publisher, description, sticke
 
 export default {
   name: ["stickersearch", "buscars", "spack", "بحث-ملصق"],
-  description: 'Busca packs de stickers en Sticker.ly',
+  description: { es: 'Busca packs de stickers en Sticker.ly', ar: 'يبحث عن حزم ملصقات في Sticker.ly' },
   category: "stickers, الملصقات",
   ownerOnly: false,
 

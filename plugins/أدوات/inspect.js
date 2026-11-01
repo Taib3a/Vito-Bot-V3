@@ -12,7 +12,7 @@ async function resolverJid(sock, jid) {
 
 export default {
     name: ['inspect', 'inspeccionar', 'فحص-رسالة'],
-    description: 'Inspecciona un enlace de grupo, comunidad o canal de WhatsApp',
+    description: { es: 'Inspecciona un enlace de grupo, comunidad o canal de WhatsApp', ar: 'يفحص رابط مجموعة أو مجتمع أو قناة واتساب' },
     category: "herramientas, الأدوات",
 
     async run({ sock, from, msg, text, reply, cmdName }) {
@@ -55,11 +55,11 @@ export default {
 
                 const meta = info.thread_metadata || {}
 
-                const id = info.id || 'No encontrado'
+                const id = info.id || tr('No encontrado', 'غير موجود')
                 const nombre = meta.name?.text || 'Sin nombre'
                 const descripcion = meta.description?.text || 'Sin descripción'
-                const suscriptores = meta.subscribers_count ?? 'No disponible'
-                const verificado = meta.verification === 'VERIFIED' ? '✅ Verificado' : '❌ No verificado'
+                const suscriptores = meta.subscribers_count ?? tr('No disponible', 'غير متاح')
+                const verificado = meta.verification === 'VERIFIED' ? '✅ Verificado' : tr('❌ No verificado', '❌ غير موثّق')
 
                 caption =
 `📢 *INFORMACIÓN DEL CANAL*
@@ -71,7 +71,7 @@ ${verificado}
 📝 *Descripción:* ${descripcion}`
 
             } catch (e) {
-                console.error('Error canal:', e)
+                console.error(tr('Error canal:', 'خطأ في القناة:'), e)
                 return await reply({ text: tr(`❌ Error al obtener información del canal.`, `❌ خطأ في جلب معلومات القناة.`) })
             }
 
@@ -84,15 +84,15 @@ ${verificado}
                     return await reply({ text: tr(`❌ No se encontró información. Verifique que el enlace sea válido.`, `❌ لم تُعثر على معلومات. تحقق من صحة الرابط.`) })
                 }
 
-                const id = info.id || 'No encontrado'
+                const id = info.id || tr('No encontrado', 'غير موجود')
                 const nombre = info.subject || 'Sin nombre'
                 const descripcion = info.desc || 'Sin descripción'
-                const participantes = info.size ?? info.participants?.length ?? 'No disponible'
+                const participantes = info.size ?? info.participants?.length ?? tr('No disponible', 'غير متاح')
                 const esComunidad = !!info.isCommunity
 
                 // Creador (arreglo LID): prioriza ownerPn, si no, resuelve el LID
                 const creadorJid = await resolverJid(sock, info.ownerPn || info.owner)
-                let creador = 'No disponible / Salió del grupo'
+                let creador = tr('No disponible / Salió del grupo', 'غير متاح / غادر المجموعة')
                 if (creadorJid) {
                     creador = `@${creadorJid.split('@')[0]}`
                     mentions.push(creadorJid)
@@ -100,7 +100,7 @@ ${verificado}
 
                 const creacion = info.creation
                     ? new Date(info.creation * 1000).toLocaleDateString('es-ES')
-                    : 'No disponible'
+                    : tr('No disponible', 'غير متاح')
 
                 caption =
 `${esComunidad ? '🏘️ *INFORMACIÓN DE LA COMUNIDAD*' : '👥 *INFORMACIÓN DEL GRUPO*'}
@@ -113,7 +113,7 @@ ${verificado}
 📝 *Descripción:* ${descripcion}`
 
             } catch (e) {
-                console.error('Error grupo/comunidad:', e)
+                console.error(tr('Error grupo/comunidad:', 'خطأ في المجموعة/المجتمع:'), e)
                 return await reply({ text: tr(`❌ Error al obtener información del grupo o comunidad.`, `❌ خطأ في جلب معلومات المجموعة أو المجتمع.`) })
             }
 

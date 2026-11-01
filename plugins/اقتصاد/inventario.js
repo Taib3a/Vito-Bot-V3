@@ -4,12 +4,12 @@ const ITEMS_INFO = {
   pala: { nombre: '🪏 Pala', bonus: 50 },
   pico: { nombre: '⛏️ Pico', bonus: 120 },
   katana_maldita: { nombre: '🗡️ Katana maldita', bonus: 300 },
-  cristal_dominio: { nombre: '💎 Cristal de dominio', bonus: 600 },
+  cristal_dominio: { nombre: tr('💎 Cristal de dominio', '💎 كريستال السيطرة'), bonus: 600 },
 }
 
 export default {
   name: ["inventario", "inv", "حقيبة", "المخزون"],
-  description: 'Muestra tu inventario de items',
+  description: { es: 'Muestra tu inventario de items', ar: 'يعرض حقيبة عناصرك' },
   category: "economy, الاقتصاد",
   ownerOnly: false,
 
@@ -26,7 +26,7 @@ export default {
     }
 
     let bonusTotal = 0
-    let texto = `🎒 *Tu inventario*\n` +
+    let texto = tr(`🎒 *Tu inventario*\n`, `🎒 *حقيبتك*\n`) +
       `╰━━━━━━(☆)━━━━━━─╮\n\n`
 
     for (const itemId of eco.inventario) {

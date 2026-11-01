@@ -83,7 +83,7 @@ function formatViews(views) {
 
 export default {
   name: ["play", "يوتيوب", "اغنية"],
-  description: "Descarga música de YouTube",
+  description: { es: "Descarga música de YouTube", ar: "ينزّل موسيقى من يوتيوب" },
   category: "dl, التحميل",
   ownerOnly: false,
 

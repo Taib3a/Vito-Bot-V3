@@ -2,7 +2,7 @@ import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
 export default {
   name: ["desfijar", "ازالة-التثبيت"],
-  description: "Desfija un mensaje respondiendo a él",
+  description: { es: "Desfija un mensaje respondiendo a él", ar: "يلغي تثبيت رسالة بالردّ عليها" },
   category: "grupos, المجموعات",
   groupOnly: true,
   adminOnly: true,

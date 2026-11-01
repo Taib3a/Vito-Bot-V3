@@ -3,7 +3,7 @@ import { fileTypeFromBuffer } from 'file-type'
 
 export default {
   name: ['fetch', 'get', 'descargar', 'جلب'],
-  description: 'Descarga y envía el contenido de una URL (Soporta imágenes, videos, audios y texto)',
+  description: { es: 'Descarga y envía el contenido de una URL (Soporta imágenes, videos, audios y texto)', ar: 'ينزّل ويرسل محتوى رابط (يدعم الصور والفيديوهات والصوتيات والنص)' },
   category: "misc, متنوع",
   ownerOnly: false,
 

@@ -52,7 +52,7 @@ const cleanFileName = name =>
 
 export default {
   name: ['play2', 'تحميل-صوت'],
-  description: 'Descarga video de YouTube',
+  description: { es: 'Descarga video de YouTube', ar: 'ينزّل فيديو من يوتيوب' },
   category: "dl, التحميل",
   ownerOnly: false,
 

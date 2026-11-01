@@ -1,6 +1,6 @@
 export default { 
   name: ["restart", "rest", "اعادة"], 
-  description: "Reinicia el bot", 
+  description: { es: "Reinicia el bot", ar: "يعيد تشغيل البوت" }, 
 category : "owner",
   ownerOnly: true,
   async run({ conn, m, reply, cmdName }) {

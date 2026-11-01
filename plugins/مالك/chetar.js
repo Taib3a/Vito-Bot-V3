@@ -17,7 +17,7 @@ function cleanJid(jid = '') {
 
 export default {
   name: ["chetar", "فلوس"],
-  description: 'Da Fragmentos a un usuario (solo owners)',
+  description: { es: 'Da Fragmentos a un usuario (solo owners)', ar: 'يمنح الشظايا لمستخدم (للمالكين فقط)' },
   category: "owner, المالك",
   ownerOnly: true,
 

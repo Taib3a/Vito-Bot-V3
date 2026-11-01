@@ -162,7 +162,7 @@ const cleanFileName = name =>
 
 export default {
   name: ['y2mate', 'يوتيوب-تحميل'],
-  description: 'Descarga audio de YouTube con y2mate',
+  description: { es: 'Descarga audio de YouTube con y2mate', ar: 'ينزّل صوتاً من يوتيوب عبر y2mate' },
   category: "dl, التحميل",
   ownerOnly: false,
 

@@ -47,7 +47,7 @@ function getMemoryInfo() {
 
 export default {
   name: ["system", "sys", "stats", "النظام"],
-  description: "Muestra información real del sistema",
+  description: { es: "Muestra información real del sistema", ar: "يعرض معلومات حقيقية عن النظام" },
   category: "info, المعلومات",
   ownerOnly: false,
 

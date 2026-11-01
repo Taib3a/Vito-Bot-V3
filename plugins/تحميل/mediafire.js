@@ -66,7 +66,7 @@ async function resolver(url) {
 
 export default {
   name: ["mediafire", "mf", "mfdl", "ميديافاير"],
-  description: "Descarga archivos de MediaFire a partir del enlace (audio, video, HTML, zip, etc.)",
+  description: { es: "Descarga archivos de MediaFire a partir del enlace (audio, video, HTML, zip, etc.)", ar: "ينزّل ملفات من MediaFire عبر الرابط (صوت، فيديو، HTML، zip، إلخ)" },
   category: "dl, التحميل",
   groupOnly: false,
 

@@ -43,7 +43,7 @@ const buildSections = (items) => {
 
     if (i.cta_button) {
       const type = (i.cta_button.type || 'OPEN_URL').toUpperCase()
-      if (!CTA_TYPES.includes(type)) throw new Error(`cta_type inválido: ${type}`)
+      if (!CTA_TYPES.includes(type)) throw new Error(tr(`cta_type inválido: ${type}`, `نوع cta غير صالح: ${type}`))
       sections.push({
         view_model: {
           primitive: {
@@ -58,7 +58,7 @@ const buildSections = (items) => {
       continue
     }
 
-    throw new Error(`item no soportado: ${JSON.stringify(i)}`)
+    throw new Error(tr(`item no soportado: ${JSON.stringify(i)}`, `عنصر غير مدعوم: ${JSON.stringify(i)}`))
   }
 
   return { submessages, sections }
@@ -74,7 +74,7 @@ export const sendMetaMsg = async (sock, jid, items, quoted, disclaimer) => {
       deviceListMetadataVersion: 2,
       botMetadata: {
         pluginMetadata: {},
-        messageDisclaimerText: disclaimer || `Enviado por ${global.botname || 'Yuta Bot'}`
+        messageDisclaimerText: disclaimer || tr(`Enviado por ${global.botname || 'Yuta Bot'}`, `أُرسل بواسطة ${global.botname || 'Yuta Bot'}`)
       }
     },
     botForwardedMessage: {
@@ -101,7 +101,7 @@ export const sendMetaMsg = async (sock, jid, items, quoted, disclaimer) => {
 
 export default {
   name: ['randm', 'عشوائي'],
-  description: 'Envía un mensaje estilo Meta AI con texto, imagen y botón',
+  description: { es: 'Envía un mensaje estilo Meta AI con texto, imagen y botón', ar: 'يرسل رسالة بنمط Meta AI مع نص وصورة وزر' },
   category: "owner, المالك",
 
   async run({ sock, from, msg, text, usedPrefix, command, reply, cmdName }) {

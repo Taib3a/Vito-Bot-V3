@@ -117,7 +117,7 @@ async function downloadFacebookVideo(url) {
 
 export default {
   name: ["facebook", "fb", "فيسبوك"],
-  description: "Descarga videos de Facebook",
+  description: { es: "Descarga videos de Facebook", ar: "ينزّل فيديوهات من فيسبوك" },
   category: "dl, التحميل",
   ownerOnly: false,
 

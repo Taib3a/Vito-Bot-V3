@@ -2,7 +2,7 @@ import { db } from '../../database/db.js'
 
 export default {
   name: ["saldo", "balance", "bal", "رصيدي", "الرصيد"],
-  description: 'Muestra tu balance de Fragmentos',
+  description: { es: 'Muestra tu balance de Fragmentos', ar: 'يعرض رصيد الشظايا' },
   category: "economy, الاقتصاد",
   ownerOnly: false,
 

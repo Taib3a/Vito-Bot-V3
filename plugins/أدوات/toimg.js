@@ -16,7 +16,7 @@ if (!fs.existsSync(tmp))
 
 export default {
   name: ["toimg", "تحويل-صورة"],
-  description: "Convierte un sticker a imagen",
+  description: { es: "Convierte un sticker a imagen", ar: "يحوّل الملصق إلى صورة" },
   category: "utils, الأدوات",
 
   async run({ sock, from, msg, react, reply, cmdName }) {
@@ -73,7 +73,7 @@ export default {
         from,
         {
           image: imageBuffer,
-          caption: "✅ Sticker convertido a imagen"
+          caption: tr("✅ Sticker convertido a imagen", "✅ تم تحويل الملصق إلى صورة")
         },
         { quoted: msg }
       )

@@ -3,7 +3,7 @@ import { db } from "../../database/db.js";
 
 export default {
   name: ["self", "وضع-خاص"],
-  description: 'Prende o apaga el modo self del grupo usando "on" u "off"',
+  description: { es: 'Prende o apaga el modo self del grupo usando "on" u "off"', ar: 'يشغّل أو يطفئ وضع self للمجموعة باستخدام "on" أو "off"' },
   category: "owner, المالك",
   groupOnly: true,
   ownerOnly: true,

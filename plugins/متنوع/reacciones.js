@@ -66,7 +66,7 @@ function resolveDisplayName(jid, groupMeta) {
 
 export default {
   name: [...Object.keys(DATA), ...Object.values(NOMBRES_AR)],
-  description: "Reacciones anime: .hug @user, .kiss @user, etc.",
+  description: { es: "Reacciones anime: .hug @user, .kiss @user, etc.", ar: "تفاعلات أنمي: .hug @مستخدم، .kiss @مستخدم، إلخ." },
   category: "anime, الأنمي",
   adminOnly: false,
   groupOnly: true,

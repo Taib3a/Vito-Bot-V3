@@ -49,7 +49,7 @@ async function subirDix(buffer, filename, mimetype, esTemporal = false, ttl = 86
 
 export default {
   name: ['cdn', 'subir', 'upload', 'tmp', 'رفع'],
-  description: 'Sube archivos de forma permanente o temporal al CDN de Dix',
+  description: { es: 'Sube archivos de forma permanente o temporal al CDN de Dix', ar: 'ارفع الملفات بشكل دائم أو مؤقت إلى CDN الخاص بـ Dix' },
   category: "utils, الأدوات",
   ownerOnly: false,
 
@@ -120,7 +120,7 @@ export default {
       )
 
       if (!buffer || buffer.length === 0) {
-        throw new Error('No se pudo obtener el archivo (Buffer vacío)')
+        throw new Error(tr('No se pudo obtener el archivo (Buffer vacío)', 'تعذّر الحصول على الملف (مخزن فارغ)'))
       }
 
       const detected = await fileTypeFromBuffer(buffer)
@@ -131,7 +131,7 @@ export default {
       const resultDix = await subirDix(buffer, filename, mime, esTemporal, ttlValue)
 
       if (!resultDix || !resultDix.status || !resultDix.data) {
-        throw new Error('El servidor de Dix rechazó la subida o devolvió un formato incorrecto.')
+        throw new Error(tr('El servidor de Dix rechazó la subida o devolvió un formato incorrecto.', 'رفض خادم Dix الرفع أو أعاد صيغة غير صحيحة.'))
       }
 
       const dataDix = resultDix.data

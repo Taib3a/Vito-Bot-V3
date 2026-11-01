@@ -1,6 +1,6 @@
 export default {
   name: ["reload", "اعادة-تحميل"],
-  description: "Reinicia la sesión de este bot (reconexión rápida, ~1-2 segundos)",
+  description: { es: "Reinicia la sesión de este bot (reconexión rápida, ~1-2 segundos)", ar: "يعيد تشغيل جلسة هذا البوت (إعادة اتصال سريعة، ~1-2 ثانية)" },
   category: "owner, المالك",
   ownerOnly: true,
 

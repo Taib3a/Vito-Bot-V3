@@ -13,7 +13,7 @@ function rTime(seconds) {
 
 export default {
   name: ["runtime", "uptime", "الوقت", "مدة"],
-  description: 'Muestra cuánto tiempo lleva activo el bot',
+  description: { es: 'Muestra cuánto tiempo lleva activo el bot', ar: 'يعرض مدة تشغيل البوت' },
   category: "info, المعلومات",
   ownerOnly: false,
 

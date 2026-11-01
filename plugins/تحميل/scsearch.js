@@ -35,7 +35,7 @@ function msToTime(ms) {
 
 export default {
   name: ["scsearch", "scbuscar", "scb", "بحث-ساوند"],
-  description: 'Busca canciones en SoundCloud y devuelve los links',
+  description: { es: 'Busca canciones en SoundCloud y devuelve los links', ar: 'يبحث عن أغانٍ في SoundCloud ويعيد الروابط' },
   category: "dl, التحميل",
   ownerOnly: false,
 

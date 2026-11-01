@@ -2,7 +2,7 @@ import { removeSubbot, activeBots } from '../../core/subbotManager.js'
 
 export default {
   name: ["delbot", "desconectar", "حذف-بوت"],
-  description: 'Desvincula tu número como subbot',
+  description: { es: 'Desvincula tu número como subbot', ar: 'يفصل رقمك عن البوت الفرعي' },
   category: "sockets, البوتات الفرعية",
   ownerOnly: false,
 

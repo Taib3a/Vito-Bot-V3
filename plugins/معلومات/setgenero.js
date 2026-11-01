@@ -4,7 +4,7 @@ const VALIDOS = ["hombre", "mujer"];
 
 export default {
   name: ["setgenero", "setgenre", "جنسي", "جنس"],
-  description: "Configura tu género (hombre/mujer) para tu perfil",
+  description: { es: "Configura tu género (hombre/mujer) para tu perfil", ar: "يضبط جنسك (ذكر/أنثى) لملفك الشخصي" },
   category: "info, المعلومات",
   ownerOnly: false,
 

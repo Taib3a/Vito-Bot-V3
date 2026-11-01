@@ -3,7 +3,7 @@ import { checkCooldown, setCooldown, addBolsillo, formatTime } from "../../core/
 
 export default {
   name: ["daily", "diario", "يومي"],
-  description: "Reclama tu recompensa diaria",
+  description: { es: "Reclama tu recompensa diaria", ar: "استلم مكافأتك اليومية" },
   category: "economy, الاقتصاد",
 
   async run({ sender, reply, cmdName }) {

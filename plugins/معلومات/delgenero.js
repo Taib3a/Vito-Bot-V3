@@ -2,7 +2,7 @@ import { db } from "../../database/db.js";
 
 export default {
   name: ["delgenero", "delgenre", "حذف-جنسي"],
-  description: "Elimina tu configuración de género",
+  description: { es: "Elimina tu configuración de género", ar: "يحذف إعداد الجنس الخاص بك" },
   category: "info, المعلومات",
   ownerOnly: false,
 

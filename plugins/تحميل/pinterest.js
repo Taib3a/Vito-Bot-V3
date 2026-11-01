@@ -33,7 +33,7 @@ async function sendAlbumMessage(sock, jid, medias, options = {}) {
 
 export default {
   name: ["pinterest", "pin", "بينتريست"],
-  description: "Busca imágenes en Pinterest",
+  description: { es: "Busca imágenes en Pinterest", ar: "يبحث عن صور في بينتريست" },
   category: "dl, التحميل",
   ownerOnly: false,
 

@@ -3,7 +3,7 @@ import config from '../../config.js'
 
 export default {
   name: ["delmeta", "حذف-اسم-الملصق"],
-  description: 'Resetea tu marca de agua a la del bot',
+  description: { es: 'Resetea tu marca de agua a la del bot', ar: 'يعيد ضبط علامتك المائية إلى علامة البوت' },
   category: "stickers, الملصقات",
   ownerOnly: false,
 

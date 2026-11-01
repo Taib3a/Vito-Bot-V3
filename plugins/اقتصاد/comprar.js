@@ -3,7 +3,7 @@ import { ITEMS } from '../../core/gamedata.js'
 
 export default {
   name: ["comprar", "buy", "شراء", "اشتري"],
-  description: 'Compra un item de la tienda',
+  description: { es: 'Compra un item de la tienda', ar: 'يشتري عنصراً من المتجر' },
   category: "economy, الاقتصاد",
   ownerOnly: false,
 
@@ -50,7 +50,7 @@ export default {
         `*Item:* ${item.nombre}\n` +
         `*Precio pagado:* ${item.precio.toLocaleString()} Fragmentos\n` +
         `*Bolsillo restante:* ${(eco.bolsillo - item.precio).toLocaleString()} Fragmentos\n\n` +
-        `> Usá *.equipar ${itemId} <personaje>* para dárselo a un personaje`
+        tr(`> Usá *.equipar ${itemId} <personaje>* para dárselo a un personaje`, `> استخدم *.equipar ${itemId} <شخصية>* لإعطائه لشخصية`)
     })
   }
 }

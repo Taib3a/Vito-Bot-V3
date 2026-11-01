@@ -2,7 +2,7 @@ import axios from 'axios';
 
 export default {
   name: ["ip", "ايبي"],
-  description: "Busca información de una dirección IP",
+  description: { es: "Busca información de una dirección IP", ar: "يبحث عن معلومات عنوان IP" },
   category: "utils, الأدوات",
   ownerOnly: false,
 

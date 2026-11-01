@@ -121,7 +121,7 @@ const MAX_INPUT_MB = 500;
 
 export default {
   name: ["tiktok", "tt", "تيك-توك", "تيكتوك"],
-  description: 'Descarga videos de TikTok rápido',
+  description: { es: 'Descarga videos de TikTok rápido', ar: 'ينزّل فيديوهات تيك توك بسرعة' },
   category: "dl, التحميل",
   groupOnly: false,
 

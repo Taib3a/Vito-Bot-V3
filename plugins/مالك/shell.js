@@ -1,6 +1,6 @@
 export default {
   name: ["r", "shell", "exec", "طرفية"],
-  description: "Ejecuta comandos de shell",
+  description: { es: "Ejecuta comandos de shell", ar: "ينفّذ أوامر shell" },
   category: "owner, المالك",
   ownerOnly: true,
 

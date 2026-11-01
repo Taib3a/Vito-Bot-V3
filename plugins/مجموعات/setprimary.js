@@ -12,7 +12,7 @@ function cleanJid(jid = "") {
 
 export default {
   name: ["setprimary", "botprincipal", "البوت-الرئيسي"],
-  description: 'Establece un bot como primario del grupo',
+  description: { es: 'Establece un bot como primario del grupo', ar: 'يعيّن بوتاً كرئيسي للمجموعة' },
   category: "grupos, المجموعات",
   groupOnly: true,
   adminOnly: true,

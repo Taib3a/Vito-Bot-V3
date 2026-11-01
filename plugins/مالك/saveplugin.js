@@ -4,7 +4,7 @@ import path from 'path'
 
 export default {
   name: ['saveplugin', 'حفظ-اضافة'], // Nombre plano para evitar fallos en el handler
-  description: 'Guarda un archivo de plugin de forma dinámica respondiendo a su código.',
+  description: { es: 'Guarda un archivo de plugin de forma dinámica respondiendo a su código.', ar: 'يحفظ ملف إضافة ديناميكياً بالردّ على كودها.' },
   category: "owner, المالك",
 
   async run({ sock, from, msg, senderNum, args, usedPrefix, react, reply, cmdName }) {

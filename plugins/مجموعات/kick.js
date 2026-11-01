@@ -11,7 +11,7 @@ function cleanJid(jid = "") {
 
 export default {
   name: ["kick", "expulsar", "طرد", "اطرد"],
-  description: 'Expulsa a un miembro del grupo',
+  description: { es: 'Expulsa a un miembro del grupo', ar: 'يطرد عضواً من المجموعة' },
   category: "grupos, المجموعات",
   groupOnly: true,
   botAdmin: true,

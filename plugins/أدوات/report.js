@@ -30,7 +30,7 @@ async function enviarConCualquierBot(sockOriginal, payload) {
 
 export default {
   name: ["report", "بلاغ"],
-  description: "Envía un reporte al grupo de staff",
+  description: { es: "Envía un reporte al grupo de staff", ar: "يرسل تقريراً إلى مجموعة الإدارة" },
   category: "utils, الأدوات",
   ownerOnly: false,
 
@@ -56,7 +56,7 @@ export default {
     }
     const senderNumResolved = senderJid.split('@')[0]
 
-    const origen = isGroup ? `Grupo: ${groupName}` : "Chat privado"
+    const origen = isGroup ? tr(`Grupo: ${groupName}`, `المجموعة: ${groupName}`) : "Chat privado"
 
     let textoReporte = `╭━━━━━━━━━━━○\n`
     textoReporte += `│⏤͟͟͞͞🚨 *NUEVO REPORTE*\n`

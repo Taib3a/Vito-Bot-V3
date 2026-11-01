@@ -28,7 +28,7 @@ function labelPorGenero(jid) {
 
 export default {
   name: ["marry", "casar", "زواج"],
-  description: "Propón o acepta matrimonio con alguien",
+  description: { es: "Propón o acepta matrimonio con alguien", ar: "يعرض الزواج على أحدهم أو يقبله" },
   category: "info, المعلومات",
 
   async run(ctx) {

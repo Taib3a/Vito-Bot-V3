@@ -20,7 +20,7 @@ const isAdmin = (p) => p?.admin === 'admin' || p?.admin === 'superadmin'
 
 export default {
   name: ["cerrar", "close", "اقفال", "اغلاق"],
-  description: 'Cierra el chat del grupo solo para administradores',
+  description: { es: 'Cierra el chat del grupo solo para administradores', ar: 'يغلق دردشة المجموعة للمشرفين فقط' },
   category: "grupos, المجموعات",
   groupOnly: true,
 

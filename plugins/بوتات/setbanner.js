@@ -38,7 +38,7 @@ async function subirDix(buffer, filename, mimetype) {
 
 export default {
   name: ["setbanner", "cambiarbanner", "بانر-البوت"],
-  description: 'Cambia el banner de un subbot o del bot principal',
+  description: { es: 'Cambia el banner de un subbot o del bot principal', ar: 'يغيّر بانر بوت فرعي أو البوت الرئيسي' },
   category: "sockets, البوتات الفرعية",
   ownerOnly: false,
 

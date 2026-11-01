@@ -7,7 +7,7 @@ const DURATIONS = {
 
 export default {
   name: ["efimero", "temporal", "مؤقت"],
-  description: "Configura la duración de mensajes temporales del grupo",
+  description: { es: "Configura la duración de mensajes temporales del grupo", ar: "يضبط مدة الرسائل المؤقتة في المجموعة" },
   category: "grupos, المجموعات",
   groupOnly: true,
   adminOnly: true,

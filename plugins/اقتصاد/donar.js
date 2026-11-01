@@ -11,7 +11,7 @@ function cleanJid(jid = '') {
 
 export default {
   name: ["donar", "تحويل", "تبرع"],
-  description: 'Dona Fragmentos de tu bolsillo a otra persona',
+  description: { es: 'Dona Fragmentos de tu bolsillo a otra persona', ar: 'يتبرّع بالشظايا من محفظتك لشخص آخر' },
   category: "economy, الاقتصاد",
   ownerOnly: false,
 

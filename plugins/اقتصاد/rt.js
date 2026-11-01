@@ -22,7 +22,7 @@ const PAGO = { rojo: 2, negro: 2, verde: 14 } // multiplicador sobre la apuesta
 
 export default {
   name: ["rt", "ruleta", "توبة"],
-  description: 'Ruleta: apuesta a rojo, negro o verde',
+  description: { es: 'Ruleta: apuesta a rojo, negro o verde', ar: 'الروليت: راهن على أحمر أو أسود أو أخضر' },
   category: "economy, الاقتصاد",
   groupOnly: true,
 

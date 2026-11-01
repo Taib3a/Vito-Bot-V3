@@ -3,7 +3,7 @@ import { db } from "../../database/db.js";
 
 export default {
   name: ["nivel", "rank", "xp", "مستوى", "رتبتي"],
-  description: "Muestra tu nivel y XP",
+  description: { es: "Muestra tu nivel y XP", ar: "يعرض مستواك ونقاط الخبرة" },
   category: "economy, الاقتصاد",
 
   async run({ sender, reply, cmdName }) {

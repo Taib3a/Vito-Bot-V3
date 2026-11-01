@@ -74,7 +74,7 @@ async function getBannerMedia(sock, url) {
 
 export default {
   name: ["info", "botinfo", "infobot", "معلومات", "البوت"],
-  description: 'Muestra información y estado del bot',
+  description: { es: 'Muestra información y estado del bot', ar: 'يعرض معلومات وحالة البوت' },
   category: "info, المعلومات",
 
   async run({ sock, from, msg, react, reply, usedPrefix, sender, senderNum, isOwner, isCoOwner, isMod, isPremium, cmdName }) {

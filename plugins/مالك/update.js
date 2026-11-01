@@ -3,7 +3,7 @@ import { loadPlugins } from "../../core/pluginLoader.js";
 
 export default {
   name: ["update", "actualizar", "gitpull", "تحديث"],
-  description: "Fuerza la actualización desde GitHub y recarga plugins",
+  description: { es: "Fuerza la actualización desde GitHub y recarga plugins", ar: "يفرض التحديث من GitHub ويعيد تحميل الإضافات" },
   category: "owner, المالك",
   ownerOnly: true,
 

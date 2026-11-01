@@ -1,6 +1,6 @@
 export default {
   name: ["join", "unirse", "انضمام"],
-  description: 'El bot se une a un grupo por link',
+  description: { es: 'El bot se une a un grupo por link', ar: 'ينضم البوت إلى مجموعة عبر رابط' },
   category: "grupos, المجموعات",
   ownerOnly: true,
 

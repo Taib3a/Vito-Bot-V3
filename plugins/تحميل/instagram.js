@@ -46,7 +46,7 @@ function inferirTipoReal(dlUrl) {
 
 export default {
   name: ["instagram", "ig", "igdl", "انستقرام", "انستغرام"],
-  description: "Descarga videos/fotos de Instagram (reels, posts)",
+  description: { es: "Descarga videos/fotos de Instagram (reels, posts)", ar: "ينزّل فيديوهات/صور من إنستغرام (ريلز، منشورات)" },
   category: "dl, التحميل",
   groupOnly: false,
 

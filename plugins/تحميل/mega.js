@@ -91,7 +91,7 @@ function leerNombre(at, aesKey) {
 
 export default {
   name: ["mega", "megadl", "ميجا"],
-  description: "Descarga archivos de MEGA a partir del enlace (audio, video, HTML, zip, etc.)",
+  description: { es: "Descarga archivos de MEGA a partir del enlace (audio, video, HTML, zip, etc.)", ar: "ينزّل ملفات من MEGA عبر الرابط (صوت، فيديو، HTML، zip، إلخ)" },
   category: "dl, التحميل",
   groupOnly: false,
 

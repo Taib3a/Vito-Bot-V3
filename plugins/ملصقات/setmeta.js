@@ -2,7 +2,7 @@ import { db } from '../../database/db.js'
 
 export default {
   name: ["setmeta", "اسم-الملصق"],
-  description: 'Cambia tu marca de agua para stickers',
+  description: { es: 'Cambia tu marca de agua para stickers', ar: 'يغيّر علامتك المائية للملصقات' },
   category: "stickers, الملصقات",
   ownerOnly: false,
 

@@ -10,7 +10,7 @@ const root = path.join(__dirname, '../../')
 
 export default {
   name: ['check', 'checkbot', 'verificar', 'فحص'],
-  description: 'Verifica el estado del bot, librerías y plugins',
+  description: { es: 'Verifica el estado del bot, librerías y plugins', ar: 'يتحقق من حالة البوت والمكتبات والإضافات' },
   category: "owner, المالك",
   ownerOnly: true,
 

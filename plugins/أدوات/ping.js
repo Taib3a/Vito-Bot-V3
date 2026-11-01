@@ -1,6 +1,6 @@
 export default {
   name: ["ping", "p", "بينغ", "سرعة"],
-  description: "Mide la latencia del bot",
+  description: { es: "Mide la latencia del bot", ar: "يقيس زمن استجابة البوت" },
   category: "utils, الأدوات",
   ownerOnly: false,
 

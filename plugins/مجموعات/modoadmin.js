@@ -2,7 +2,7 @@ import { db } from '../../database/db.js'
 
 export default {
   name: ["modoadmin", "مشرفين-فقط"],
-  description: 'Activa o desactiva el modo solo-admins en el grupo',
+  description: { es: 'Activa o desactiva el modo solo-admins en el grupo', ar: 'يشغّل أو يطفئ وضع المشرفين فقط في المجموعة' },
   category: "grupos, المجموعات",
   groupOnly: true,
   adminOnly: true,

@@ -29,7 +29,7 @@ function drawCircleAvatar(ctx, img, x, y, size) {
 
 export default {
   name: ["ship", "سفينة"],
-  description: "Genera una tarjeta de compatibilidad entre dos usuarios",
+  description: { es: "Genera una tarjeta de compatibilidad entre dos usuarios", ar: "ينشئ بطاقة توافق بين مستخدمين" },
   category: "misc, متنوع",
   groupOnly: true,
 

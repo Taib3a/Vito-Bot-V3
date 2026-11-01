@@ -96,7 +96,7 @@ async function convertirWebp(buffer) {
 
 export default {
   name: ["brat", "برات"],
-  description: 'Crea sticker estilo brat (texto en fondo blanco)',
+  description: { es: 'Crea sticker estilo brat (texto en fondo blanco)', ar: 'ينشئ ملصق بنمط brat (نص على خلفية بيضاء)' },
   category: "stickers, الملصقات",
   ownerOnly: false,
 

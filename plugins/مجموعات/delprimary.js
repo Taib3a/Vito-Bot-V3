@@ -3,7 +3,7 @@ import { claimOnce } from '../../core/subbotManager.js'
 
 export default {
   name: ["delprimary", "quitarprincipal", "حذف-الرئيسي"],
-  description: 'Quita el bot primario del grupo',
+  description: { es: 'Quita el bot primario del grupo', ar: 'يزيل البوت الرئيسي من المجموعة' },
   category: "grupos, المجموعات",
   groupOnly: true,
   adminOnly: true,

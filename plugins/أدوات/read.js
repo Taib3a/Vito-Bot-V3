@@ -2,7 +2,7 @@ import { downloadMediaMessage } from "@whiskeysockets/baileys";
 
 export default {
   name: ["readviewonce", "read", "readvo", "ver", "اقرأني"],
-  description: "Descarga y muestra el contenido de un mensaje ViewOnce",
+  description: { es: "Descarga y muestra el contenido de un mensaje ViewOnce", ar: "ينزّل ويعرض محتوى رسالة العرض مرة واحدة" },
   category: "utils, الأدوات",
   ownerOnly: false,
 

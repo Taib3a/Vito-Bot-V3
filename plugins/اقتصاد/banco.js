@@ -2,7 +2,7 @@ import { db } from '../../database/db.js'
 
 export default {
   name: ["depositar", "retirar", "ايداع"],
-  description: 'Mueve Fragmentos entre bolsillo y banco',
+  description: { es: 'Mueve Fragmentos entre bolsillo y banco', ar: 'ينقل الشظايا بين المحفظة والبنك' },
   category: "economy, الاقتصاد",
   ownerOnly: false,
 
@@ -39,9 +39,9 @@ export default {
       await react('🏦')
       await reply({
         text: tr(`🏦 *Depósito exitoso*\n\n`, `🏦 *تم الإيداع بنجاح*\n\n`) +
-          `*Depositado:* ${cantidad} Fragmentos\n` +
-          `*Bolsillo:* ${eco.bolsillo - cantidad} Fragmentos\n` +
-          `*Banco:* ${eco.banco + cantidad} Fragmentos`
+          tr(`*Depositado:* ${cantidad} Fragmentos\n`, `*المودَع:* ${cantidad} شظية\n`) +
+          tr(`*Bolsillo:* ${eco.bolsillo - cantidad} Fragmentos\n`, `*المحفظة:* ${eco.bolsillo - cantidad} شظية\n`) +
+          tr(`*Banco:* ${eco.banco + cantidad} Fragmentos`, `*البنك:* ${eco.banco + cantidad} شظية`)
       })
 
     } else if (cmdName === 'retirar') {
@@ -57,9 +57,9 @@ export default {
       await react('👜')
       await reply({
         text: tr(`👜 *Retiro exitoso*\n\n`, `👜 *تم السحب بنجاح*\n\n`) +
-          `*Retirado:* ${cantidad} Fragmentos\n` +
-          `*Bolsillo:* ${eco.bolsillo + cantidad} Fragmentos\n` +
-          `*Banco:* ${eco.banco - cantidad} Fragmentos`
+          tr(`*Retirado:* ${cantidad} Fragmentos\n`, `*المسحوب:* ${cantidad} شظية\n`) +
+          tr(`*Bolsillo:* ${eco.bolsillo + cantidad} Fragmentos\n`, `*المحفظة:* ${eco.bolsillo + cantidad} شظية\n`) +
+          tr(`*Banco:* ${eco.banco - cantidad} Fragmentos`, `*البنك:* ${eco.banco - cantidad} شظية`)
       })
     }
   }

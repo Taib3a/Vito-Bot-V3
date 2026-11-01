@@ -8,7 +8,7 @@ function getPersonajes(jid) {
 
 export default {
   name: ["buychar", "شخصية", "شخصيات"],
-  description: "Compra un personaje de Jujutsu Kaisen",
+  description: { es: "Compra un personaje de Jujutsu Kaisen", ar: "يشتري شخصية من Jujutsu Kaisen" },
   category: "economy, الاقتصاد",
 
   async run({ sock, from, msg, sender, args, reply, react, usedPrefix, cmdName }) {
@@ -50,7 +50,7 @@ export default {
           tr(`✅ *¡Compraste a ${personaje.nombre}!*\n\n`, `✅ *اشتريت ${personaje.nombre}!*\n\n`) +
           `*Precio pagado:* ${personaje.precio.toLocaleString()} Fragmentos\n` +
           `*Bolsillo restante:* ${(eco.bolsillo - personaje.precio).toLocaleString()} Fragmentos\n\n` +
-          `> Usá *.equipar <item> ${personajeId}* para darle equipo`
+          tr(`> Usá *.equipar <item> ${personajeId}* para darle equipo`, `> استخدم *.equipar <عنصر> ${personajeId}* لتجهيزه`)
       });
     }
 

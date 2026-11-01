@@ -4,7 +4,7 @@ import { jidNormalizedUser, isLidUser } from "@whiskeysockets/baileys";
 
 export default {
   name: ["bots", "listbots", "البوتات"],
-  description: "Muestra los bots conectados en el grupo actual",
+  description: { es: "Muestra los bots conectados en el grupo actual", ar: "يعرض البوتات المتصلة في المجموعة الحالية" },
   category: "sockets, البوتات الفرعية",
   groupOnly: true,
 

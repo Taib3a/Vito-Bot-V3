@@ -12,7 +12,7 @@ async function buscarYouTube(query, limite = 5) {
   const html = await res.text()
 
   const m = html.match(/var ytInitialData\s*=\s*(\{.+?\});<\/script>/s)
-  if (!m) throw new Error('No se pudo leer la página de YouTube')
+  if (!m) throw new Error(tr('No se pudo leer la página de YouTube', 'تعذّرت قراءة صفحة يوتيوب'))
 
   const data = JSON.parse(m[1])
   const secciones =
@@ -27,7 +27,7 @@ async function buscarYouTube(query, limite = 5) {
       resultados.push({
         id: v.videoId,
         titulo: v.title?.runs?.[0]?.text || 'Sin título',
-        canal: v.ownerText?.runs?.[0]?.text || 'Desconocido',
+        canal: v.ownerText?.runs?.[0]?.text || tr('Desconocido', 'غير معروف'),
         duracion: v.lengthText?.simpleText || '--:--',
         vistas: v.viewCountText?.simpleText || '',
         fecha: v.publishedTimeText?.simpleText || '',
@@ -42,7 +42,7 @@ async function buscarYouTube(query, limite = 5) {
 
 export default {
   name: ["ytsearch", "yts", "يوتيوب-بحث"],
-  description: 'Busca música o videos en YouTube',
+  description: { es: 'Busca música o videos en YouTube', ar: 'يبحث عن موسيقى أو فيديوهات في يوتيوب' },
   category: "utils, الأدوات",
 
   async run({ sock, from, msg, text, reply, react, cmdName }) {
@@ -63,7 +63,7 @@ export default {
         return await reply({ text: tr('🍂 No se encontraron resultados.', '🍂 لم تُعثر على نتائج.') })
       }
 
-      let cap = `🌾 *BÚSQUEDA EN YOUTUBE* 🎵\n🪴 _${text}_\n\n`
+      let cap = tr(`🌾 *BÚSQUEDA EN YOUTUBE* 🎵\n🪴 _${text}_\n\n`, `🌾 *بحث في يوتيوب* 🎵\n🪴 _${text}_\n\n`)
       lista.forEach((r, i) => {
         cap += `*${i + 1}.* ${r.titulo}\n`
         cap += `🍁 ${r.canal}\n`
@@ -78,7 +78,7 @@ export default {
 
       await react('✅')
     } catch (e) {
-      console.error('Error ytsearch:', e)
+      console.error(tr('Error ytsearch:', 'خطأ في البحث عن يوتيوب:'), e)
       await react('❌')
       await reply({ text: tr('⚠︎ No se pudo buscar en YouTube.', '⚠︎ تعذّر البحث في يوتيوب.') })
     }

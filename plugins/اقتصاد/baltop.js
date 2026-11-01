@@ -6,7 +6,7 @@ const numOf = (jid = '') => String(jid).split('@')[0].split(':')[0]
 
 export default {
   name: ["baltop", "ricos", "الأغنياء", "اغنياء"],
-  description: 'Top de usuarios con más Fragmentos en el grupo',
+  description: { es: 'Top de usuarios con más Fragmentos en el grupo', ar: 'الأعلى رصيداً من الشظايا في المجموعة' },
   category: "economy, الاقتصاد",
   ownerOnly: false,
   groupOnly: true,
@@ -56,7 +56,7 @@ export default {
     const inicio = (pagina - 1) * POR_PAGINA
     const paginaActual = ranked.slice(inicio, inicio + POR_PAGINA)
 
-    let texto = `「✿」Los usuarios con más *Fragmentos 💰* son:\n\n`
+    let texto = tr(`「✿」Los usuarios con más *Fragmentos 💰* son:\n\n`, `「✿」أصحاب أعلى *شظايا 💰* هم:\n\n`)
 
     texto += paginaActual.map((u, i) => {
       const posicionGlobal = inicio + i + 1
@@ -64,9 +64,9 @@ export default {
       return `✰ ${posicionGlobal} » *${nombre}*\n\t\t Total→ *${u.total.toLocaleString()} Fragmentos 💰*`
     }).join('\n\n')
 
-    texto += `\n\n> • Página *${pagina}* de *${totalPaginas}*`
+    texto += tr(`\n\n> • Página *${pagina}* de *${totalPaginas}*`, `\n\n> • الصفحة *${pagina}* من *${totalPaginas}*`)
     if (totalPaginas > 1) {
-      texto += `\n> • Usa *.baltop 2* para la siguiente página`
+      texto += tr(`\n> • Usa *.baltop 2* para la siguiente página`, `\n> • استخدم *.baltop 2* للصفحة التالية`)
     }
 
     const mentions = paginaActual.map(u => u.jid)

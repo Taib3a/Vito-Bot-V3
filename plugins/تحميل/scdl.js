@@ -137,7 +137,7 @@ async function bajarTranscoding(t, track, clientId, log) {
 
 export default {
   name: ["scdl", "sc", "ساوند"],
-  description: 'Descarga canción de SoundCloud por URL',
+  description: { es: 'Descarga canción de SoundCloud por URL', ar: 'ينزّل أغنية من SoundCloud عبر الرابط' },
   category: "dl, التحميل",
   ownerOnly: false,
 

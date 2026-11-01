@@ -2,7 +2,7 @@ import { checkCooldown, setCooldown, addBolsillo, formatTime } from "../../core/
 
 export default {
   name: ["weekly", "semanal", "اسبوعي"],
-  description: "Reclama tu recompensa semanal",
+  description: { es: "Reclama tu recompensa semanal", ar: "استلم مكافأتك الأسبوعية" },
   category: "economy, الاقتصاد",
 
   async run({ sender, reply, cmdName }) {

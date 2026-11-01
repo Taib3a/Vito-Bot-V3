@@ -28,7 +28,7 @@ function labelSoltero(jid) {
 
 export default {
   name: ["perfil", "profile", "ملفي", "الملف"],
-  description: "Muestra tu perfil: foto, monedas y XP",
+  description: { es: "Muestra tu perfil: foto, monedas y XP", ar: "يعرض ملفك الشخصي: الصورة والعملات والخبرة" },
   category: "info, المعلومات",
 
   async run({ sock, sender, from, msg, groupMeta, resolveLid, reply, cmdName }) {

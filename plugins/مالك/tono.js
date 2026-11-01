@@ -13,7 +13,7 @@ const FRECUENCIA_MAX = 20000;
 
 export default {
   name: ["tono", "frecuencia", "hz", "نغمة"],
-  description: "Genera un tono puro en una frecuencia (Hz) específica",
+  description: { es: "Genera un tono puro en una frecuencia (Hz) específica", ar: "يولّد نغمة نقية بتردد (هرتز) محدد" },
   category: "owner, المالك",
   ownerOnly: true,
 

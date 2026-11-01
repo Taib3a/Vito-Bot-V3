@@ -5,7 +5,7 @@ const TMP_DIR = path.resolve("./tmp");
 
 export default {
   name: ["cleartmp", "limpiartmp", "تنظيف"],
-  description: "Borra los archivos temporales de la carpeta tmp",
+  description: { es: "Borra los archivos temporales de la carpeta tmp", ar: "يحذف الملفات المؤقتة من مجلد tmp" },
   category: "owner, المالك",
   ownerOnly: true,
 

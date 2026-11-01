@@ -8,7 +8,7 @@ function getPersonajes(jid) {
 
 export default {
   name: ["equipar", "equip", "تجهيز"],
-  description: "Equipa un arma o armadura a un personaje",
+  description: { es: "Equipa un arma o armadura a un personaje", ar: "يجهّز شخصية بسلاح أو درع" },
   category: "economy, الاقتصاد",
 
   async run({ sender, args, reply, react, cmdName }) {

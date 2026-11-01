@@ -1,6 +1,6 @@
 export default {
   name: ["tag", "تاج", "منشن-فردي"],
-  description: "Repite el mensaje de forma nativa con mención invisible a todo el grupo",
+  description: { es: "Repite el mensaje de forma nativa con mención invisible a todo el grupo", ar: "يكرّر الرسالة أصلياً مع إشارة خفية لكل المجموعة" },
   category: "grupos, المجموعات",
   groupOnly: true,
   adminOnly: true,

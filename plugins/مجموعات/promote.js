@@ -9,7 +9,7 @@ function cleanJid(jid = "") {
 
 export default {
   name: ["promote", "daradmin", "ترقية", "رفع"],
-  description: 'Promueve a un miembro a administrador',
+  description: { es: 'Promueve a un miembro a administrador', ar: 'يرقّي عضواً إلى مشرف' },
   category: "grupos, المجموعات",
   groupOnly: true,
   botAdmin: true,

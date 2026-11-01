@@ -2,7 +2,7 @@ import { db } from "../../database/db.js";
 
 export default {
   name: ["divorciar", "divorcio", "طلاق"],
-  description: "Termina tu matrimonio actual",
+  description: { es: "Termina tu matrimonio actual", ar: "ينهي زواجك الحالي" },
   category: "info, المعلومات",
 
   async run(ctx) {

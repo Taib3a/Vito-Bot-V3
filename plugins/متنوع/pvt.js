@@ -2,7 +2,7 @@ import { downloadMediaMessage } from '@whiskeysockets/baileys'
 
 export default {
   name: ['pvt', 'خاص'],
-  description: 'Convierte un video respondido en nota de video',
+  description: { es: 'Convierte un video respondido en nota de video', ar: 'يحوّل فيديو مردوداً عليه إلى ملاحظة فيديو' },
   category: "misc, متنوع",
   ownerOnly: false,
 
