@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref so a stale push never blocks a newer one.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: build + test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # package.json declares engines.node >=22. Both are tested so the
+        # claim stays honest — node:sqlite must be available on each.
+        node: [22, 24]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax-check every source file
+        run: |
+          find index.js Famiglia -name '*.js' -print0 \
+            | xargs -0 -n1 node --check
+
+      - name: Load every plugin and round-trip the database
+        run: |
+          node --input-type=module -e "
+          process.env.BOT_DB_PATH = '/tmp/ci.db';
+          const { loadPlugins, getPlugins } = await import('./Famiglia/core/pluginLoader.js');
+          const { db } = await import('./Famiglia/database/db.js');
+          await loadPlugins();
+          const plugins = getPlugins();
+          if (plugins.size === 0) throw new Error('no plugins loaded');
+          db.setUser('123@s.whatsapp.net', { role: 'owner' });
+          db.setGroup('1@g.us', { antilink: true });
+          db.setBot('1@s.whatsapp.net', { label: 'CI' });
+          if (!db.hasRole('123', 'owner')) throw new Error('hasRole failed');
+          if (!db.getGroup('1@g.us').antilink) throw new Error('group round-trip failed');
+          console.log('ok:', plugins.size, 'aliases loaded');
+          process.exit(0);
+          "

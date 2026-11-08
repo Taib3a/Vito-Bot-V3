@@ -1,0 +1,326 @@
+<div align="center">
+
+<img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=700&size=60&pause=1000&color=00BFFF&center=true&vCenter=true&width=800&lines=𝙱𝙾𝚃+𝚅𝙸𝚃𝙾+𝚅𝟹" alt="Typing SVG" />
+
+<br>
+
+<img src="Famiglia/assets/vito-1.png" alt="Vito Corleone" width="420" />
+
+<br><br>
+
+<a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-22%2B-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js"/></a>
+<a href="https://github.com/WhiskeySockets/Baileys"><img src="https://img.shields.io/badge/Baileys-7.0-FF6C37?style=flat-square&logo=whatsapp&logoColor=white" alt="Baileys"/></a>
+<img src="https://img.shields.io/badge/SQLite-node:sqlite-003B57?style=flat-square&logo=sqlite&logoColor=white" alt="SQLite"/>
+<a href="https://github.com/Taib3a/Vito-Bot-V3/stargazers"><img src="https://img.shields.io/badge/Stars-★-FFD700?style=flat-square&logo=star&logoColor=white" alt="Stars"/></a>
+<img src="https://img.shields.io/badge/Profile_Views-∞-D4AF37?style=flat-square&logo=github&logoColor=white" alt="Views"/>
+<a href="https://github.com/Taib3a/Vito-Bot-V3/actions/workflows/ci.yml"><img src="https://github.com/Taib3a/Vito-Bot-V3/actions/workflows/ci.yml/badge.svg" alt="CI"/></a>
+
+</div>
+
+---
+
+## 🚀 النشر على الخادم (طريقة يدوية بالكامل)
+
+<div align="center">
+
+<a href="https://dash.server-veto.com">
+<img src="https://img.shields.io/badge/🚀_Deploy_on_Server_Veto-اشترك_الآن-25D366?style=for-the-badge&logo=server&logoColor=white" alt="Deploy on Server Veto" height="45"/>
+</a>
+
+<br><br>
+
+</div>
+
+إذا كنت مبتدئاً ولا تعرف كيف تستخدم سطر الأوامر، اتبع هذه الخطوات بالترتيب.
+
+### 1️⃣ تنزيل المشروع
+
+افتح صفحة المشروع على GitHub، ثم:
+
+1. اضغط الزر الأخضر **`Code`** في أعلى الصفحة.
+2. اختر **Download ZIP**.
+3. سيُنزَّل ملف باسم `Vito-Bot-V3-main.zip` إلى مجلد التنزيلات في جهازك.
+
+> 💡 لا تحتاج أي برنامج خاص — المتصفح وحده يكفي.
+
+### 2️⃣ فك ضغط الملفات
+
+**على الكمبيوتر:**
+- **Windows:** اضغط على الملف بزر الفأرة الأيمن ← **Extract All** ← **Extract**.
+- **macOS:** اضغط على الملف مرتين — يُفك الضغط تلقائياً.
+
+**على الهاتف (Android):**
+- افتح تطبيق **Files by Google** أو أي مدير ملفات.
+- اضغط على الملف المزِّل ← **Extract**.
+
+> ⚠️ **مهم:** لا ترفع الملف المضغوط (`.zip`) إلى الاستضافة. يجب فك الضغط أولاً حتى تحصل على مجلد فيه `index.js` و`package.json`.
+
+### 3️⃣ التسجيل في الاستضافة
+
+1. اذهب إلى لوحة تحكم **Server Veto**: [dash.server-veto.com](https://dash.server-veto.com)
+2. اضغط **Register** وأنشئ حساباً جديداً (بريد إلكتروني + كلمة مرور).
+3. فعّل حسابك من رابط التفعيل الذي يصلك على بريدك.
+4. سجّل الدخول إلى اللوحة.
+
+### 4️⃣ شراء سيرفر من تائب
+
+لشراء سيرفر جاهز أو الحصول على مساحة تشغيل:
+
+<div align="center">
+
+<a href="https://wa.me/Taib_3">
+<img src="https://img.shields.io/badge/💬_واتساب_تائب-تواصل_الآن-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="WhatsApp Taib" height="45"/>
+</a>
+
+<br>
+
+**https://wa.me/Taib_3**
+
+</div>
+
+راسل المطور **تائب** على واتساب، وأخبره أنك تريد سيرفراً لتشغيل **BOT VITO V3**. سيجهّز لك السيرفر ويرسل لك بيانات الدخول.
+
+> 💡 يمكنك أيضاً استعمال أي استضافة أخرى تدعم **Node.js 22** وما فوق.
+
+### 5️⃣ رفع الملفات
+
+1. من لوحة التحكم، ادخل إلى السيرفر الخاص بك.
+2. افتح قسم **File Manager** (مدير الملفات).
+3. ارفع **محتويات** المجلد الذي فككت ضغطه (وليس المجلد نفسه إن كان الرفع يدعم ذلك).
+4. تأكد أن الملفات في **المجلد الرئيسي** — أي أن `index.js` و`package.json` ظاهران مباشرة.
+
+> ⚠️ **تحذير:** لا ترفع مجلد `node_modules` — السيرفر سيثبّت المكتبات بنفسه.
+
+### 6️⃣ التشغيل
+
+1. اذهب إلى قسم **Console** في لوحة التحكم.
+2. اضغط زر **Start** (أو **تشغيل**).
+3. سيثبّت السيرفر المكتبات تلقائياً ثم يشغّل البوت — **انتظر دقيقة تقريباً**.
+
+### 7️⃣ الربط بواتساب
+
+راقب شاشة الكونسول، وعندما يظهر السؤال:
+
+| الاختيار | الطريقة |
+|:---:|---|
+| **`1`** | كود الاقتران (Pairing Code) — **الأسهل** |
+| **`2`** | مسح رمز QR |
+
+**عند اختيار `1`:**
+
+1. اكتب رقمك مع رمز الدولة **بدون `+`** — مثال: `967777123456`
+2. سيظهر كود على الشاشة (مثل `ABCD-1234`).
+3. افتح واتساب ← **الأجهزة المرتبطة** ← **ربط جهاز** ← **ربط برقم الهاتف**.
+4. أدخل الكود.
+
+> ⏱️ **أمامك 75 ثانية.** إن انتهت المهلة، سيطلب البوت كوداً جديداً تلقائياً.
+
+> 💡 **بعد الربط الأول:** يحفظ البوت الجلسة تلقائياً في ملف `auth.db` داخل
+> `sessions/main/` — ولن يطلب إعادة الربط مرة أخرى.
+
+---
+
+## ✨ المميزات
+
+<div align="center">
+
+| الميزة | الوصف |
+|:---|:---|
+| 🤖 البوتات الفرعية | تنصيب بوتات فرعية متعددة برمز الاقتران |
+| 🔗 مضاد الروابط | حذف الروابط تلقائياً وطرد المرسل |
+| 🎛️ إدارة المجموعات | تفعيل، تعطيل، طرد، ترقية، خفض، كتم، فك كتم |
+| 👋 الترحيب والوداع | رسائل آلية للأعضاء الجدد والمغادرين |
+| 👁️ مراقبة الجروب | مراقبة تغييرات الاسم والوصف والترقية |
+| 📈 المستوى التلقائي | نظام XP ومستويات تفاعلية للأعضاء |
+| 🚫 مضاد البوتات | كشف وطرد الحسابات المشبوهة |
+| 💾 قاعدة بيانات مدمجة | حفظ محلي عبر node:sqlite بدون خدمات خارجية |
+
+</div>
+
+---
+
+## 📋 الأوامر الأساسية
+
+<div align="center">
+
+| الأمر | الوظيفة |
+|:---|:---|
+| `.ping` | اختبار سرعة استجابة البوت |
+| `.menu` | عرض قائمة جميع الأوامر |
+| `.alive` | التحقق من حالة البوت |
+| `.تفعيل` | تفعيل البوت في المجموعة |
+| `.تعطيل` | إيقاف البوت في المجموعة |
+| `.طرد` | طرد عضو من المجموعة |
+| `.ترقية` | ترقية عضو إلى مشرف |
+| `.خفض` | خفض مشرف إلى عضو |
+| `.كتم` / `.فك-كتم` | كتم / فك كتم المجموعة |
+| `.تشغيل` / `.ايقاف` | تشغيل / إيقاف ميزة معينة |
+| `.تنصيب` | تنصيب بوت فرعي جديد |
+
+</div>
+
+---
+
+## 🗂️ هيكل المشروع
+
+```
+Vito-Bot-V3/
+├── index.js                          # نقطة الدخول
+├── package.json
+├── README.md
+└── Famiglia/
+    ├── assets/                       # صور المشروع
+    ├── core/                         # الوحدات الأساسية
+    │   ├── connection.js             # الاتصال بواتساب + الربط + إعادة الاتصال
+    │   ├── prompt.js                 # موجّه أسئلة الكونسول
+    │   ├── messageHandler.js         # معالجة الرسائل وتوجيه الأوامر
+    │   ├── pluginLoader.js           # تحميل الأوامر من Famiglia/plugins
+    │   ├── subbotManager.js          # البوتات الفرعية
+    │   ├── buttons.js                # الأزرار والقوائم التفاعلية
+    │   ├── settings.js               # الإعدادات (الاسم، البادئة، المالك)
+    │   ├── logger.js                 # مخرجات الطرفية
+    │   ├── sqlite.js                 # واجهة node:sqlite
+    │   ├── economy.js · xp.js · gamedata.js
+    │   └── مضاد/                     # الميزات المضادة
+    │       ├── index.js              # المحمّل
+    │       ├── مضاد-روابط.js
+    │       ├── مضاد-سبام.js
+    │       ├── مضاد-بوتات.js
+    │       └── ترحيب-وداع.js
+    ├── database/
+    │   ├── db.js                     # قاعدة بيانات node:sqlite
+    │   ├── anime.json
+    │   └── ...
+    └── plugins/                      # جميع الأوامر (تُحمَّل تلقائياً)
+        ├── أدوات/                    # 13 ملف
+        ├── اقتصاد/                   # 14 ملف
+        ├── بوتات/                    # 5 ملفات
+        ├── تحميل/                    # 11 ملف
+        ├── ذكاء/                     # ملفان
+        ├── مالك/                     # 11 ملف
+        ├── متنوع/                    # 4 ملفات
+        ├── مجموعات/                  # 23 ملف
+        ├── معلومات/                  # 10 ملفات
+        └── ملصقات/                   # 6 ملفات
+```
+
+---
+
+## 🧩 آلية عمل البوت
+
+### دورة التشغيل
+
+```
+npm start
+   │
+   ▼
+index.js  ──►  كتم تحذير SQLite التجريبي
+   │           تهيئة مجلد tmp + شبكة أمان للأخطاء
+   ▼
+pluginLoader.js  ──►  يقرأ Famiglia/plugins تلقائياً
+   │                  ويسجّل كل أمر مع أسمائه العربية
+   ▼
+connection.js  ──►  prompt.js يسأل: 1 كود اقتران / 2 باركود
+   │                  ↓
+   │               الربط بواتساب وحفظ الجلسة في auth.db
+   ▼
+messageHandler.js  ──►  يقرأ كل رسالة واردة
+   │                    يفحص الميزات المضادة أولاً
+   │                    ثم يطابق الأمر ويشغّل الإضافة
+   ▼
+الإضافة (plugins/**)  ──►  تنفّذ الأمر وتُرجع الرد
+```
+
+### الميزات المضادة
+
+- كل حماية في **ملف واحد** داخل `Famiglia/core/مضاد/`.
+- المحمّل يكتشف الملفات **تلقائياً** — إضافة حماية جديدة = إسقاط ملف، بلا تعديل أي كود.
+- أمر واحد يتحكم بالجميع: `.مضاد` للعرض، `.تفعيل <flag>` و`.ايقاف <flag>` للتشغيل.
+- كل نداء **مغلَّف بـ try/catch** — حماية معطوبة لا تُسقط البوت.
+
+### الجلسة وإعادة الاتصال
+
+| الحالة | الإجراء |
+|:---|:---|
+| `restartRequired` (515) | إعادة اتصال بالجلسة المحفوظة — الوضع الطبيعي بعد الربط |
+| `badSession` (500) | مسح المفاتيح ثم إعادة الاتصال |
+| `loggedOut` (401) · `connectionReplaced` (440) | توقف — بلا تكرار |
+
+> ⚠️ **مهم:** بعد الربط يغلق واتساب الاتصال برمز **515** ويتوقّع إعادة الاتصال.
+> البوت يتعامل مع هذا تلقائياً. **لا تحذف** ملف `auth.db` إلا عند تسجيل الخروج.
+
+### قاعدة البيانات
+
+- تستخدم `node:sqlite` **المدمجة في Node** — بلا خدمات خارجية وبلا خطوة بناء.
+- المستخدمون مفهرسون **بالرقم المجرد**: `123@s.whatsapp.net` و`123` صف واحد.
+
+---
+
+## 🔌 اختبار الاتصال
+
+تحقّق سريع من أن المشروع سليم قبل التشغيل:
+
+```bash
+npm run check     # فحص صياغة كل ملفات المصدر تلقائياً
+npm start         # تشغيل البوت
+```
+
+- `npm run check` يفحص `index.js` وكل ملفات `Famiglia/` تلقائياً — أضف أوامر جديدة بلا تعديل `package.json`.
+- CI على GitHub يشغّل الفحص + اختبار تحميل الإضافات على **Node 22 و 24**.
+
+> ملاحظة: واتساب يغلق السوكيت غير المسجَّل بعد أجزاء من الثانية، لذلك يُرسل طلب
+> كود الربط **فوراً** بعد فتح السوكيت (بدون تأخير).
+
+---
+
+## 🪀 الدعم الرسمي
+
+<div align="center">
+
+<a href="https://whatsapp.com/channel/0029Vb8hDbBDuMRXBFk3u02L">
+<img src="https://img.shields.io/badge/📢_القناة_الرسمية-انضم-25D366?style=flat-square&logo=whatsapp&logoColor=white" alt="Channel"/>
+</a>
+<br>
+<a href="https://whatsapp.com/channel/0029Vb8hDbBDuMRXBFk3u02L">whatsapp.com/channel/0029Vb8hDbBDuMRXBFk3u02L</a>
+
+<br><br>
+
+<a href="https://chat.whatsapp.com/IOO6Nwz29rpLgFy6L6p5YH">
+<img src="https://img.shields.io/badge/👥_الجروب_الرسمي-انضم-25D366?style=flat-square&logo=whatsapp&logoColor=white" alt="Group"/>
+</a>
+<br>
+<a href="https://chat.whatsapp.com/IOO6Nwz29rpLgFy6L6p5YH">chat.whatsapp.com/IOO6Nwz29rpLgFy6L6p5YH</a>
+
+</div>
+
+---
+
+## 🧠 تنبيه المطور
+
+> ⚠️ **مشروع خاص — PRIVATE PROJECT**
+>
+> هذا المشروع **خاص وغير مفتوح المصدر**، مملوك بالكامل للمطور **تائب (Taib)**.
+> يُمنع منعاً باتاً نسخ الكود أو تعديله أو إعادة توزيعه أو بيعه دون إذن صريح.
+> أي استخدام غير مصرح به سيُعتبر انتهاكاً لحقوق المطور.
+>
+> 📱 واتساب المطور: [تائب](https://wa.me/Taib_3)
+
+---
+
+<div align="center">
+
+<img src="Famiglia/assets/vito-2.png" alt="Vito Corleone" width="220" />
+
+<br>
+
+*🎬 سأقدم له عرضاً لا يمكنه رفضه*
+
+*"I'm gonna make him an offer he can't refuse."*
+
+<br>
+
+**𝙱𝙾𝚃 𝚅𝙸𝚃𝙾 𝚅𝟹** — Powered by **Taib**
+
+© 2026 جميع الحقوق محفوظة
+
+</div>
