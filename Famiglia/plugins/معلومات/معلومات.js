@@ -108,7 +108,12 @@ export default {
       const plugins = new Set(getPlugins().values()).size
 
       const rol = isOwner ? 'owner' : isCoOwner ? 'coowner' : isMod ? 'mod' : isPremium ? 'premium' : 'user'
-      const esMainBot = sock === getMainSock() || botData?.isMain === true || botData?.isMain === 1 || (global.mainBotNum && currentBotNum === String(global.mainBotNum))
+      const esMainBot =
+        sock.isMainBot === true
+          ? true
+          : sock.isMainBot === false
+            ? false
+            : sock === getMainSock() || botData?.isMain === true || botData?.isMain === 1 || (global.mainBotNum && currentBotNum === String(global.mainBotNum))
       const tipoBot = esMainBot ? 'البوت الرئيسي' : 'بوت فرعي'
 
       const info =

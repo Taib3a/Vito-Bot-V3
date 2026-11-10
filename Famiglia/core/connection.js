@@ -30,6 +30,128 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /** إعادة اتصال واحدة لكل مجلد جلسة، فلا يتسابق إغلاقان. */
 const reconnectLocks = new Set();
 
+/** هل الخطأ يعني أن المقبس أُغلق؟ (واتساب يرد 428 "Connection Closed"). */
+export function isConnClosed(err) {
+  const statusCode = err?.output?.statusCode ?? err?.data?.statusCode;
+  if (statusCode === 428) return true;
+  return /connection closed/i.test(String(err?.message || err?.output?.payload?.message || ""));
+}
+
+const numOf = (sock) => String(sock?.user?.id || "").split(":")[0].split("@")[0];
+
+/**
+ * سجلّ المقبس الحيّ لكل رقم.
+ *
+ * إعادة الاتصال تنشئ مقبساً جديداً وتترك القديم ميتاً؛ فالإرسال على القديم
+ * يفشل بـ428. نحتفظ بأحدث مقبس لكل رقم لنعيد توجيه الإرسال إليه.
+ */
+const liveRegistry = new Map();
+
+export function getLiveSocketFor(number) {
+  return liveRegistry.get(String(number || "")) || null;
+}
+
+function trackLive(sock) {
+  const num = numOf(sock);
+  if (!num) return;
+  sock.__num = num;
+  liveRegistry.set(num, sock);
+}
+
+/**
+ * يضيف حالة الفتح للمقبس: `isOpen` و`waitForOpen()` و`markOpen/markClosed`.
+ *
+ * `waitForOpen` ضرورية بعد الربط: ينتظر واتساب لحظة قبل قبول الإرسال، فأي
+ * أمر في تلك النافذة يفشل بـ428.
+ */
+export function attachSocketState(sock) {
+  sock.isOpen = false;
+  sock.__num = numOf(sock);
+  let waiters = [];
+
+  sock.waitForOpen = (timeoutMs = 30000) =>
+    new Promise((resolve) => {
+      if (sock.isOpen) return resolve(true);
+      const onOpen = () => {
+        clearTimeout(timer);
+        resolve(true);
+      };
+      const timer = setTimeout(() => {
+        waiters = waiters.filter((w) => w !== onOpen);
+        resolve(false);
+      }, timeoutMs);
+      timer.unref?.();
+      waiters.push(onOpen);
+    });
+
+  sock.markOpen = () => {
+    sock.isOpen = true;
+    trackLive(sock);
+    const pending = waiters;
+    waiters = [];
+    for (const fn of pending) fn();
+  };
+
+  sock.markClosed = () => {
+    sock.isOpen = false;
+  };
+
+  return sock;
+}
+
+/** ينتظر حتى يصبح مقبس هذا الرقم مفتوحاً، ويُعيده. */
+async function waitForLive(sock, timeoutMs = 30000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const live = liveRegistry.get(sock.__num);
+    if (live?.isOpen) return live;
+    if (live) {
+      if (await live.waitForOpen?.(Math.min(1000, Math.max(0, deadline - Date.now())))) return live;
+    } else {
+      await new Promise((r) => setTimeout(r, 200));
+    }
+  }
+  return null;
+}
+
+/**
+ * يجعل دوال الإرسال الشبكية تُعيد المحاولة على المقبس الحيّ عند 428، بدل
+ * إسقاط الأمر بخطأ "Connection Closed".
+ */
+export function makeSendResilient(sock) {
+  if (sock.__resilient) return sock;
+  sock.__resilient = true;
+  sock.__orig = {};
+
+  const methods = [
+    "sendMessage", "sendButtonMessage", "relayMessage", "groupMetadata",
+    "groupParticipantsUpdate", "updateMediaMessage", "profilePictureUrl",
+    "newsletterMetadata", "groupSettingUpdate", "groupToggleEphemeral",
+    "groupRevokeInvite", "groupInviteCode", "groupGetInviteInfo",
+    "groupAcceptInvite", "waUploadToServer",
+  ];
+
+  for (const name of methods) {
+    const original = sock[name];
+    if (typeof original !== "function") continue;
+    sock.__orig[name] = original;
+
+    sock[name] = async (...args) => {
+      const invoke = (t) => (t.__orig?.[name] || t[name]).apply(t, args);
+      try {
+        return await invoke(sock);
+      } catch (err) {
+        if (!isConnClosed(err)) throw err;
+        const live = await waitForLive(sock, 30000);
+        if (!live) throw err;
+        return await invoke(live);
+      }
+    };
+  }
+
+  return sock;
+}
+
 const PAIRING_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTVWXYZ";
 
 /** Crockford base32 (بلا I وL وO وU) — سهل القراءة صوتياً ولا يتشابه حرفاه. */
@@ -239,6 +361,7 @@ export async function createConnection({
   sock.sessionDir = sessionDir;
   // تُقرأ من messageHandler قبل الإرسال: لا تُرسل على مقبس مغلق.
   sock.isMainBot = !isSubbot;
+  attachSocketState(sock);
 
   const waitingForPairing = useCode && !state.creds.registered;
 
@@ -282,7 +405,7 @@ export async function createConnection({
     if (connection === "open") {
       clearConnTimeout();
       connected = true;
-      sock.isOpen = true;
+      sock.markOpen?.();
       log.ok(`[${botLabel}] ✅ متصل → ${sock.user?.id}`);
       // إعادة تسجيل البوت الرئيسي عند كل فتح: بعد إعادة الاتصال ينشأ مقبس جديد
       // ولا يعود getMainSock() إليه، فيُعرَض البوت الرئيسي خطأً كبوت فرعي.
@@ -297,7 +420,7 @@ export async function createConnection({
     if (connection === "close") {
       clearConnTimeout();
       connected = false;
-      sock.isOpen = false;
+      sock.markClosed?.();
       const code = lastDisconnect?.error?.output?.statusCode;
       const reason = lastDisconnect?.error?.message || "غير معروف";
       log.warn(`[${botLabel}] ❌ انقطع الاتصال → الرمز: ${code} | ${reason}`);
@@ -359,6 +482,8 @@ export async function createConnection({
   registerAntifeatures(sock, botLabel);
   // يضيف sock.sendButtonMessage — انظر core/buttons.js.
   initButtons(sock);
+  // انتظار إعادة الفتح + محاولة ثانية عند 428 بدل إسقاط الأمر.
+  makeSendResilient(sock);
 
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
     if (type !== "notify") return;

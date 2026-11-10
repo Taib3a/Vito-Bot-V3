@@ -136,11 +136,16 @@ export default {
 
       // المقبس نفسه هو المرجع: جدول البوتات قد يحمل صفاً قديماً بـisMain:false،
       // والمقترن حديثاً قد لا يملك صفاً بعد — فيُعرَض الرئيسي كـ"بوت فرعي".
+      // الوسم sock.isMainBot يُضبط عند إنشاء الاتصال، فهو الفصل القاطع.
       const esVerdaderoMain =
-        sock === getMainSock() ||
-        botData?.isMain === true ||
-        botData?.isMain === 1 ||
-        (global.mainBotNum && currentBotNum === String(global.mainBotNum));
+        sock.isMainBot === true
+          ? true
+          : sock.isMainBot === false
+            ? false
+            : sock === getMainSock() ||
+              botData?.isMain === true ||
+              botData?.isMain === 1 ||
+              (global.mainBotNum && currentBotNum === String(global.mainBotNum));
 
 
       const esOwnerOCoOwner =

@@ -10,10 +10,11 @@ import { mkdir } from "fs/promises";
 import { log } from "./logger.js";
 import config from "./settings.js";
 import { openDatabase } from "./sqlite.js";
-import { useSQLiteAuthState } from "./connection.js";
+import { useSQLiteAuthState, attachSocketState, makeSendResilient, getLiveSocketFor } from "./connection.js";
 import { db } from "../database/db.js";
 import { handleMessage, registerGroupCacheEvents } from "./messageHandler.js";
 import { registerAntifeatures } from "./مضاد/index.js";
+import { initButtons } from "./buttons.js";
 
 const SUBBOTS_DIR = "./sessions/subbots";
 if (!fs.existsSync(SUBBOTS_DIR)) fs.mkdirSync(SUBBOTS_DIR, { recursive: true });
@@ -126,15 +127,13 @@ export function getAllSockets() {
  */
 export function getLiveSock(sock) {
   if (!sock) return sock;
-  if (sock.isOpen !== false) return sock;
+  if (sock.isOpen) return sock;
 
   const num = String(sock.user?.id || "").split(":")[0].split("@")[0];
   if (!num) return sock;
 
-  const match = getAllSockets().find(
-    (s) => s?.isOpen && String(s.user?.id || "").split(":")[0].split("@")[0] === num
-  );
-  return match || sock;
+  const live = getLiveSocketFor(num);
+  return live || sock;
 }
 
 export function updateBotStatus(id, data) {
@@ -249,8 +248,14 @@ async function startSubbotConnection(id, sessionDir, phoneNumber = null, onCode 
   }
 
   sockets.set(id, { sock, closeDb });
+  // وسم النوع + حالة الفتح: plugins تفحص isMainBot لتمييز الرئيسي من الفرعي.
+  sock.isMainBot = false;
+  attachSocketState(sock);
   registerGroupCacheEvents(sock);
   registerAntifeatures(sock, id.toUpperCase());
+  // الفرعية تحتاج sendButtonMessage أيضاً (الأوامر التفاعلية)، وحماية 428.
+  initButtons(sock);
+  makeSendResilient(sock);
 
   if (useCode) {
     await new Promise((r) => setTimeout(r, 3000));
@@ -283,6 +288,7 @@ async function startSubbotConnection(id, sessionDir, phoneNumber = null, onCode 
     if (connection === "open") {
       connected = true;
       clearPairingTimer();
+      sock.markOpen?.();
 
       const rawJid = sock.user?.id || "";
       const jidLimpio = rawJid ? rawJid.split(":")[0].split("@")[0] + "@s.whatsapp.net" : "";
@@ -303,6 +309,7 @@ async function startSubbotConnection(id, sessionDir, phoneNumber = null, onCode 
     if (connection === "close") {
       connected = false;
       clearPairingTimer();
+      sock.markClosed?.();
       const code = lastDisconnect?.error?.output?.statusCode;
       updateBotStatus(id, { status: "offline", jid: "" });
       try {
