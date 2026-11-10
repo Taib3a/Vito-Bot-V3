@@ -255,7 +255,7 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
       if (!isCmd && body) handleChatXp(sender);
     }
 
-    log.message({ groupName, userName: msg.pushName || senderNum, messageType: msgTypeLabel, content: body });
+    log.message({ groupName, userName: msg.pushName || senderNum, messageType: msgTypeLabel, content: body, isGroup, isCmd, botLabel });
 
     if (!isCmd) return;
 
