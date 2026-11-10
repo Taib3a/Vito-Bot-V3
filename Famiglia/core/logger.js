@@ -4,16 +4,17 @@ import config from "./settings.js";
 const { botName } = config;
 
 // ═══════════════════════════════════════════════════════════
-//  لوحة الألوان — مستوحاة من تنسيق YUTA (بنفسجي/ماجنتا/سماوي)
-//  مع إطار أزرق للصندوق كما هو مطلوب.
+//  لوحة الألوان
 // ═══════════════════════════════════════════════════════════
-const C_PURPLE = "#7B2FBE";
-const C_MAGENTA = "#E040FB";
-const C_CYAN = "#00E5FF";
+const BLUE = "#2979FF"; // إطار الصندوق
+const LIGHT = "#82B1FF"; // النصوص الفاتحة على الخلفية الداكنة
 
-const B = chalk.hex("#2979FF"); // إطار الصندوق (أزرق)
-const BB = chalk.hex("#2979FF").bold;
+const B = chalk.hex(BLUE);
+const BB = chalk.hex(BLUE).bold;
+const LB = chalk.hex(LIGHT);
+const LBB = chalk.hex(LIGHT).bold;
 const W = chalk.white;
+const WB = chalk.white.bold;
 const DIM = chalk.dim;
 const Y = chalk.yellow;
 const YB = chalk.yellowBright;
@@ -22,12 +23,11 @@ const GB = chalk.greenBright;
 const R = chalk.red;
 const RB = chalk.red.bold;
 const C = chalk.cyan;
-const MAG = chalk.hex(C_MAGENTA);
-const CY = chalk.hex(C_CYAN);
-const PUR = chalk.hex(C_PURPLE);
+const CY = chalk.hex("#00E5FF");
+const MAG = chalk.hex("#E040FB");
 
 const WIDTH = 56; // العرض الداخلي للصندوق
-const LABEL_W = 11; // عرض عمود العنوان (لمحاذاة الصفوف)
+const LABEL_W = 12; // عرض عمود العنوان
 
 // ═══════════════════════════════════════════════════════════
 //  أدوات حساب العرض المرئي (تتجاهل أكواد الألوان وتحسب الإيموجي)
@@ -42,7 +42,7 @@ function charWidth(cp) {
   if (cp === 0x200d) return 0; // ZWJ
   if (cp >= 0xfe00 && cp <= 0xfe0f) return 0; // محددات التنويع
   if (cp >= 0x1f000) return 2; // الإيموجي الحديثة
-  if (cp >= 0x2600 && cp <= 0x27bf) return 2; // رموز وإيموجي
+  if (cp >= 0x2600 && cp <= 0x27bf) return 2;
   if (cp >= 0x2b00 && cp <= 0x2bff) return 2;
   if (cp >= 0x231a && cp <= 0x231b) return 2;
   if (cp >= 0x23e9 && cp <= 0x23fa) return 2;
@@ -94,18 +94,34 @@ function padEndVis(s, width) {
   return gap > 0 ? s + " ".repeat(gap) : s;
 }
 
-/** يقتطع النص ليدخل في العرض المطلوب (بحساب العرض المرئي). */
+/** يقتطع النص ليدخل في العرض المطلوب (يتجاهل أكواد الألوان). */
 function fit(s, width) {
   const raw = String(s ?? "");
+  if (visWidth(raw) <= width) return raw;
+
+  // نحجز مكاناً لنقاط القطع حتى لا يتجاوز السطر العرض المسموح.
+  const limit = Math.max(0, width - 1);
   let out = "";
   let w = 0;
-  for (const ch of raw) {
-    const cw = charWidth(ch.codePointAt(0));
-    if (w + cw > width) return out + "…";
+  let i = 0;
+  while (i < raw.length) {
+    if (raw[i] === "\u001b") {
+      const m = raw.slice(i).match(/^\u001b\[[0-9;]*m/);
+      if (m) {
+        out += m[0];
+        i += m[0].length;
+        continue;
+      }
+    }
+    const cp = raw.codePointAt(i);
+    const ch = String.fromCodePoint(cp);
+    const cw = charWidth(cp);
+    if (w + cw > limit) break;
     out += ch;
     w += cw;
+    i += ch.length;
   }
-  return out;
+  return out + "…" + "\u001b[0m";
 }
 
 /** يوحّد النص في سطر واحد حتى لا يكسر الصندوق. */
@@ -126,37 +142,74 @@ function ts() {
   return new Date().toLocaleTimeString("en-GB");
 }
 
+/** يُظهر الأرقام بإشارة + والأسماء كما هي. */
+function displayUser(raw) {
+  const clean = stripAnsi(String(raw ?? "")).split("@")[0].split(":")[0].trim() || "غير معروف";
+  return /^\+?\d+$/.test(clean) ? `+${clean}` : clean;
+}
+
 // ═══════════════════════════════════════════════════════════
-//  الشعار (بانر) — نفس صندوق الألوان
+//  الشعار (بانر)
 // ═══════════════════════════════════════════════════════════
 export async function printBanner() {
   const top = BB("╔" + "═".repeat(WIDTH) + "╗");
   const bottom = BB("╚" + "═".repeat(WIDTH) + "╝");
   const empty = B("║") + " ".repeat(WIDTH) + B("║");
-  const row = (text, colored) => B("║") + centerVis(colored ?? text, WIDTH) + B("║");
+  const row = (colored) => B("║") + centerVis(colored, WIDTH) + B("║");
 
   console.log();
   console.log(top);
   console.log(empty);
-  console.log(row(botName, PUR(botName)));
+  console.log(row(LBB(botName)));
   console.log(empty);
-  console.log(row("WhatsApp Bot System V3", DIM("WhatsApp Bot System V3")));
+  console.log(row(DIM("WhatsApp Bot System V3")));
   console.log(empty);
   console.log(bottom);
   console.log();
 }
 
 // ═══════════════════════════════════════════════════════════
-//  وسوم الحالة (بنفس ألوان YUTA)
+//  وسوم الحالة
 // ═══════════════════════════════════════════════════════════
 const tag = {
-  info: chalk.bgHex(C_PURPLE).white.bold("  INFO  "),
+  info: chalk.bgHex("#7B2FBE").white.bold("  INFO  "),
   ok: chalk.bgHex("#00C853").white.bold("   OK   "),
   warn: chalk.bgHex("#FF6F00").white.bold("  WARN  "),
   error: chalk.bgHex("#D50000").white.bold(" ERROR  "),
   conn: chalk.bgHex("#1A237E").white.bold("  CONN  "),
   bot: chalk.bgHex("#263238").white.bold("  BOT   "),
 };
+
+// ═══════════════════════════════════════════════════════════
+//  صف داخل الصندوق: عنوان باهت + قيمة ملوّنة
+// ═══════════════════════════════════════════════════════════
+function row(label, value, color = LB) {
+  const head = `  ${padEndVis(label, LABEL_W)} :: `;
+  const avail = Math.max(1, WIDTH - visWidth(head));
+  const raw = String(value ?? "");
+  const val = fit(raw, avail);
+  // القيمة الملوّنة مسبقاً تُترك كما هي، وإلا تُصبغ بلون الصف.
+  const colored = /\u001b\[/.test(raw) ? val : color(val);
+  const spaces = Math.max(0, WIDTH - visWidth(head) - visWidth(val));
+  return B("║") + DIM(head) + colored + " ".repeat(spaces) + B("║");
+}
+
+// ═══════════════════════════════════════════════════════════
+//  سطر التنفيذ (يظهر داخل نفس الصندوق)
+// ═══════════════════════════════════════════════════════════
+function execValue(exec) {
+  if (!exec) return null;
+  const ms = exec.ms != null ? ` (${exec.ms}ms)` : "";
+
+  if (exec.status === "denied") return `${Y("⛔ مرفوض")}${ms}`;
+  if (exec.status === "unknown") return `${R("✖️ أمر غير معروف")}${ms}`;
+  if (exec.success === true) return `${GB("✅ نجح")}${ms}`;
+  if (exec.success === false) {
+    const why = exec.error ? ` — ${fit(oneLine(exec.error), 20)}` : "";
+    return `${RB("❌ فشل")}${ms}${RB(why)}`;
+  }
+  return `${DIM("—")}${ms}`;
+}
 
 export const log = {
   info: (msg) => console.log(`${DIM(`[${ts()}]`)} ${tag.info}  ${W(msg)}`),
@@ -174,9 +227,7 @@ export const log = {
 
     console.log();
     console.log(R("╔" + "═".repeat(WIDTH) + "╗"));
-    console.log(
-      R("║") + " " + RB("⚠ خطأ") + " ".repeat(Math.max(0, WIDTH - 1 - visWidth("⚠ خطأ"))) + R("║")
-    );
+    console.log(R("║") + " " + RB("⚠ خطأ") + " ".repeat(Math.max(0, WIDTH - 1 - visWidth("⚠ خطأ"))) + R("║"));
     console.log(R("║") + " ".repeat(WIDTH) + R("║"));
     console.log(line(`الوقت: ${ts()}`, W("الوقت: ") + Y(ts())));
     if (file) console.log(line(`الملف: ${file}`, W("الملف: ") + Y(String(file))));
@@ -193,18 +244,16 @@ export const log = {
   },
 
   // ═════════════════════════════════════════════════════════
-  //  صندوق الرسالة الواردة — الوحيد الذي يطبع الرسالة.
-  //  الإطار أزرق، والشريط العلوي أحمر (SUB) أو أصفر (MAIN).
+  //  الصندوق الوحيد — كل شيء داخله، لا نص خارجه.
+  //  الشريط العلوي: MAIN أحمر بنص أبيض، SUB أصفر بنص أسود.
+  //  إن مُرِّر exec يُضاف قسم التنفيذ في نفس الصندوق.
   // ═════════════════════════════════════════════════════════
-  message({ groupName, userName, messageType, content, isGroup = false, isCmd = false, botLabel = "MAIN" }) {
+  message({ groupName, userName, messageType, content, isGroup = false, isCmd = false, botLabel = "MAIN", exec = null }) {
     const isSub = /sub/i.test(String(botLabel));
     const tipoBot = isSub ? "SUB" : "MAIN";
-    const barPaint = isSub ? chalk.bgRed.white.bold : chalk.bgYellow.black.bold;
+    const barPaint = isSub ? chalk.bgYellow.black.bold : chalk.bgRed.white.bold;
 
-    const rawUser = stripAnsi(String(userName ?? ""));
-    const numero = rawUser.split("@")[0].split(":")[0] || "غير معروف";
-    // إشارة + للأرقام فقط، أما الأسماء فتُعرض كما هي.
-    const usuario = /^\+?\d+$/.test(numero) ? `+${numero}` : numero;
+    const usuario = displayUser(userName);
     const lugar = isGroup ? groupName || "مجموعة" : "دردشة خاصة";
     const tipo = isCmd ? "⚡ أمر" : messageType || "نص";
     const texto = content ? oneLine(content) : "(بلا نص)";
@@ -213,57 +262,53 @@ export const log = {
     const mid = B("╠" + "═".repeat(WIDTH) + "╣");
     const bottom = B("╚" + "═".repeat(WIDTH) + "╝");
 
-    const row = (label, value, color = (x) => x) => {
-      const head = `  ${padEndVis(label, LABEL_W)} :: `;
-      const avail = Math.max(1, WIDTH - visWidth(head));
-      const val = fit(String(value ?? ""), avail);
-      const spaces = Math.max(0, WIDTH - visWidth(head) - visWidth(val));
-      return B("║") + DIM(head) + color(val) + " ".repeat(spaces) + B("║");
-    };
-
     const bar = barPaint(centerVis(` ⚡ ${botName} │ ${tipoBot} ⚡ `, WIDTH));
 
     console.log();
     console.log(top);
     console.log(B("║") + bar + B("║"));
     console.log(mid);
-    console.log(row("⏰ الوقت", ts(), Y));
-    console.log(row("📱 المستخدم", usuario, GB));
+    console.log(row("⏰ الوقت", ts(), LB));
+    console.log(row("📱 المرسل", usuario, WB));
     console.log(row("📝 النوع", tipo, CY));
-    console.log(row("👥 المجموعة", lugar, YB));
-    console.log(row("💬 الرسالة", texto, isCmd ? MAG : W));
+    console.log(row("👥 المجموعة", lugar, LB));
+    console.log(row("💬 الرسالة", texto, isCmd ? MAG : WB));
+
+    if (exec) {
+      console.log(mid);
+      console.log(row("🔧 التنفيذ", execValue(exec), LB));
+    }
+
     console.log(bottom);
   },
 
   pairingCode(code) {
     const pretty = String(code || "").match(/.{1,4}/g)?.join("-") ?? String(code || "");
-    const center = (plain, colored) => B("║") + centerVis(colored ?? plain, WIDTH) + B("║");
+    const center = (colored) => B("║") + centerVis(colored, WIDTH) + B("║");
     console.log();
     console.log(B("╔" + "═".repeat(WIDTH) + "╗"));
     console.log(center(""));
-    console.log(center("رمز الاقتران (PAIRING CODE)", BB("رمز الاقتران (PAIRING CODE)")));
-    console.log(center(pretty, GB(pretty)));
+    console.log(center(LBB("رمز الاقتران (PAIRING CODE)")));
+    console.log(center(GB(pretty)));
     console.log(center(""));
     console.log(B("╚" + "═".repeat(WIDTH) + "╝"));
   },
 
-  cmdExec({ cmdName, sender, success, ms, botLabel = "MAIN" }) {
-    const rawSender = stripAnsi(String(sender ?? "")).split("@")[0].split(":")[0] || String(sender ?? "");
-    const usuario = /^\+?\d+$/.test(rawSender) ? `+${rawSender}` : rawSender;
-    const estado = success ? GB("نجح") : RB("فشل");
-    const etiqueta = /sub/i.test(String(botLabel)) ? RB(botLabel) : YB(botLabel);
-    console.log(
-      B(`▸ ${ts()}`) +
-        DIM("  ·  ") +
-        etiqueta +
-        DIM("  ·  ") +
-        MAG(`.${cmdName}`) +
-        DIM("  ·  ") +
-        G(usuario) +
-        DIM("  ·  ") +
-        estado +
-        DIM(`  (${ms}ms)`)
-    );
+  // ═════════════════════════════════════════════════════════
+  //  لا يطبع بنفسه — يفوّض الأمر إلى log.message
+  //  حتى يخرج كل شيء في صندوق واحد.
+  // ═════════════════════════════════════════════════════════
+  cmdExec({ cmdName, sender, success, ms, botLabel = "MAIN", groupName, userName, messageType, content, isGroup }) {
+    log.message({
+      groupName,
+      userName: userName ?? sender,
+      messageType,
+      content: content ?? (cmdName ? `.${cmdName}` : ""),
+      isGroup: isGroup ?? false,
+      isCmd: true,
+      botLabel,
+      exec: { success, ms, status: success ? "ok" : "fail" },
+    });
   },
 };
 
