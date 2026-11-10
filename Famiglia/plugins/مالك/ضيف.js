@@ -34,12 +34,12 @@ export default {
     const usage =
       "📌 *الاستخدام:*\n" +
       "ردّ على رسالة تحتوي الكود، ثم اكتب:\n" +
-      "`.ضيف الامر/القسم`\n\n" +
+      "`.ضيف الاسم/المجلد`\n\n" +
       "*أمثلة:*\n" +
+      "• `.ضيف ع/تجربه.js`  ← يضع `ع.js` داخل مجلد `تجربه`\n" +
       "• `.ضيف مرحبا/المتنوع`\n" +
-      "• `.ضيف امسح/المطور`\n" +
       "• `.addcmd ping/tools`\n\n" +
-      "(المجلد يُنشأ تلقائياً إن لم يكن موجوداً)";
+      "(المجلد يُنشأ تلقائياً إن لم يكن موجوداً، وإن وُجد يُحدَّث الملف)";
 
     const info = readContext(msg);
     const quoted = info?.quotedMessage;
@@ -90,8 +90,10 @@ export default {
 
     // منع اجتياز المسار: لا رموز تنقّل ولا فواصل داخل الاسم أو المجلد.
     const safe = (s) => s.replace(/\.\./g, "").replace(/[/\\]/g, "").trim();
-    const safeName = safe(commandName);
-    const safeFolder = safe(folder);
+    // امتداد .js مكتوب من العادة — يُزال حتى لا يصبح اسم المجلد "تجربه.js".
+    const dropJs = (s) => s.replace(/\.js$/i, "").trim();
+    const safeName = dropJs(safe(commandName));
+    const safeFolder = dropJs(safe(folder));
 
     if (!safeName || !safeFolder) {
       return await reply({ text: "❌ اسم غير صالح.\n\n" + usage });
