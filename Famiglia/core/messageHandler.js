@@ -255,15 +255,17 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
       if (!isCmd && body) handleChatXp(sender);
     }
 
-    // الأوامر تُطبع في نهاية تنفيذها داخل صندوق واحد (مع سطر التنفيذ)،
-    // أما الرسائل العادية فتُطبع فوراً.
+    // الأوامر تُطبع في نهاية تنفيذها، أما الرسائل العادية فتُطبع فوراً.
+    // الشريط يحمل رقم البوت نفسه، وخانة المرسل تعرض رقم المرسل أولاً.
     const boxInfo = {
       groupName,
       userName: msg.pushName || senderNum,
+      userNumber: senderNum,
       messageType: msgTypeLabel,
       content: body,
       isGroup,
       botLabel,
+      botNumber: botNum,
     };
 
     if (!isCmd) {

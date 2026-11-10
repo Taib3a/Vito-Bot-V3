@@ -41,6 +41,7 @@ function stripAnsi(s) {
 function charWidth(cp) {
   if (cp === 0x200d) return 0; // ZWJ
   if (cp >= 0xfe00 && cp <= 0xfe0f) return 0; // محددات التنويع
+  if (cp >= 0x1f3fb && cp <= 0x1f3ff) return 0; // معدّلات لون البشرة
   if (cp >= 0x1f000) return 2; // الإيموجي الحديثة
   if (cp >= 0x2600 && cp <= 0x27bf) return 2;
   if (cp >= 0x2b00 && cp <= 0x2bff) return 2;
@@ -142,10 +143,12 @@ function ts() {
   return new Date().toLocaleTimeString("en-GB");
 }
 
-/** يُظهر الأرقام بإشارة + والأسماء كما هي. */
-function displayUser(raw) {
-  const clean = stripAnsi(String(raw ?? "")).split("@")[0].split(":")[0].trim() || "غير معروف";
-  return /^\+?\d+$/.test(clean) ? `+${clean}` : clean;
+/** الأولوية لرقم الهاتف، ولا يُعرض الاسم إلا إن غاب الرقم. */
+function displayUser(number, name) {
+  const num = stripAnsi(String(number ?? "")).split("@")[0].split(":")[0].trim();
+  if (num && /\d/.test(num)) return /^\+/.test(num) ? num : `+${num}`;
+  const fallback = stripAnsi(String(name ?? "")).trim();
+  return fallback || "غير معروف";
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -220,23 +223,25 @@ export const log = {
 
   // ═════════════════════════════════════════════════════════
   //  الصندوق الوحيد — كل شيء داخله، لا نص خارجه.
-  //  الشريط العلوي: MAIN أحمر بنص أبيض، SUB أصفر بنص أسود.
+  //  الشريط العلوي أزرق سماوي بخلفية سوداء النص، ويحمل رقم البوت نفسه.
   // ═════════════════════════════════════════════════════════
-  message({ groupName, userName, messageType, content, isGroup = false, isCmd = false, botLabel = "MAIN" }) {
+  message({ groupName, userName, userNumber, messageType, content, isGroup = false, isCmd = false, botLabel = "MAIN", botNumber = "" }) {
     const isSub = /sub/i.test(String(botLabel));
     const tipoBot = isSub ? "SUB" : "MAIN";
-    const barPaint = isSub ? chalk.bgYellow.black.bold : chalk.bgRed.white.bold;
 
-    const usuario = displayUser(userName);
+    const usuario = displayUser(userNumber, userName);
     const lugar = isGroup ? groupName || "مجموعة" : "دردشة خاصة";
     const tipo = isCmd ? "⚡ أمر" : messageType || "نص";
     const texto = content ? oneLine(content) : "(بلا نص)";
+
+    const numeroBoton = String(botNumber ?? "").replace(/\D/g, "");
 
     const top = B("╔" + "═".repeat(WIDTH) + "╗");
     const mid = B("╠" + "═".repeat(WIDTH) + "╣");
     const bottom = B("╚" + "═".repeat(WIDTH) + "╝");
 
-    const bar = barPaint(centerVis(` ⚡ ${botName} │ ${tipoBot} ⚡ `, WIDTH));
+    const barText = `🕴🏻 ${botName} ${tipoBot}${numeroBoton ? ` +${numeroBoton}` : ""}`;
+    const bar = chalk.bgCyan.black.bold(centerVis(barText, WIDTH));
 
     console.log();
     console.log(top);
@@ -266,15 +271,17 @@ export const log = {
   //  لا يطبع بنفسه — يفوّض الأمر إلى log.message
   //  حتى يخرج كل شيء في صندوق واحد.
   // ═════════════════════════════════════════════════════════
-  cmdExec({ cmdName, sender, botLabel = "MAIN", groupName, userName, messageType, content, isGroup }) {
+  cmdExec({ cmdName, sender, botLabel = "MAIN", groupName, userName, userNumber, messageType, content, isGroup, botNumber = "" }) {
     log.message({
       groupName,
       userName: userName ?? sender,
+      userNumber: userNumber ?? sender,
       messageType,
       content: content ?? (cmdName ? `.${cmdName}` : ""),
       isGroup: isGroup ?? false,
       isCmd: true,
       botLabel,
+      botNumber,
     });
   },
 };
