@@ -4,7 +4,7 @@ import { getPlugins } from "./pluginLoader.js";
 import { db } from "../database/db.js";
 import { runAntifeatures } from "./مضاد/index.js";
 import { handleChatXp, handleCommandXp } from "./xp.js";
-import { claimOnce } from "./subbotManager.js";
+import { claimOnce, getLiveSock } from "./subbotManager.js";
 import { extractButtonId } from "./buttons.js";
 
 const GROUP_TTL = 10 * 60 * 1000;
@@ -74,6 +74,8 @@ async function matchesConfiguredNumber(numberList, senderNum, rawLid, sock) {
 
 export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum = null, activeBotsLive = []) {
   try {
+    // المقبس المُمرَّر قد يكون أُغلق بعد إعادة اتصال؛ استخدم الحيّ لنفس الرقم.
+    sock = getLiveSock(sock);
     const msg = rawMsg;
     const from = msg.key?.remoteJid;
     if (!from) return;

@@ -118,6 +118,25 @@ export function getAllSockets() {
   return list;
 }
 
+/**
+ * يُعيد المقبس الحيّ لنفس الرقم.
+ *
+ * بعد إعادة الاتصال ينشأ مقبس جديد ويُترك القديم مغلقاً؛ فالمقبس المُمرَّر إلى
+ * handleMessage قد لا يعود صالحاً للإرسال (يفشل بـ428 "Connection Closed").
+ */
+export function getLiveSock(sock) {
+  if (!sock) return sock;
+  if (sock.isOpen !== false) return sock;
+
+  const num = String(sock.user?.id || "").split(":")[0].split("@")[0];
+  if (!num) return sock;
+
+  const match = getAllSockets().find(
+    (s) => s?.isOpen && String(s.user?.id || "").split(":")[0].split("@")[0] === num
+  );
+  return match || sock;
+}
+
 export function updateBotStatus(id, data) {
   const current = activeBots.get(id) || {};
   activeBots.set(id, { ...current, ...data });

@@ -123,6 +123,7 @@ export async function createConnection({
   phoneNumber = null,
   _attempt = 0,
   wipeKeys = false,
+  onOpen = null,
 } = {}) {
   await mkdir(sessionDir, { recursive: true });
 
@@ -200,6 +201,8 @@ export async function createConnection({
       phoneNumber,
       _attempt: resetAttempt ? 0 : _attempt + 1,
       wipeKeys: wipe,
+      // يُنقل إلى المحاولة التالية، وإلا فُقد تسجيل البوت الرئيسي بعد إعادة الاتصال.
+      onOpen,
     })
       .catch((e) => log.error(`[${botLabel}] فشل إعادة الاتصال: ${e.message}`))
       .finally(() => reconnectLocks.delete(sessionDir));
@@ -234,6 +237,8 @@ export async function createConnection({
   }
 
   sock.sessionDir = sessionDir;
+  // تُقرأ من messageHandler قبل الإرسال: لا تُرسل على مقبس مغلق.
+  sock.isMainBot = !isSubbot;
 
   const waitingForPairing = useCode && !state.creds.registered;
 
@@ -277,13 +282,22 @@ export async function createConnection({
     if (connection === "open") {
       clearConnTimeout();
       connected = true;
+      sock.isOpen = true;
       log.ok(`[${botLabel}] ✅ متصل → ${sock.user?.id}`);
+      // إعادة تسجيل البوت الرئيسي عند كل فتح: بعد إعادة الاتصال ينشأ مقبس جديد
+      // ولا يعود getMainSock() إليه، فيُعرَض البوت الرئيسي خطأً كبوت فرعي.
+      try {
+        onOpen?.(sock);
+      } catch (e) {
+        log.error(`[${botLabel}] خطأ في onOpen: ${e.message}`);
+      }
       await flushPending();
     }
 
     if (connection === "close") {
       clearConnTimeout();
       connected = false;
+      sock.isOpen = false;
       const code = lastDisconnect?.error?.output?.statusCode;
       const reason = lastDisconnect?.error?.message || "غير معروف";
       log.warn(`[${botLabel}] ❌ انقطع الاتصال → الرمز: ${code} | ${reason}`);
@@ -357,7 +371,9 @@ export async function createConnection({
 
       cacheMessage(msg);
 
-      if (!connected) {
+      // لا تُعالَج رسالة على مقبس أُغلق للتو: الإرسال عليه يفشل بـ428
+      // "Connection Closed" (يحدث أثناء إعادة الاتصال بعد الربط).
+      if (!connected || sock.isOpen === false) {
         pendingMessages.push({ msg, label: botLabel });
         continue;
       }

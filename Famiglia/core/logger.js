@@ -241,7 +241,9 @@ export const log = {
     const bottom = B("╚" + "═".repeat(WIDTH) + "╝");
 
     const barText = `🕴🏻 ${botName} ${tipoBot}${numeroBoton ? ` +${numeroBoton}` : ""}`;
-    const bar = chalk.bgCyan.black.bold(centerVis(barText, WIDTH));
+    // أسود حقيقي (truecolor) لا "أسود ساطع": bold مع اللون الأساسي 30 يظهر
+    // أبيض/رمادياً في بعض الطرفيات، أما اللون السداسي فيبقى أسود مع bold.
+    const bar = chalk.bgCyan.hex("#000000").bold(centerVis(barText, WIDTH));
 
     console.log();
     console.log(top);

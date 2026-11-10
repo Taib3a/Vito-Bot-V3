@@ -63,6 +63,12 @@ async function main() {
     sessionDir: "./sessions/main",
     botLabel: "MAIN",
     isSubbot: false,
+    // يُستدعى عند كل فتح للاتصال: إعادة الاتصال تنشئ مقبساً جديداً،
+    // فيجب تحديث مرجع البوت الرئيسي وإلا عُرض كبوت فرعي.
+    onOpen: (s) => {
+      registerMainBot(s, "MAIN");
+      log.info("[MAIN] تم التسجيل في البوتات النشطة");
+    },
   });
 
   if (sock) {
