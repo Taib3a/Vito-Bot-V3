@@ -273,7 +273,7 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
 
     if (!plugin) {
       if (!claimOnce(`deny:${msg.key.id}`)) return;
-      log.message({ ...boxInfo, isCmd: true, exec: { status: "unknown", ms: 0 } });
+      log.message({ ...boxInfo, isCmd: true });
       return await sock.sendMessage(
         from,
         {
@@ -317,7 +317,7 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
 
     const denyOnce = (text) => {
       if (!claimOnce(`deny:${msg.key.id}`)) return;
-      log.message({ ...boxInfo, isCmd: true, exec: { status: "denied", ms: 0 } });
+      log.message({ ...boxInfo, isCmd: true });
       return ctx.reply({ text });
     };
 
@@ -329,13 +329,13 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
     if (plugin.groupOnly && !isGroup) return denyOnce("👥 هذا العمل داخل المجموعات فقط.");
     if (plugin.privateOnly && isGroup) return denyOnce("📩 هذا العمل في الخاص فقط.");
 
-    const start = Date.now();
     try {
       await plugin.run(ctx);
-      log.message({ ...boxInfo, isCmd: true, exec: { success: true, ms: Date.now() - start } });
+      log.message({ ...boxInfo, isCmd: true });
       if (isGroup) handleCommandXp(sender);
     } catch (e) {
-      log.message({ ...boxInfo, isCmd: true, exec: { success: false, ms: Date.now() - start, error: e.message } });
+      log.error(`الأمر ${cmdName}: ${e.message}`);
+      log.message({ ...boxInfo, isCmd: true });
       await ctx.react("❌");
 
       if (e.message?.toLowerCase().includes("forbidden")) {

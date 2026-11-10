@@ -195,20 +195,11 @@ function row(label, value, color = LB) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  سطر التنفيذ (يظهر داخل نفس الصندوق)
+//  سطر خطأ مختصر — بلا صندوق منفصل
 // ═══════════════════════════════════════════════════════════
-function execValue(exec) {
-  if (!exec) return null;
-  const ms = exec.ms != null ? ` (${exec.ms}ms)` : "";
-
-  if (exec.status === "denied") return `${Y("⛔ مرفوض")}${ms}`;
-  if (exec.status === "unknown") return `${R("✖️ أمر غير معروف")}${ms}`;
-  if (exec.success === true) return `${GB("✅ نجح")}${ms}`;
-  if (exec.success === false) {
-    const why = exec.error ? ` — ${fit(oneLine(exec.error), 20)}` : "";
-    return `${RB("❌ فشل")}${ms}${RB(why)}`;
-  }
-  return `${DIM("—")}${ms}`;
+function errorLine(msg, file) {
+  const where = file ? DIM(` (${file})`) : "";
+  console.log(`${DIM(`[${ts()}]`)} ${tag.error}  ${RB(oneLine(msg))}${where}`);
 }
 
 export const log = {
@@ -219,36 +210,19 @@ export const log = {
   bot: (msg) => console.log(`${DIM(`[${ts()}]`)} ${tag.bot}  ${chalk.hex("#B0BEC5")(msg)}`),
 
   error: (msg, file, stack) => {
-    const line = (plain, colored) => {
-      const val = fit(plain, WIDTH - 2);
-      const spaces = Math.max(0, WIDTH - 1 - visWidth(val));
-      return R("║") + " " + (colored ?? val) + " ".repeat(spaces) + R("║");
-    };
-
-    console.log();
-    console.log(R("╔" + "═".repeat(WIDTH) + "╗"));
-    console.log(R("║") + " " + RB("⚠ خطأ") + " ".repeat(Math.max(0, WIDTH - 1 - visWidth("⚠ خطأ"))) + R("║"));
-    console.log(R("║") + " ".repeat(WIDTH) + R("║"));
-    console.log(line(`الوقت: ${ts()}`, W("الوقت: ") + Y(ts())));
-    if (file) console.log(line(`الملف: ${file}`, W("الملف: ") + Y(String(file))));
-    console.log(line(`الخطأ: ${msg ?? ""}`, W("الخطأ: ") + R(String(msg ?? ""))));
+    errorLine(msg, file);
+    // السطر الأول من التتبّع يكفي للتشخيص — لا نطبع صندوقاً كاملاً.
     if (stack) {
-      console.log(R("║") + " ".repeat(WIDTH) + R("║"));
-      for (const l of String(stack).split("\n").slice(1, 4)) {
-        const t = l.trim();
-        console.log(line("  " + t, DIM("  " + fit(t, WIDTH - 6))));
-      }
+      const first = String(stack).split("\n").find((l) => l.trim().startsWith("at "));
+      if (first) console.log(`${" ".repeat(9)}${DIM(first.trim())}`);
     }
-    console.log(R("╚" + "═".repeat(WIDTH) + "╝"));
-    console.log();
   },
 
   // ═════════════════════════════════════════════════════════
   //  الصندوق الوحيد — كل شيء داخله، لا نص خارجه.
   //  الشريط العلوي: MAIN أحمر بنص أبيض، SUB أصفر بنص أسود.
-  //  إن مُرِّر exec يُضاف قسم التنفيذ في نفس الصندوق.
   // ═════════════════════════════════════════════════════════
-  message({ groupName, userName, messageType, content, isGroup = false, isCmd = false, botLabel = "MAIN", exec = null }) {
+  message({ groupName, userName, messageType, content, isGroup = false, isCmd = false, botLabel = "MAIN" }) {
     const isSub = /sub/i.test(String(botLabel));
     const tipoBot = isSub ? "SUB" : "MAIN";
     const barPaint = isSub ? chalk.bgYellow.black.bold : chalk.bgRed.white.bold;
@@ -273,12 +247,6 @@ export const log = {
     console.log(row("📝 النوع", tipo, CY));
     console.log(row("👥 المجموعة", lugar, LB));
     console.log(row("💬 الرسالة", texto, isCmd ? MAG : WB));
-
-    if (exec) {
-      console.log(mid);
-      console.log(row("🔧 التنفيذ", execValue(exec), LB));
-    }
-
     console.log(bottom);
   },
 
@@ -298,7 +266,7 @@ export const log = {
   //  لا يطبع بنفسه — يفوّض الأمر إلى log.message
   //  حتى يخرج كل شيء في صندوق واحد.
   // ═════════════════════════════════════════════════════════
-  cmdExec({ cmdName, sender, success, ms, botLabel = "MAIN", groupName, userName, messageType, content, isGroup }) {
+  cmdExec({ cmdName, sender, botLabel = "MAIN", groupName, userName, messageType, content, isGroup }) {
     log.message({
       groupName,
       userName: userName ?? sender,
@@ -307,7 +275,6 @@ export const log = {
       isGroup: isGroup ?? false,
       isCmd: true,
       botLabel,
-      exec: { success, ms, status: success ? "ok" : "fail" },
     });
   },
 };
