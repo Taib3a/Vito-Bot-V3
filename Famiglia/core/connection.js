@@ -24,6 +24,9 @@ import { initButtons } from "./buttons.js";
 const PAIRING_DELAY_MS = 3000;
 // لا تُغلق إلا مقبساً لم يُفتح قط وليس في انتظار رمز اقتران.
 const CONNECTION_TIMEOUT_MS = 75_000;
+// بعد 515 (restart required) يبقى الخادم مرتبطاً بالجلسة القديمة لحظة؛ إعادة
+// الاتصال الفورية تُنتج مقبساً "مفتوحاً" صامتاً يُسقَط لاحقاً بـ408.
+const RESTART_DELAY_MS = 2500;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -245,6 +248,7 @@ export async function createConnection({
   phoneNumber = null,
   _attempt = 0,
   wipeKeys = false,
+  delayBeforeMs = null,
   onOpen = null,
 } = {}) {
   await mkdir(sessionDir, { recursive: true });
@@ -252,14 +256,19 @@ export async function createConnection({
   // لا تمسح المفاتيح إلا بطلب صريح: بعد الربط مباشرة يُغلق واتساب برمز 515
   // وعلينا إعادة الاتصال *بالمفاتيح* المكتوبة للتو. مسحها في إعادة محاولة عادية
   // يُبقي creds.registered صحيحاً بلا مفاتيح، فيُفتح المقبس دون فك أي تشفير.
-  if (_attempt > 0) {
+  if (_attempt > 0 || delayBeforeMs != null) {
     if (wipeKeys) {
       log.warn(`[${botLabel}] تنظيف مفاتيح الجلسة قبل إعادة الاتصال...`);
       await clearSocketFiles(sessionDir);
     }
-    const delay = Math.min(config.reconnectDelay * Math.max(_attempt, 1), 30000);
-    log.info(`[${botLabel}] إعادة الاتصال بعد ${delay / 1000} ث...`);
-    await sleep(delay);
+    // إعادة الاتصال الفورية بعد 515 تُنتج مقبساً "مفتوحاً" لا يستقبل أي إطار:
+    // الخادم لم يُنهِ الجلسة القديمة بعد، فيُسقط الاتصال لاحقاً بـ408.
+    // لذا ننتظر ولو قليلاً قبل إعادة الاتصال.
+    const delay = delayBeforeMs ?? Math.min(config.reconnectDelay * Math.max(_attempt, 1), 30000);
+    if (delay > 0) {
+      log.info(`[${botLabel}] إعادة الاتصال بعد ${delay / 1000} ث...`);
+      await sleep(delay);
+    }
   }
 
   const { state, saveCreds, closeDb } = await useSQLiteAuthState(sessionDir);
@@ -313,7 +322,7 @@ export async function createConnection({
     }
   }
 
-  const reconnect = ({ wipe = false, resetAttempt = false } = {}) => {
+  const reconnect = ({ wipe = false, resetAttempt = false, delayBeforeMs = null } = {}) => {
     if (reconnectLocks.has(sessionDir)) return;
     reconnectLocks.add(sessionDir);
     createConnection({
@@ -323,6 +332,7 @@ export async function createConnection({
       phoneNumber,
       _attempt: resetAttempt ? 0 : _attempt + 1,
       wipeKeys: wipe,
+      delayBeforeMs,
       // يُنقل إلى المحاولة التالية، وإلا فُقد تسجيل البوت الرئيسي بعد إعادة الاتصال.
       onOpen,
     })
@@ -346,7 +356,9 @@ export async function createConnection({
       markOnlineOnConnect: false,
       generateHighQualityLinkPreview: true,
       connectTimeoutMs: 60000,
-      keepAliveIntervalMs: 25000,
+      // مُهلة كشف الانقطاع = هذه القيمة + 5ث. القيمة الافتراضية 30000، وتخفيضها
+      // إلى 25000 كان يجعل رد ping متأخراً قليلاً يُقرأ كانقطاع (408 Connection was lost).
+      keepAliveIntervalMs: 60000,
       retryRequestDelayMs: 3000,
       defaultQueryTimeoutMs: 60000,
       getMessage: async (key) => msgStore.get(`${key.remoteJid}:${key.id}`)?.message || undefined,
@@ -458,7 +470,9 @@ export async function createConnection({
       // وابدأ ميزانية المحاولات من جديد.
       if (code === DisconnectReason.restartRequired) {
         log.info(`[${botLabel}] إعادة تشغيل مطلوبة — إعادة الاتصال بالجلسة المحفوظة...`);
-        return reconnect({ resetAttempt: true });
+        // مهلة قصيرة إلزامية: إعادة الاتصال الفورية بعد 515 تُنتج مقبساً
+        // "مفتوحاً" لا يستقبل رسائل (زومبي) يُسقَط لاحقاً بـ408.
+        return reconnect({ resetAttempt: true, delayBeforeMs: RESTART_DELAY_MS });
       }
 
       if (_attempt < config.maxReconnectAttempts) {

@@ -234,7 +234,9 @@ async function startSubbotConnection(id, sessionDir, phoneNumber = null, onCode 
       markOnlineOnConnect: false,
       generateHighQualityLinkPreview: false,
       connectTimeoutMs: 60000,
-      keepAliveIntervalMs: 25000,
+      // مُهلة كشف الانقطاع = هذه القيمة + 5ث. القيمة الافتراضية 30000، وتخفيضها
+      // إلى 25000 كان يجعل رد ping متأخراً قليلاً يُقرأ كانقطاع (408 Connection was lost).
+      keepAliveIntervalMs: 60000,
       retryRequestDelayMs: 3000,
       defaultQueryTimeoutMs: 60000,
     });
