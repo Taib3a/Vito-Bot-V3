@@ -25,8 +25,12 @@ const PAIRING_DELAY_MS = 3000;
 // لا تُغلق إلا مقبساً لم يُفتح قط وليس في انتظار رمز اقتران.
 const CONNECTION_TIMEOUT_MS = 75_000;
 // بعد 515 (restart required) يبقى الخادم مرتبطاً بالجلسة القديمة لحظة؛ إعادة
-// الاتصال الفورية تُنتج مقبساً "مفتوحاً" صامتاً يُسقَط لاحقاً بـ408.
-const RESTART_DELAY_MS = 2500;
+// الاتصال الفورية تُنتج مقبساً "مفتوحاً" لا يستقبل رسائل (زومبي) يُسقَط بـ408
+// بعد ~50 ث. المهلة نفسها التي نجحت في السجل التجريبي (5 ث).
+const RESTART_DELAY_MS = config.reconnectDelay;
+// كشف المقبس الزومبي: مفتوح لكن الخادم لا يرد على أي استعلام.
+const ZOMBIE_CHECK_DELAY_MS = 6000;
+const ZOMBIE_PROBE_MS = 8000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -153,6 +157,29 @@ export function makeSendResilient(sock) {
   }
 
   return sock;
+}
+
+/**
+ * يتحقق أن المقبس يستقبل فعلاً بعد "الاتصال".
+ *
+ * بعد 515 قد يُقبل الاتصال في طبقة WebSocket ويُكمل تسجيل الدخول، لكن الخادم
+ * لا يُسلّم أي رسالة (مقبس زومبي). استعلام onWhatsApp يكشف ذلك: على مقبس سليم
+ * يعود فوراً، وعلى زومبي لا يعود إطلاقاً.
+ */
+export async function probeAlive(sock, timeoutMs = ZOMBIE_PROBE_MS) {
+  if (typeof sock?.onWhatsApp !== "function") return true;
+  const num = String(sock.user?.id || "").split(":")[0].split("@")[0];
+  if (!num) return true;
+  return Promise.race([
+    sock
+      .onWhatsApp(num)
+      .then(() => true)
+      .catch(() => true),
+    new Promise((resolve) => {
+      const t = setTimeout(() => resolve(false), timeoutMs);
+      t.unref?.();
+    }),
+  ]);
 }
 
 const PAIRING_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTVWXYZ";
@@ -294,6 +321,7 @@ export async function createConnection({
 
   let sock;
   let connectionTimeout = null;
+  let zombieTimer = null;
   let connected = false;
   const pendingMessages = [];
 
@@ -310,6 +338,10 @@ export async function createConnection({
     if (connectionTimeout) {
       clearTimeout(connectionTimeout);
       connectionTimeout = null;
+    }
+    if (zombieTimer) {
+      clearTimeout(zombieTimer);
+      zombieTimer = null;
     }
   }
 
@@ -356,9 +388,8 @@ export async function createConnection({
       markOnlineOnConnect: false,
       generateHighQualityLinkPreview: true,
       connectTimeoutMs: 60000,
-      // مُهلة كشف الانقطاع = هذه القيمة + 5ث. القيمة الافتراضية 30000، وتخفيضها
-      // إلى 25000 كان يجعل رد ping متأخراً قليلاً يُقرأ كانقطاع (408 Connection was lost).
-      keepAliveIntervalMs: 60000,
+      // مُهلة كشف الانقطاع = هذه القيمة + 5ث (الافتراضي في المكتبة 30000).
+      keepAliveIntervalMs: 30000,
       retryRequestDelayMs: 3000,
       defaultQueryTimeoutMs: 60000,
       getMessage: async (key) => msgStore.get(`${key.remoteJid}:${key.id}`)?.message || undefined,
@@ -429,6 +460,24 @@ export async function createConnection({
         log.error(`[${botLabel}] خطأ في onOpen: ${e.message}`);
       }
       await flushPending();
+
+      // المقبس الزومبي: "متصل" لكنه لا يستقبل أي رسالة. نفحص باستعلام خفيف
+      // ونُعيد الاتصال فوراً إن لم يستجب — فلا ننتظر 408 بعد ~50 ثانية.
+      clearTimeout(zombieTimer);
+      zombieTimer = setTimeout(() => {
+        if (!connected || sock.isOpen === false) return;
+        probeAlive(sock).then((alive) => {
+          if (alive || !connected || sock.isOpen === false) return;
+          log.warn(`[${botLabel}] لا استجابة من الخادم بعد الاتصال — إعادة الاتصال...`);
+          // نُوسم الخطأ بـ515 حتى يسلك مسار إعادة التشغيل السريع بميزانية جديدة.
+          const err = new Error("zombie socket");
+          err.output = { statusCode: DisconnectReason.restartRequired };
+          try {
+            sock.end(err);
+          } catch {}
+        });
+      }, ZOMBIE_CHECK_DELAY_MS);
+      zombieTimer.unref?.();
     }
 
     if (connection === "close") {

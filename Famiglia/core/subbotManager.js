@@ -10,7 +10,7 @@ import { mkdir } from "fs/promises";
 import { log } from "./logger.js";
 import config from "./settings.js";
 import { openDatabase } from "./sqlite.js";
-import { useSQLiteAuthState, attachSocketState, makeSendResilient, getLiveSocketFor } from "./connection.js";
+import { useSQLiteAuthState, attachSocketState, makeSendResilient, getLiveSocketFor, probeAlive } from "./connection.js";
 import { db } from "../database/db.js";
 import { handleMessage, registerGroupCacheEvents } from "./messageHandler.js";
 import { registerAntifeatures } from "./مضاد/index.js";
@@ -25,6 +25,10 @@ let mainSock = null;
 
 const logger = pino({ level: "silent" });
 const PAIRING_TIMEOUT_MS = 60_000;
+// مهلة قصيرة قبل إعادة الاتصال بعد 515: الإعادة الفورية تُنتج مقبساً زومبياً.
+const RESTART_DELAY_MS = config.reconnectDelay;
+// كشف المقبس الزومبي بعد "الاتصال": مفتوح لكن الخادم لا يستجيب.
+const ZOMBIE_CHECK_DELAY_MS = 6000;
 
 // قفل في الذاكرة حتى لا يردّ أكثر من بوت على الأمر نفسه مرتين.
 const claimedCmds = new Set();
@@ -207,6 +211,7 @@ async function startSubbotConnection(id, sessionDir, phoneNumber = null, onCode 
   let connected = false;
   const pendingMessages = [];
   let pairingTimer = null;
+  let zombieTimer = null;
 
   function clearPairingTimer() {
     if (pairingTimer) {
@@ -234,9 +239,8 @@ async function startSubbotConnection(id, sessionDir, phoneNumber = null, onCode 
       markOnlineOnConnect: false,
       generateHighQualityLinkPreview: false,
       connectTimeoutMs: 60000,
-      // مُهلة كشف الانقطاع = هذه القيمة + 5ث. القيمة الافتراضية 30000، وتخفيضها
-      // إلى 25000 كان يجعل رد ping متأخراً قليلاً يُقرأ كانقطاع (408 Connection was lost).
-      keepAliveIntervalMs: 60000,
+      // مُهلة كشف الانقطاع = هذه القيمة + 5ث (الافتراضي في المكتبة 30000).
+      keepAliveIntervalMs: 30000,
       retryRequestDelayMs: 3000,
       defaultQueryTimeoutMs: 60000,
     });
@@ -306,11 +310,29 @@ async function startSubbotConnection(id, sessionDir, phoneNumber = null, onCode 
         pushName,
       });
       await flushPending();
+
+      // المقبس الزومبي: "متصل" لكنه لا يستقبل أي رسالة — أعد الاتصال فوراً
+      // بدل انتظار 408 بعد ~50 ثانية.
+      clearTimeout(zombieTimer);
+      zombieTimer = setTimeout(() => {
+        if (!connected || sock.isOpen === false) return;
+        probeAlive(sock).then((alive) => {
+          if (alive || !connected || sock.isOpen === false) return;
+          log.warn(`[MANAGER] لا استجابة من الخادم للبوت ${id} — إعادة الاتصال...`);
+          const err = new Error("zombie socket");
+          err.output = { statusCode: DisconnectReason.restartRequired };
+          try {
+            sock.end(err);
+          } catch {}
+        });
+      }, ZOMBIE_CHECK_DELAY_MS);
+      zombieTimer.unref?.();
     }
 
     if (connection === "close") {
       connected = false;
       clearPairingTimer();
+      clearTimeout(zombieTimer);
       sock.markClosed?.();
       const code = lastDisconnect?.error?.output?.statusCode;
       updateBotStatus(id, { status: "offline", jid: "" });
@@ -334,8 +356,10 @@ async function startSubbotConnection(id, sessionDir, phoneNumber = null, onCode 
       }
 
       // احفظ المفاتيح وابدأ ميزانية المحاولات من جديد بعد ربط ناجح.
+      // مهلة قصيرة قبل إعادة الاتصال: الإعادة الفورية بعد 515 تُنتج مقبساً
+      // "مفتوحاً" لا يستقبل رسائل (زومبي) يُسقَط لاحقاً بـ408.
       if (code === DisconnectReason.restartRequired) {
-        startSubbotConnection(id, sessionDir, null, null, 0);
+        setTimeout(() => startSubbotConnection(id, sessionDir, null, null, 0), RESTART_DELAY_MS);
         return;
       }
 
