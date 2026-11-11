@@ -339,7 +339,9 @@ export async function createConnection({
       },
       printQRInTerminal: !useCode,
       logger: pino({ level: "silent" }),
-      browser: useCode ? ["Ubuntu", "Chrome", "20.0.04"] : ["VitoBot", "Chrome", "3.0.0"],
+      // هوية ثابتة قبل الربط وبعده: تغييرها يُغيّر منصّة الجهاز في حمولة الدخول،
+      // فيرى الخادم عميلاً مختلفاً بعد الاقتران ويقطع الاتصال (408 Connection lost).
+      browser: ["Ubuntu", "Chrome", "20.0.04"],
       syncFullHistory: false,
       markOnlineOnConnect: false,
       generateHighQualityLinkPreview: true,
