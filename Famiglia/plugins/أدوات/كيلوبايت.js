@@ -101,15 +101,13 @@ export default {
       const caption =
         `☁️ *مركز كيلو بايت*\n\n` +
         `✅ *تم الرفع بنجاح!*\n\n` +
-        `📄 *الاسم:* ${filename}\n` +
         `📦 *الحجم:* ${(buffer.length / 1024).toFixed(2)} KB\n\n` +
         `👇 *اختر الرابط المطلوب:*`;
 
-      // أزرار الروابط (cta_url) تُفتح مباشرة، وأزرار النسخ (cta_copy) تنسخ النص،
-      // فلا تحتاج أي أمر إضافي — الإضافة تبقى بأمر واحد فقط.
+      // أزرار النسخ (cta_copy) تنسخ النص مباشرة، فلا تحتاج أي أمر إضافي —
+      // الإضافة تبقى بأمر واحد فقط.
       const buttons = [];
-      if (imageUrl) buttons.push({ text: "🖼️ فتح الصورة", url: imageUrl });
-      if (pageUrl) buttons.push({ text: "📥 صفحة التحميل", url: pageUrl });
+      if (imageUrl) buttons.push({ text: "🖼️ نسخ رابط الصورة", copy: imageUrl });
       if (forumCode) buttons.push({ text: "💬 نسخ كود المنتدى", copy: forumCode });
       if (deleteUrl) buttons.push({ text: "🗑️ نسخ رابط الحذف", copy: deleteUrl });
 
