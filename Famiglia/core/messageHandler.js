@@ -265,6 +265,7 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
       userNumber: senderNum,
       messageType: msgTypeLabel,
       content: body,
+      command: isCmd ? `${usedPrefix}${cmdName}` : "",
       isGroup,
       botLabel,
       botNumber: botNum,

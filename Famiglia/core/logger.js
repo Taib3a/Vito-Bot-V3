@@ -225,13 +225,17 @@ export const log = {
   //  الصندوق الوحيد — كل شيء داخله، لا نص خارجه.
   //  الشريط العلوي أزرق سماوي بخلفية سوداء النص، ويحمل رقم البوت نفسه.
   // ═════════════════════════════════════════════════════════
-  message({ groupName, userName, userNumber, messageType, content, isGroup = false, isCmd = false, botLabel = "MAIN", botNumber = "" }) {
+  message({ groupName, userName, userNumber, messageType, content, isGroup = false, isCmd = false, botLabel = "MAIN", botNumber = "", command = "" }) {
     const isSub = /sub/i.test(String(botLabel));
     const tipoBot = isSub ? "SUB" : "MAIN";
 
     const usuario = displayUser(userNumber, userName);
     const lugar = isGroup ? groupName || "مجموعة" : "دردشة خاصة";
     const tipo = isCmd ? "⚡ أمر" : messageType || "نص";
+    // للأوامر نعرض الأمر الذي كتبه المستخدم بدل نوع الرسالة.
+    const tipoLabel = isCmd ? "⚡ الأمر" : "📝 النوع";
+    const tipoValue = isCmd ? command || `⚡ ${content || "أمر"}` : tipo;
+    const tipoColor = isCmd ? MAG : CY;
     const texto = content ? oneLine(content) : "(بلا نص)";
 
     const numeroBoton = String(botNumber ?? "").replace(/\D/g, "");
@@ -251,7 +255,7 @@ export const log = {
     console.log(mid);
     console.log(row("⏰ الوقت", ts(), LB));
     console.log(row("📱 المرسل", usuario, WB));
-    console.log(row("📝 النوع", tipo, CY));
+    console.log(row(tipoLabel, tipoValue, tipoColor));
     console.log(row("👥 المجموعة", lugar, LB));
     console.log(row("💬 الرسالة", texto, isCmd ? MAG : WB));
     console.log(bottom);
@@ -274,12 +278,14 @@ export const log = {
   //  حتى يخرج كل شيء في صندوق واحد.
   // ═════════════════════════════════════════════════════════
   cmdExec({ cmdName, sender, botLabel = "MAIN", groupName, userName, userNumber, messageType, content, isGroup, botNumber = "" }) {
+    const cmd = cmdName ? `.${cmdName}` : "";
     log.message({
       groupName,
       userName: userName ?? sender,
       userNumber: userNumber ?? sender,
       messageType,
-      content: content ?? (cmdName ? `.${cmdName}` : ""),
+      content: content ?? cmd,
+      command: cmd,
       isGroup: isGroup ?? false,
       isCmd: true,
       botLabel,

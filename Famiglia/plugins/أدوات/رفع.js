@@ -1,157 +1,223 @@
-import { downloadMediaMessage } from '@whiskeysockets/baileys'
-import axios from 'axios'
-import { FormData, Blob } from 'formdata-node'
-import { fileTypeFromBuffer } from 'file-type'
+import axios from "axios";
+import FormData from "form-data";
+import { downloadMediaMessage } from "@whiskeysockets/baileys";
 
-const API_URL = 'https://cdn.dix.lat'
+const API_KEY = "dix_c78kb4g";
+const UPLOAD_TMP_URL = "https://dix.lat/v1/upload/tmp";
+const UPLOAD_PERM_URL = "https://dix.lat/v1/upload";
 
-const MEDIA_TYPES = {
-  imageMessage:    { ext: 'jpg',  mime: 'image/jpeg' },
-  videoMessage:    { ext: 'mp4',  mime: 'video/mp4' },
-  audioMessage:    { ext: 'm4a',  mime: 'audio/mp4' },
-  documentMessage: { ext: 'bin',  mime: 'application/octet-stream' },
-  stickerMessage:  { ext: 'webp', mime: 'image/webp' },
-  ptvMessage:      { ext: 'mp4',  mime: 'video/mp4' }
-}
+// المفتاح = رقم المرسل
+const pendingUploads = new Map();
 
-function getContentType(message) {
-  if (!message) return null
-  const keys = Object.keys(message)
-  return keys.find(key => key !== 'messageContextInfo' && key !== 'senderKeyDistributionMessage')
-}
+const IMAGE_EXTS = ["jpg", "png", "webp"];
+const VIDEO_EXTS = ["mp4", "mkv", "webm"];
+const AUDIO_EXTS = ["mp3", "ogg", "m4a"];
+const DOC_EXTS = ["bin", "zip", "pdf"];
+const STICKER_EXTS = ["webp", "png"];
 
-async function subirDix(buffer, filename, mimetype, esTemporal = false, ttl = 86400) {
-  const form = new FormData()
+const ALL_EXTS = [...new Set([...IMAGE_EXTS, ...VIDEO_EXTS, ...AUDIO_EXTS, ...DOC_EXTS, ...STICKER_EXTS])];
 
-  const blob = new Blob([buffer], { type: mimetype })
+// كل معرّف زر يُسجَّل باسم كامل. تسجيل البادئة "رفع_اختر_" وحدها لا يكفي:
+// الزر يرسل المعرّف الكامل "رفع_اختر_jpg"، والمطابقة في messageHandler حرفية.
+const BUTTON_NAMES = [
+  ...ALL_EXTS.map((e) => `رفع_اختر_${e}`),
+  "رفع_تخزين_1d",
+  "رفع_تخزين_2d",
+  "رفع_تخزين_perm",
+];
 
-  form.append('file', blob, filename)
-
-  const endpoint = esTemporal 
-    ? `${API_URL}/upload/tmp?ttl=${ttl}`
-    : `${API_URL}/upload`
-
-  const { data } = await axios.post(
-    endpoint,
-    form,
-    {
-      timeout: 120000,
-      maxBodyLength: Infinity,
-      maxContentLength: Infinity,
-      headers: {
-        'User-Agent': 'Drive-Client'
-      }
-    }
-  )
-
-  return data
-}
+const T = {
+  noFile: "❌ ارفق ملفاً أو ردّ على ملف/صورة/فيديو",
+  dlFail: "❌ فشل تحميل الملف",
+  expired: "❌ انتهت صلاحية الطلب، أعد إرسال الملف",
+  uploadFail: "❌ فشل الرفع",
+  error: (e) => `❌ خطأ: ${e}`,
+  step1Title: "📎 الخطوة 1/2",
+  step1Text: "📎 *الخطوة 1/2:* اختر الامتداد",
+  step2Title: "📎 الخطوة 2/2",
+  step2Text: (ext) => `📎 الامتداد: *.${ext}*\n\n🗂️ *الخطوة 2/2:* اختر نوع التخزين`,
+  btn1d: "⏱️ 24 ساعة",
+  btn2d: "⏱️ 48 ساعة",
+  btnPerm: "♾️ دائم",
+  footer: "𝙱𝙾𝚃 𝚅𝙸𝚃𝙾 𝚅𝟹",
+};
 
 export default {
-  name: ["رفع"],
-  description: 'ارفع الملفات بشكل دائم أو مؤقت إلى CDN الخاص بـ Dix',
+  name: ["رفع", "upload", ...BUTTON_NAMES],
+  description: "رفع ملف إلى Dix CDN",
   category: "الأدوات",
   ownerOnly: false,
 
-  async run({ sock, from, msg, react, reply, args }) {
-
+  async run({ sock, from, msg, senderNum, reply, react, cmdName }) {
     try {
-      await react('⏳')
+      // ===== الخطوة 2: اختيار التخزين =====
+      if (cmdName.startsWith("رفع_تخزين_")) {
+        const storage = cmdName.slice("رفع_تخزين_".length); // 1d | 2d | perm
 
-      const cmdUsado = msg.body?.trim()?.split(/\s+/)[0]?.toLowerCase() || ''
-      const esTemporal = cmdUsado.includes('tmp') || args?.includes('--tmp') || args?.includes('-t')
-
-      let ttlValue = 86400
-      if (esTemporal && args) {
-        const ttlArg = args.find(arg => !isNaN(arg) && parseInt(arg) >= 60 && parseInt(arg) <= 172800)
-        if (ttlArg) ttlValue = parseInt(ttlArg)
-      }
-
-      let rawMessage = msg.message
-      if (rawMessage?.ephemeralMessage) {
-        rawMessage = rawMessage.ephemeralMessage.message
-      }
-
-      const msgType = getContentType(rawMessage)
-
-      const quotedContext = rawMessage?.extendedTextMessage?.contextInfo
-      let quotedMessage = quotedContext?.quotedMessage
-      if (quotedMessage?.ephemeralMessage) {
-        quotedMessage = quotedMessage.ephemeralMessage.message
-      }
-
-      const quotedType = getContentType(quotedMessage)
-
-      let targetMsg = null
-      let mediaInfo = null
-
-      if (msgType && MEDIA_TYPES[msgType]) {
-        targetMsg = msg
-        mediaInfo = { type: msgType, ...MEDIA_TYPES[msgType] }
-      } else if (quotedMessage && quotedType && MEDIA_TYPES[quotedType]) {
-        targetMsg = {
-          key: {
-            remoteJid: from,
-            id: quotedContext.stanzaId,
-            participant: quotedContext.participant || quotedContext.remoteJid
-          },
-          message: quotedMessage
+        const pending = pendingUploads.get(senderNum);
+        if (!pending) {
+          await reply({ text: T.expired });
+          return;
         }
 
-        mediaInfo = {
-          type: quotedType,
-          ...MEDIA_TYPES[quotedType]
+        await react("📤");
+
+        let uploadUrl;
+        let ttl = null;
+        if (storage === "1d") {
+          uploadUrl = UPLOAD_TMP_URL;
+          ttl = 86400;
+        } else if (storage === "2d") {
+          uploadUrl = UPLOAD_TMP_URL;
+          ttl = 172800;
+        } else {
+          uploadUrl = UPLOAD_PERM_URL;
         }
+
+        const form = new FormData();
+        form.append("file", pending.buffer, { filename: `file.${pending.ext}` });
+
+        const finalUrl = ttl ? `${uploadUrl}?ttl=${ttl}` : uploadUrl;
+
+        const res = await axios.post(finalUrl, form, {
+          headers: { ...form.getHeaders(), "x-api-key": API_KEY },
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
+          timeout: 120000,
+        });
+
+        const data = res.data;
+        if (!data?.status || !data?.data?.url) {
+          await react("❌");
+          await reply({ text: T.uploadFail });
+          return;
+        }
+
+        pendingUploads.delete(senderNum);
+        await reply({ text: data.data.url });
+        await react("✅");
+        return;
       }
 
-      if (!targetMsg || !mediaInfo) {
-        return reply({
-          text: ( '❌ ردّ على ملف صالح أو أرسل واحداً مع الأمر.\n\n*الصيغ:* صور، فيديو، صوت، مستندات، ملصقات.')
-        })
+      // ===== الخطوة 1: اختيار الامتداد =====
+      if (cmdName.startsWith("رفع_اختر_")) {
+        const ext = cmdName.slice("رفع_اختر_".length);
+
+        const pending = pendingUploads.get(senderNum);
+        if (!pending) {
+          await reply({ text: T.expired });
+          return;
+        }
+
+        pending.ext = ext;
+
+        await react("🗂️");
+
+        await sock.sendButtonMessage(
+          from,
+          T.step2Text(ext),
+          [
+            { text: T.btn1d, id: ".رفع_تخزين_1d" },
+            { text: T.btn2d, id: ".رفع_تخزين_2d" },
+            { text: T.btnPerm, id: ".رفع_تخزين_perm" },
+          ],
+          { title: T.step2Title, footer: T.footer, quoted: msg }
+        );
+
+        return;
       }
 
-      const buffer = await downloadMediaMessage(
-        targetMsg,
-        'buffer',
-        {},
-        { sock }
-      )
+      // ===== الأمر الرئيسي: رفع =====
+      const contextInfo =
+        msg.message?.extendedTextMessage?.contextInfo ||
+        msg.message?.imageMessage?.contextInfo ||
+        msg.message?.videoMessage?.contextInfo ||
+        msg.message?.documentMessage?.contextInfo ||
+        msg.message?.audioMessage?.contextInfo ||
+        null;
 
-      if (!buffer || buffer.length === 0) {
-        throw new Error(( 'تعذّر الحصول على الملف (مخزن فارغ)'))
+      const quoted = contextInfo?.quotedMessage || null;
+
+      const targetMessage = quoted
+        ? quoted.viewOnceMessageV2?.message ||
+          quoted.viewOnceMessage?.message ||
+          quoted.viewOnceMessageV2Extension?.message ||
+          quoted
+        : msg.message || {};
+
+      const type = Object.keys(targetMessage)[0];
+
+      const VALID_TYPES = [
+        "imageMessage",
+        "videoMessage",
+        "audioMessage",
+        "documentMessage",
+        "stickerMessage",
+      ];
+
+      if (!VALID_TYPES.includes(type)) {
+        await reply({ text: T.noFile });
+        return;
       }
 
-      const detected = await fileTypeFromBuffer(buffer)
-      const ext = detected?.ext || mediaInfo.ext
-      const mime = detected?.mime || mediaInfo.mime
-      const filename = `file_${Date.now()}.${ext}`
+      await react("📥");
 
-      const resultDix = await subirDix(buffer, filename, mime, esTemporal, ttlValue)
+      const target = quoted
+        ? {
+            key: {
+              remoteJid: from,
+              id: contextInfo.stanzaId,
+              participant: contextInfo.participant,
+            },
+            message: quoted,
+          }
+        : msg;
 
-      if (!resultDix || !resultDix.status || !resultDix.data) {
-        throw new Error(( 'رفض خادم Dix الرفع أو أعاد صيغة غير صحيحة.'))
+      const buffer = await downloadMediaMessage(target, "buffer", {}, {
+        logger: console,
+        reuploadRequest: sock.updateMediaMessage,
+      });
+
+      if (!buffer || !buffer.length) {
+        await react("❌");
+        await reply({ text: T.dlFail });
+        return;
       }
 
-      const dataDix = resultDix.data
+      const EXT_OPTIONS = {
+        imageMessage: IMAGE_EXTS,
+        videoMessage: VIDEO_EXTS,
+        audioMessage: AUDIO_EXTS,
+        documentMessage: DOC_EXTS,
+        stickerMessage: STICKER_EXTS,
+      };
 
-      const textoRespuesta = `✅ *Archivo subido con éxito*
-      
-📄 *Nombre:* \`${filename}\`
-📦 *Mime:* \`${mime}\`
-🆔 *Public ID:* \`${dataDix.public_id || '-'}\`
-${esTemporal && dataDix.expires ? `⏳ *Expira:* \`${new Date(dataDix.expires * 1000).toLocaleString()}\`\n` : ''}🔗 *URL:*
-${dataDix.url}
-📏 *Tamaño:* \`${buffer.length} bytes\``
+      const availableExts = EXT_OPTIONS[type] || ["bin"];
 
-      await reply({ text: textoRespuesta })
-      await react('✅')
+      pendingUploads.set(senderNum, {
+        buffer,
+        type,
+        senderNum,
+        from,
+        createdAt: Date.now(),
+      });
 
+      setTimeout(() => pendingUploads.delete(senderNum), 5 * 60 * 1000);
+
+      await react("📎");
+
+      await sock.sendButtonMessage(
+        from,
+        T.step1Text,
+        availableExts.map((e) => ({
+          text: `.${e}`,
+          id: `.رفع_اختر_${e}`,
+        })),
+        { title: T.step1Title, footer: T.footer, quoted: msg }
+      );
     } catch (e) {
-      await react('❌')
-      await reply({
-        text: ( `❌ *خطأ:* ${e.message}`)
-      })
-      console.error(e)
+      await react("❌");
+      await reply({ text: T.error(e.message) });
     }
-  }
-}
+  },
+};
