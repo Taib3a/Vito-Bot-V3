@@ -1,5 +1,12 @@
 import { log } from "../logger.js";
 
+// Baileys يمرّر المشاركين كائنات { id, ... } لا نصوصاً.
+function jidOf(p) {
+  if (!p) return "";
+  if (typeof p === "string") return p;
+  return p.id || p.jid || p.participant || p.participantAlt || "";
+}
+
 /** رقم يبدو حساباً آلياً: قصير جداً أو فيه تكرار غير طبيعي. */
 function looksLikeBot(jid = "") {
   const num = jid.split("@")[0].split(":")[0];
@@ -16,8 +23,9 @@ export default {
   async onJoin({ sock, groupJid, participants, isBotAdmin, botLabel }) {
     if (!isBotAdmin) return;
 
-    for (const jid of participants) {
-      if (!looksLikeBot(jid)) continue;
+    for (const p of participants) {
+      const jid = jidOf(p);
+      if (!jid || !looksLikeBot(jid)) continue;
 
       try {
         await sock.groupParticipantsUpdate(groupJid, [jid], "remove");

@@ -18,3 +18,5 @@ tmp/
 
 # قاعدة بيانات البوت
 Famiglia/database/vito.sqlite
+*.sqlite-shm
+*.sqlite-wal

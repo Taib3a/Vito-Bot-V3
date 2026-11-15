@@ -154,10 +154,10 @@ function getGroup(jid) {
   const row = stmts.getGroup.get(jid);
   if (!row) {
     const defaultGroup = {
-      welcome: false,
-      antilink: false,
-      antispam: false,
-      antibot: false,
+      welcome: true,
+      antilink: true,
+      antispam: true,
+      antibot: true,
       primaryBot: null,
       adminMode: false,
       selfMode: false,

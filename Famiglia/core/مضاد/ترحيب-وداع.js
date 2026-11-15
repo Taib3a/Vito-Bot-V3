@@ -2,209 +2,131 @@ import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
 import { log } from "../logger.js";
 import { db } from "../../database/db.js";
 
-const WIDTH = 800;
-const HEIGHT = 450;
+const BACKGROUND_URL = "https://i.postimg.cc/L5jnccN4/generated-image-(3).png";
 
-// ── لوحة ألوان «العرّاب»: فحمي داكن مع عنابي فاخر وذهبي عتيق ──
-const CHARCOAL = "#0d0b0a";
-const MAROON = "#4a0d13";
-const GOLD = "#d4af37";
-const GOLD_BRIGHT = "#f5d67b";
-const IVORY = "#f4efe4";
-const MAROON_LIGHT = "#c96b78";
-
-const SERIF_CANDIDATES = [
+const SERIF_BOLD_CANDIDATES = [
   "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf",
   "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf",
-  "/usr/share/fonts/truetype/freefont/FreeSerifBold.ttf",
 ];
-const SERIF_REGULAR_CANDIDATES = [
-  "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
-  "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
-];
-
-/** خط كلاسيكي عريض إن وُجد على النظام، وإلا الخط الاحتياطي. */
-function registerSerif() {
+function registerFont(paths, family) {
   try {
-    for (const p of SERIF_CANDIDATES) {
-      if (GlobalFonts.registerFromPath(p, "GodfatherBold")) return "GodfatherBold";
+    for (const p of paths) {
+      if (GlobalFonts.registerFromPath(p, family)) return family;
     }
-    for (const p of SERIF_REGULAR_CANDIDATES) {
-      if (GlobalFonts.registerFromPath(p, "GodfatherBold")) return "GodfatherBold";
-    }
-  } catch {
-    // تجاهل: نعود إلى الخط الافتراضي أدناه.
-  }
-  return "serif";
+  } catch {}
+  return null;
 }
+const SERIF_BOLD = registerFont(SERIF_BOLD_CANDIDATES, "PosterSerifBold") || "serif";
 
-const SERIF = registerSerif();
+export async function renderGodfatherCard({ avatar, displayName, isJoin, memberCount }) {
+  const bgResponse = await fetch(BACKGROUND_URL);
+  const bgBuffer = Buffer.from(await bgResponse.arrayBuffer());
+  const background = await loadImage(bgBuffer);
 
-/** يحوّل لوناً سادس عشرياً إلى rgba بشفافية محدّدة. */
-function hexToRgba(hex, alpha) {
-  const n = parseInt(hex.slice(1), 16);
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
-}
-
-/** قصّ النص الطويل وأضف ثلاث نقاط حتى لا يخرج عن البطاقة. */
-function fitText(ctx, text, maxWidth, font) {
-  ctx.font = font;
-  if (ctx.measureText(text).width <= maxWidth) return text;
-  let cut = text;
-  while (cut.length > 1 && ctx.measureText(`${cut}…`).width > maxWidth) {
-    cut = cut.slice(0, -1);
-  }
-  return `${cut}…`;
-}
-
-function drawLine(ctx, y, x1, x2, color, alpha = 1) {
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(x1, y);
-  ctx.lineTo(x2, y);
-  ctx.stroke();
-  ctx.restore();
-}
-
-/** خلفية سينمائية: فحمي في الوسط وتدرّج عنابي عند الزوايا. */
-function drawBackground(ctx) {
-  ctx.fillStyle = CHARCOAL;
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
-  const vignette = ctx.createRadialGradient(
-    WIDTH / 2, HEIGHT / 2, HEIGHT * 0.22,
-    WIDTH / 2, HEIGHT / 2, WIDTH * 0.78
-  );
-  vignette.addColorStop(0, hexToRgba(CHARCOAL, 0));
-  vignette.addColorStop(0.6, hexToRgba(MAROON, 0.55));
-  vignette.addColorStop(1, hexToRgba(MAROON, 0.95));
-  ctx.fillStyle = vignette;
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
-  // توهّج ذهبي خفيف خلف صورة المستخدم.
-  const glow = ctx.createRadialGradient(210, HEIGHT / 2, 10, 210, HEIGHT / 2, 220);
-  glow.addColorStop(0, hexToRgba(GOLD, 0.2));
-  glow.addColorStop(1, hexToRgba(GOLD, 0));
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, 460, HEIGHT);
-}
-
-/** صورة المستخدم داخل مربع بزوايا دائرية قليلاً وإطار ذهبي. */
-function drawPortrait(ctx, img) {
-  const size = 250;
-  const x = 85;
-  const y = (HEIGHT - size) / 2;
-  const radius = 14;
-
-  ctx.save();
-  ctx.beginPath();
-  ctx.roundRect(x, y, size, size, radius);
-  ctx.clip();
-  if (img) {
-    // قصّ مربّع من مركز الصورة حتى لا تتشوّه.
-    const side = Math.min(img.width, img.height);
-    const sx = (img.width - side) / 2;
-    const sy = (img.height - side) / 2;
-    ctx.drawImage(img, sx, sy, side, side, x, y, size, size);
-  } else {
-    ctx.fillStyle = "#241a1c";
-    ctx.fillRect(x, y, size, size);
-  }
-  ctx.restore();
-
-  ctx.save();
-  ctx.strokeStyle = GOLD;
-  ctx.lineWidth = 4;
-  ctx.shadowColor = hexToRgba(GOLD, 0.55);
-  ctx.shadowBlur = 18;
-  ctx.beginPath();
-  ctx.roundRect(x, y, size, size, radius);
-  ctx.stroke();
-  ctx.restore();
-
-  // إطار داخلي رفيع لمزيد من الفخامة.
-  ctx.save();
-  ctx.strokeStyle = hexToRgba(GOLD_BRIGHT, 0.45);
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.roundRect(x + 8, y + 8, size - 16, size - 16, radius - 4);
-  ctx.stroke();
-  ctx.restore();
-}
-
-/**
- * يرسم بطاقة الدخول/الخروج بأسلوب «العرّاب».
- * @returns {Promise<Buffer>} صورة PNG جاهزة للإرسال.
- */
-export async function renderGodfatherCard({ avatar, displayName, isJoin, memberCount, groupName }) {
-  const canvas = createCanvas(WIDTH, HEIGHT);
+  const canvas = createCanvas(background.width, background.height);
   const ctx = canvas.getContext("2d");
 
-  drawBackground(ctx);
-  drawPortrait(ctx, avatar);
+  ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
 
-  const left = 372;
-  const right = 752;
-  const maxWidth = right - left;
+  const centerX = canvas.width * 0.65;
+  const centerY = canvas.height * 0.55;
+  const avatarSize = 220;
+  const avatarY = centerY - (avatarSize / 2) - 20;
 
-  ctx.textAlign = "left";
-  ctx.textBaseline = "alphabetic";
+  if (avatar) {
+    ctx.save();
+    ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
 
-  // «La Famiglia» بالذهبي اللامع.
-  ctx.save();
-  ctx.fillStyle = GOLD_BRIGHT;
-  ctx.shadowColor = hexToRgba(GOLD, 0.6);
-  ctx.shadowBlur = 12;
-  ctx.font = `34px "${SERIF}"`;
-  ctx.fillText("La Famiglia", left, 138);
-  ctx.restore();
+    ctx.beginPath();
+    ctx.arc(centerX, avatarY, avatarSize / 2, 0, Math.PI * 2);
+    ctx.clip();
 
-  drawLine(ctx, 160, left, right, GOLD, 0.85);
+    const side = Math.min(avatar.width, avatar.height);
+    const sx = (avatar.width - side) / 2;
+    const sy = (avatar.height - side) / 2;
+    ctx.drawImage(avatar, sx, sy, side, side, centerX - avatarSize / 2, avatarY - avatarSize / 2, avatarSize, avatarSize);
+    ctx.restore();
 
-  // اسم المستخدم أو رقمه بالعاجي.
-  ctx.fillStyle = IVORY;
-  ctx.font = `40px "${SERIF}"`;
-  ctx.fillText(fitText(ctx, displayName, maxWidth, `40px "${SERIF}"`), left, 232);
-
-  // سطر الحالة: ترحيب أو وداع.
-  const status = isJoin ? "Welcome to the Family" : "You broke my heart";
-  ctx.fillStyle = isJoin ? GOLD : MAROON_LIGHT;
-  ctx.font = `italic 26px "${SERIF}"`;
-  ctx.fillText(fitText(ctx, status, maxWidth, `italic 26px "${SERIF}"`), left, 286);
-
-  drawLine(ctx, 316, left, right, GOLD, 0.85);
-
-  // عدد الأعضاء في الزاوية السفلية.
-  if (Number.isFinite(memberCount)) {
-    ctx.fillStyle = GOLD;
-    ctx.font = `24px "${SERIF}"`;
-    const label = `Members: ${memberCount}`;
-    ctx.fillText(label, left, 372);
-    const w = ctx.measureText(label).width;
-    ctx.fillText("👥", left + w + 12, 372);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(centerX, avatarY, avatarSize / 2, 0, Math.PI * 2);
+    ctx.strokeStyle = "#b3121f";
+    ctx.lineWidth = 6;
+    ctx.stroke();
+    ctx.restore();
   }
 
-  if (groupName) {
-    ctx.fillStyle = hexToRgba(IVORY, 0.55);
-    ctx.font = `18px "${SERIF}"`;
-    ctx.fillText(fitText(ctx, groupName, maxWidth, `18px "${SERIF}"`), left, 410);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+
+  const nameY = avatarY + (avatarSize / 2) + 30;
+  ctx.font = `bold 40px "${SERIF_BOLD}"`;
+  ctx.fillStyle = "#ffffff";
+  ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+  ctx.shadowBlur = 10;
+
+  let finalName = displayName;
+  if (finalName.length > 18) finalName = finalName.substring(0, 18) + "...";
+
+  ctx.fillText(finalName, centerX, nameY);
+
+  const statusY = nameY + 55;
+  ctx.font = `italic 30px "${SERIF_BOLD}"`;
+  if (isJoin) {
+    ctx.fillStyle = "#d4af37";
+    ctx.fillText("Welcome to the Family", centerX, statusY);
+  } else {
+    ctx.fillStyle = "#999999";
+    ctx.fillText("You broke my heart", centerX, statusY);
+  }
+
+  if (Number.isFinite(memberCount)) {
+    const membersY = statusY + 60;
+    ctx.font = `25px "${SERIF_BOLD}"`;
+    ctx.fillStyle = "#e8e4dc";
+    ctx.shadowBlur = 5;
+    ctx.fillText(`Members: ${memberCount}`, centerX, membersY);
   }
 
   return canvas.toBuffer("image/png");
 }
 
-/** صورة المستخدم إن وُجدت، وإلا صورة من global.botImages، وإلا null. */
+// ═══════════════════════════════════════════════
+// الدوال المساعدة (تم منع طباعة الأرقام)
+// ═══════════════════════════════════════════════
+
+function cleanJid(jid = "") {
+  const at = jid.lastIndexOf("@");
+  if (at === -1) return jid.split(":")[0];
+  return `${jid.slice(0, at).split(":")[0]}@${jid.slice(at + 1)}`;
+}
+
+export function resolveDisplayName({ sock, jid, pushName, number }) {
+  const bare = jid ? cleanJid(jid) : "";
+  const contact = sock?.store?.contacts?.[bare] || sock?.store?.contacts?.[jid] || null;
+  const fromStore = contact?.name || contact?.notify || contact?.verifiedName || null;
+  const stored = db.getPushName?.(number) || null;
+
+  let finalName = pushName || fromStore || stored;
+
+  // ⛔ تم إلغاء طباعة الأرقام نهائياً هنا
+  if (!finalName) {
+    finalName = "Guest"; // الاسم الافتراضي إذا لم يتوفر اسم حقيقي
+  }
+
+  return finalName;
+}
+
 async function resolveAvatar(sock, jid) {
   const urls = [];
   try {
     const url = await sock.profilePictureUrl(jid, "image");
     if (url) urls.push(url);
-  } catch {
-    // لا صورة شخصية: ننتقل إلى صور البوت.
-  }
+  } catch {}
+
   if (Array.isArray(global.botImages) && global.botImages.length) {
     const pick = global.botImages[Math.floor(Math.random() * global.botImages.length)];
     if (pick) urls.push(pick);
@@ -215,14 +137,11 @@ async function resolveAvatar(sock, jid) {
       const res = await fetch(url);
       if (!res.ok) continue;
       return await loadImage(Buffer.from(await res.arrayBuffer()));
-    } catch {
-      // جرّب المصدر التالي.
-    }
+    } catch {}
   }
   return null;
 }
 
-/** عدد الأعضاء الحالي، أو undefined إن تعذّرت القراءة. */
 async function resolveMemberCount(sock, groupJid) {
   try {
     const meta = await sock.groupMetadata(groupJid);
@@ -232,33 +151,24 @@ async function resolveMemberCount(sock, groupJid) {
   }
 }
 
-function cleanJid(jid = "") {
-  const at = jid.lastIndexOf("@");
-  if (at === -1) return jid.split(":")[0];
-  return `${jid.slice(0, at).split(":")[0]}@${jid.slice(at + 1)}`;
-}
-
-/** الاسم المعروض: الاسم الممرّر إن وُجد، وإلا الرقم المجرّد. */
-function displayNameOf(jid, pushName) {
-  const num = cleanJid(jid).split("@")[0];
-  const stored = db.getPushName?.(num);
-  return String(pushName || stored || num);
-}
-
-/**
- * بعض إصدارات baileys ترسل المشارك نصاً وبعضها كائناً يحمل id وpushName،
- * فنوحّد الشكل قبل المعالجة.
- */
 function normalizeParticipants(participants) {
   const out = [];
   for (const p of participants || []) {
     if (!p) continue;
-    const jid = typeof p === "string" ? p : p.id;
-    if (!jid) continue;
-    out.push({ jid, pushName: typeof p === "string" ? null : p.pushName });
+    let jid = typeof p === "string" ? p : p.id;
+    if (typeof p === "object") {
+      jid = p.id || p.jid || p.participant || p.participantAlt || jid;
+    }
+    if (!jid || typeof jid !== "string") continue;
+    const pushName = typeof p === "string" ? null : p.pushName;
+    out.push({ jid: cleanJid(jid), pushName });
   }
   return out;
 }
+
+// ═══════════════════════════════════════════════
+// أوامر البوت
+// ═══════════════════════════════════════════════
 
 export default {
   name: "ترحيب-وداع",
@@ -267,41 +177,32 @@ export default {
   async onJoin({ sock, groupJid, participants, botLabel }) {
     const memberCount = await resolveMemberCount(sock, groupJid);
 
-    let groupName = "";
-    try {
-      const meta = await sock.groupMetadata(groupJid);
-      groupName = meta?.subject || "";
-    } catch {
-      groupName = "";
-    }
-
     for (const { jid, pushName } of normalizeParticipants(participants)) {
-      const num = cleanJid(jid).split("@")[0];
+      const number = jid.split("@")[0];
       try {
         db.getUser(jid);
         const avatar = await resolveAvatar(sock, jid);
         const buffer = await renderGodfatherCard({
           avatar,
-          displayName: displayNameOf(jid, pushName),
+          displayName: resolveDisplayName({ sock, jid, pushName, number }),
           isJoin: true,
           memberCount,
-          groupName,
         });
+
         await sock.sendMessage(groupJid, {
           image: buffer,
-          caption: `🤵 أهلاً بك في العائلة، @${num}`,
+          // تم إبقاء الرقم في المنشن فقط لكي يعمل واتساب، لكنه لا يظهر في الصورة
+          caption: `أهلاً بك في العائلة، @${number}`,
           mentions: [jid],
         });
       } catch (e) {
         log.error(`[${botLabel}] الترحيب: ${e.message}`);
         try {
           await sock.sendMessage(groupJid, {
-            text: `👋 أهلاً وسهلاً @${num} في المجموعة!`,
+            text: `أهلاً وسهلاً @${number} في المجموعة!`,
             mentions: [jid],
           });
-        } catch (inner) {
-          log.error(`[${botLabel}] الترحيب (نص بديل): ${inner.message}`);
-        }
+        } catch (inner) {}
       }
     }
   },
@@ -310,31 +211,29 @@ export default {
     const memberCount = await resolveMemberCount(sock, groupJid);
 
     for (const { jid, pushName } of normalizeParticipants(participants)) {
-      const num = cleanJid(jid).split("@")[0];
+      const number = jid.split("@")[0];
       try {
         const avatar = await resolveAvatar(sock, jid);
         const buffer = await renderGodfatherCard({
           avatar,
-          displayName: displayNameOf(jid, pushName),
+          displayName: resolveDisplayName({ sock, jid, pushName, number }),
           isJoin: false,
           memberCount,
-          groupName: "",
         });
+
         await sock.sendMessage(groupJid, {
           image: buffer,
-          caption: `🚪 وداعاً @${num}`,
+          caption: `وداعاً @${number}`,
           mentions: [jid],
         });
       } catch (e) {
         log.error(`[${botLabel}] الوداع: ${e.message}`);
         try {
           await sock.sendMessage(groupJid, {
-            text: `👋 وداعاً @${num} 👋`,
+            text: `وداعاً @${number}`,
             mentions: [jid],
           });
-        } catch (inner) {
-          log.error(`[${botLabel}] الوداع (نص بديل): ${inner.message}`);
-        }
+        } catch (inner) {}
       }
     }
   },
