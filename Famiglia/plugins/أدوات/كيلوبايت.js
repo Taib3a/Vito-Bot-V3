@@ -16,7 +16,7 @@ const MEDIA_TYPES = {
 
 export default {
   name: ["كيلوبايت"],
-  description: "رفع الملفات إلى كيلو بايت وإرجاع الروابط كأزرار تفاعلية",
+  description: "رفع الملفات إلى كيلو بايت وإرجاع رابط النسخ المباشر",
   category: "أدوات",
   ownerOnly: false,
 
@@ -88,34 +88,28 @@ export default {
       const html = String(response.data || "");
 
       const pick = (re) => html.match(re)?.[0] || "";
-      const pageUrl = pick(/https:\/\/uploadkb\.com\/download\d+\.html/);
       const imageUrl = pick(/https:\/\/uploadkb\.com\/image\d+\.html/);
-      const deleteUrl = pick(/https:\/\/uploadkb\.com\/del[a-f0-9]+\.html/);
-      const forumCode =
-        pick(/\[url=https:\/\/uploadkb\.com\/\]\[img\][^\[]*\[\/img\]\[\/url\]/) || imageUrl;
 
-      if (!pageUrl && !imageUrl) {
-        throw new Error("لم يتم العثور على روابط الملف في استجابة الخادم.");
+      if (!imageUrl) {
+        throw new Error("لم يتم العثور على الرابط المباشر في استجابة الخادم.");
       }
 
       const caption =
         `☁️ *مركز كيلو بايت*\n\n` +
         `✅ *تم الرفع بنجاح!*\n\n` +
         `📦 *الحجم:* ${(buffer.length / 1024).toFixed(2)} KB\n\n` +
-        `👇 *اختر الرابط المطلوب:*`;
+        `👇 *اضغط لنسخ الرابط المباشر:*`;
 
-      // أزرار النسخ (cta_copy) تنسخ النص مباشرة، فلا تحتاج أي أمر إضافي —
-      // الإضافة تبقى بأمر واحد فقط.
-      const buttons = [];
-      if (imageUrl) buttons.push({ text: "🖼️ نسخ رابط الصورة", copy: imageUrl });
-      if (forumCode) buttons.push({ text: "💬 نسخ كود المنتدى", copy: forumCode });
-      if (deleteUrl) buttons.push({ text: "🗑️ نسخ رابط الحذف", copy: deleteUrl });
-
-      await sock.sendButtonMessage(from, caption, buttons, {
-        title: "كيلو بايت",
-        footer: "اختر من الأزرار أدناه",
-        quoted: msg,
-      });
+      await sock.sendButtonMessage(
+        from,
+        caption,
+        [{ text: "📋 نسخ الرابط المباشر", copy: imageUrl }],
+        {
+          title: "كيلو بايت",
+          footer: "Vito-Bot-V3",
+          quoted: msg,
+        }
+      );
 
       await react("✅");
     } catch (error) {
