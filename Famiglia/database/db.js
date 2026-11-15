@@ -161,6 +161,7 @@ function getGroup(jid) {
       primaryBot: null,
       adminMode: false,
       selfMode: false,
+      botOff: false,
     };
     stmts.insertGroup.run(jid, JSON.stringify(defaultGroup));
     return defaultGroup;
