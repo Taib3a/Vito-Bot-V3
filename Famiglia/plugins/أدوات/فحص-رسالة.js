@@ -13,7 +13,7 @@ async function resolverJid(sock, jid) {
 export default {
     name: ["فحص-رسالة"],
     description: 'يفحص رابط مجموعة أو مجتمع أو قناة واتساب',
-    category: "الأدوات",
+    category: "أدوات",
 
     async run({ sock, from, msg, text, reply }) {
 

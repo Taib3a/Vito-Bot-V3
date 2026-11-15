@@ -45,7 +45,7 @@ const T = {
 export default {
   name: ["رفع", "upload", ...BUTTON_NAMES],
   description: "رفع ملف إلى Dix CDN",
-  category: "الأدوات",
+  category: "أدوات",
   ownerOnly: false,
 
   async run({ sock, from, msg, senderNum, reply, react, cmdName }) {

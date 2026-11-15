@@ -82,7 +82,7 @@ async function iloveimgUpscale(imageBuffer, filename) {
 export default {
   name: ["جودة"],
   description: "يحسّن جودة الصورة (x4) باستخدام الذكاء الاصطناعي",
-  category: "الأدوات",
+  category: "أدوات",
 
   async run({ sock, from, msg, usedPrefix, cmdName, reply, react }) {
 

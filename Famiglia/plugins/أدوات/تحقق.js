@@ -10,7 +10,7 @@ function limpiarNumero(input) {
 export default {
   name: ["تحقق"],
   description: "يتحقق مما إذا كان رقم واتساب محظوراً",
-  category: "الأدوات",
+  category: "أدوات",
   ownerOnly: false,
 
   async run({ text, reply, usedPrefix, cmdName }) {

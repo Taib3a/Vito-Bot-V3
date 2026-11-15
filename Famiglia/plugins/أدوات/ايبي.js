@@ -3,7 +3,7 @@ import axios from 'axios';
 export default {
   name: ["ايبي"],
   description: "يبحث عن معلومات عنوان IP",
-  category: "الأدوات",
+  category: "أدوات",
   ownerOnly: false,
 
   async run({ text, reply, usedPrefix, cmdName }) {

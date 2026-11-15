@@ -3,7 +3,7 @@ import { downloadMediaMessage } from "@whiskeysockets/baileys";
 export default {
   name: ["اقرأني"],
   description: "ينزّل ويعرض محتوى رسالة العرض مرة واحدة",
-  category: "الأدوات",
+  category: "أدوات",
   ownerOnly: false,
 
   async run({ sock, from, msg, reply }) {

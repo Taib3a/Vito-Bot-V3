@@ -43,7 +43,7 @@ const T = {
 export default {
   name: ["لرابط", ...BUTTON_NAMES],
   description: "رفع ملف إلى Dix CDN",
-  category: "الأدوات",
+  category: "أدوات",
   ownerOnly: false,
 
   async run({ sock, from, msg, senderNum, reply, react, cmdName }) {

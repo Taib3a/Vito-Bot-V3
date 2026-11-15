@@ -17,7 +17,7 @@ const MEDIA_TYPES = {
 export default {
   name: ["كيلوبايت"],
   description: "رفع الملفات إلى كيلو بايت وإرجاع الروابط كأزرار تفاعلية",
-  category: "الأدوات",
+  category: "أدوات",
   ownerOnly: false,
 
   async run({ sock, from, msg, reply, react }) {

@@ -3,7 +3,7 @@ import { broadcastReaccionCanal } from '../../core/subbotManager.js'
 export default {
   name: ["تفاعل-قناة"],
   description: 'يجعل جميع البوتات تتفاعل مع رسالة قناة',
-  category: "الأدوات",
+  category: "أدوات",
   ownerOnly: false,
 
   async run({ sock, args, reply, react }) {

@@ -1,7 +1,7 @@
 export default {
   name: ["بينغ"],
   description: "يقيس زمن استجابة البوت",
-  category: "الأدوات",
+  category: "أدوات",
   ownerOnly: false,
 
   async run({ sock, from, msg, reply }) {

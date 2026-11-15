@@ -43,7 +43,7 @@ async function buscarYouTube(query, limite = 5) {
 export default {
   name: ["يوتيوب-بحث"],
   description: 'يبحث عن موسيقى أو فيديوهات في يوتيوب',
-  category: "الأدوات",
+  category: "أدوات",
 
   async run({ sock, from, msg, text, reply, react }) {
 

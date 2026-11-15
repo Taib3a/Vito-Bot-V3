@@ -1,7 +1,7 @@
 export default {
   name: ["تخفي"],
   description: "يرسل رسالة طويلة يقطعها واتساب بـ«قراءة المزيد» في نفس السطر",
-  category: "الأدوات",
+  category: "أدوات",
   ownerOnly: false,
 
   async run({ reply, text }) {

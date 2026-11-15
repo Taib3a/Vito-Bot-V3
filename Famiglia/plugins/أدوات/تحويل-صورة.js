@@ -17,7 +17,7 @@ if (!fs.existsSync(tmp))
 export default {
   name: ["تحويل-صورة"],
   description: "يحوّل الملصق إلى صورة",
-  category: "الأدوات",
+  category: "أدوات",
 
   async run({ sock, from, msg, react, reply }) {
 
