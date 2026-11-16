@@ -260,7 +260,10 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
         if (handled) return;
       }
 
-      if (!isCmd && body) handleChatXp(sender);
+      if (!isCmd && body) {
+        const levelUp = handleChatXp(sender);
+        if (levelUp) await sock.sendMessage(from, { text: levelUp, mentions: [sender] });
+      }
     }
 
     // الأوامر تُطبع في نهاية تنفيذها، أما الرسائل العادية فتُطبع فوراً.
@@ -343,7 +346,10 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
     try {
       await plugin.run(ctx);
       log.message({ ...boxInfo, isCmd: true });
-      if (isGroup) handleCommandXp(sender);
+      if (isGroup) {
+        const levelUp = handleCommandXp(sender);
+        if (levelUp) await sock.sendMessage(from, { text: levelUp, mentions: [sender] });
+      }
     } catch (e) {
       log.error(`الأمر ${cmdName}: ${e.message}`);
       log.message({ ...boxInfo, isCmd: true });

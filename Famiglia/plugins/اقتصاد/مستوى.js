@@ -1,4 +1,4 @@
-import { xpProgress } from "../../core/xp.js";
+import { xpProgress, rankForLevel } from "../../core/xp.js";
 import { db } from "../../database/db.js";
 
 export default {
@@ -12,7 +12,7 @@ export default {
     const { level, xp, missing } = xpProgress(user.xp || 0);
 
     await reply({
-      text: ( `『⭐』*المستوى:* ${level}\n*الخبرة:* ${xp}\n*المتبقي:* ${missing} خبرة للمستوى ${level + 1}`)
+      text: ( `『⭐』*المستوى:* ${level}\n*الرتبة:* ${rankForLevel(level)}\n*الخبرة:* ${xp}\n*المتبقي:* ${missing} خبرة للمستوى ${level + 1}`)
     });
   }
 };
