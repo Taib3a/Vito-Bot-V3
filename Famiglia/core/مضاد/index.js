@@ -221,5 +221,12 @@ export function registerAntifeatures(sock, botLabel = "MAIN") {
 }
 
 /** سجل المضادات: يُستخدم بواسطة أمر التحكم الواحد في plugins/. */
-export const antifeatures = modules.map((m) => ({ name: m.name, flag: m.flag, global: !!m.global }));
+export const antifeatures = modules.map((m) => ({
+  name: m.name,
+  flag: m.flag,
+  global: !!m.global,
+  mode: m.mode || null,
+}));
+/** الوحدات الخام: للدوالّ الاختيارية (status/button/run) في لوحة التحكم. */
+export const antifeatureModules = modules;
 export const antifeatureNames = modules.map((m) => m.name);

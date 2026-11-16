@@ -1,18 +1,20 @@
 import { db } from "../../database/db.js";
-import { antifeatures } from "../../core/مضاد/index.js";
+import { antifeatures, antifeatureModules } from "../../core/مضاد/index.js";
 
 // المضادات قسمان:
 //  • مضادات المجموعة: يتحكم بها مشرفو المجموعة، وإعدادها لكل مجموعة.
 //  • مضادات البوت العامة: يتحكم بها رقم البوت نفسه (من نفّذ الأمر)، وإعدادها لكل رقم على حدة.
-const GROUP_FEATURES = antifeatures.filter((a) => !a.global);
+const GROUP_FEATURES = antifeatures.filter((a) => !a.global && a.mode !== "bot");
 const BOT_FEATURES = antifeatures.filter((a) => a.global);
+// أدوات البوت: عناصر خاصة بالمجموعة يتحكم بها رقم البوت (مثل تشغيل/إيقاف).
+const BOT_TOOLS = antifeatures.filter((a) => a.mode === "bot");
+
+/** الوحدة الخام لعنصر في اللوحة (لدوالّ status/button/run). */
+const moduleOf = (flag) => antifeatureModules.find((m) => m.flag === flag);
 
 // معرّفات الأزرار تُطابَق حرفياً في messageHandler، فتُسجَّل كاملة لا ببادئة.
 const TOGGLE_NAMES = GROUP_FEATURES.flatMap((a) => [`تفعيل_${a.flag}`, `تعطيل_${a.flag}`]);
-const BOT_TOGGLE_NAMES = BOT_FEATURES.flatMap((a) => [`تفعيل_${a.flag}`, `تعطيل_${a.flag}`]);
-// زرّ إيقاف/تشغيل البوت في المجموعة (لوحة رقم البوت).
-const BOT_OFF_TOKEN = "botoff";
-const BOT_OFF_NAMES = [`تفعيل_${BOT_OFF_TOKEN}`, `تعطيل_${BOT_OFF_TOKEN}`];
+const BOT_TOGGLE_NAMES = [...BOT_FEATURES, ...BOT_TOOLS].flatMap((a) => [`تفعيل_${a.flag}`, `تعطيل_${a.flag}`]);
 const SELECT_NAMES = GROUP_FEATURES.map((a) => `اختر_${a.flag}`);
 const MODE_NAMES = ["تفعيل-ازرار", "تفعيل-قائمه", "تعطيل-ازرار", "تعطيل-قائمه"];
 const PAGE_NAMES = Array.from({ length: 50 }, (_, i) => `تفعيل-المزيد_${i + 1}`);
@@ -137,23 +139,24 @@ function buildControlPanel(flag, from) {
   };
 }
 
-/** لوحة رقم البوت: مضادات الستوري الخاصة بهذا الرقم، وحالة تشغيله في المجموعة. */
+/** لوحة رقم البوت: مضادات الستوري الخاصة بهذا الرقم، وأدوات البوت في المجموعة. */
 function buildBotStatusPanel(botNum, from) {
   const s = db.getBotSettings(botNum);
-  const off = !!db.getGroup(from)?.botOff;
 
   const buttons = BOT_FEATURES.map((a) => ({
     text: `${s[a.flag] ? "🚫" : "✅"} ${shortName(a.name)}`,
     id: s[a.flag] ? `.تعطيل_${a.flag}` : `.تفعيل_${a.flag}`,
   }));
 
-  buttons.push({
-    text: off ? "🟢 تشغيل البوت" : "🔴 إيقاف البوت",
-    id: off ? `.تفعيل_${BOT_OFF_TOKEN}` : `.تعطيل_${BOT_OFF_TOKEN}`,
-  });
-
   const lines = BOT_FEATURES.map((a) => `• ${a.name}: ${s[a.flag] ? T.statusOn : T.statusOff}`);
-  lines.push(`• البوت في المجموعة: ${off ? "متوقف 🔴" : "يعمل 🟢"}`);
+
+  // أدوات البوت: وحدة «تشغيل-وايقاف» تحدّد زرّها وسطر حالتها.
+  for (const tool of BOT_TOOLS) {
+    const mod = moduleOf(tool.flag);
+    if (!mod) continue;
+    if (typeof mod.button === "function") buttons.push(mod.button(!!db.getGroup(from)?.botOff));
+    if (typeof mod.status === "function") lines.push(mod.status(!!db.getGroup(from)?.botOff));
+  }
 
   return {
     text: `${T.head}\n\n🤖 *إعدادات خاصة برقم البوت:*\n\`${botNum}\`\n\n${lines.join("\n")}`,
@@ -162,7 +165,7 @@ function buildBotStatusPanel(botNum, from) {
 }
 
 export default {
-  name: ["تفعيل", "تعطيل", ...TOGGLE_NAMES, ...BOT_TOGGLE_NAMES, ...BOT_OFF_NAMES, ...SELECT_NAMES, ...MODE_NAMES, ...PAGE_NAMES],
+  name: ["تفعيل", "تعطيل", ...TOGGLE_NAMES, ...BOT_TOGGLE_NAMES, ...SELECT_NAMES, ...MODE_NAMES, ...PAGE_NAMES],
   description: "تفعيل وتعطيل المضادات بأزرار قابلة للضغط",
   category: "المجموعات",
   groupOnly: true,
@@ -180,26 +183,23 @@ export default {
 
     // رقم البوت: لوحة الستوري مباشرة، بلا قائمة أقسام.
     if (isBotSelf) {
-      // إيقاف/تشغيل البوت في هذه المجموعة.
-      if (name.includes(BOT_OFF_TOKEN)) {
-        const on = !name.startsWith("تعطيل"); // «تفعيل» = تشغيل البوت
-        if (!on && db.getGroup(from).botOff) return await reply({ text: "🔴 البوت متوقف بالفعل في هذه المجموعة." });
-        if (on && !db.getGroup(from).botOff) return await reply({ text: "🟢 البوت يعمل بالفعل في هذه المجموعة." });
-        db.setGroup(from, { botOff: !on });
+      const flag = name.replace(/^(تفعيل|تعطيل)_?/, "") || String(args[0] || "").toLowerCase();
+      const on = !name.startsWith("تعطيل");
+
+      // أدوات البوت (مثل تشغيل/إيقاف): وحدتها في core/مضاد تنفّذ التبديل.
+      const tool = BOT_TOOLS.find((a) => a.flag.toLowerCase() === flag);
+      if (tool) {
+        const mod = moduleOf(tool.flag);
+        const res = await mod.run({ sock, from, on, botNum });
+        if (!res.changed) return await reply({ text: res.text });
         await react(on ? "🟢" : "🔴");
         const data = buildBotStatusPanel(botNum, from);
-        const msgText = on
-          ? "🟢 *تم تشغيل البوت في هذه المجموعة.*"
-          : "🔴 *تم إيقاف البوت في هذه المجموعة.*\n> لن يستجيب لأي أمر حتى تكتب *تفعيل* مجدداً.";
-        return await panel({ ...data, text: `${msgText}\n\n${data.text}` });
+        return await panel({ ...data, text: `${res.text}\n\n${data.text}` });
       }
 
       const isGlobalFlag = (t) => BOT_FEATURES.some((a) => a.flag.toLowerCase() === String(t).toLowerCase());
-
-      const target = name.replace(/^(تفعيل|تعطيل)_?/, "") || String(args[0] || "").toLowerCase();
-      if (target && isGlobalFlag(target)) {
-        const mod = find(target);
-        const on = !name.startsWith("تعطيل");
+      if (flag && isGlobalFlag(flag)) {
+        const mod = find(flag);
         db.setBotSettings(botNum, { [mod.flag]: on });
         await react(on ? "✅" : "🚫");
         const data = buildBotStatusPanel(botNum, from);
