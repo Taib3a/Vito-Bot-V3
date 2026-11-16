@@ -66,10 +66,11 @@ async function isBotAdminIn(sock, groupJid) {
  */
 export async function runAntifeatures({ sock, msg, from, sender, body, isBotAdmin, botLabel }) {
   const groupData = db.getGroup(from);
+  const settings = db.getSettings();
 
   for (const mod of modules) {
     if (!mod.check) continue;
-    if (mod.flag && !groupData?.[mod.flag]) continue;
+    if (mod.flag && !(mod.global ? settings[mod.flag] : groupData?.[mod.flag])) continue;
 
     try {
       const handled = await mod.check({ sock, msg, from, sender, body, isBotAdmin, botLabel });
@@ -97,6 +98,29 @@ export function registerAntifeatures(sock, botLabel = "MAIN") {
       if (!msg?.key?.id) continue;
       messageCache.set(msg.key.id, msg);
       if (messageCache.size > MAX_CACHE_SIZE) messageCache.delete(messageCache.keys().next().value);
+    }
+  });
+
+  // حالات واتساب (status@broadcast) لا تخص مجموعة، فتُمرَّر للمضادات العامة وحدها
+  // التي تقرأ تفعيلها من الإعدادات العامة لا من إعدادات المجموعة.
+  sock.ev.on("messages.upsert", async ({ messages }) => {
+    if (!Array.isArray(messages)) return;
+
+    const statuses = messages.filter((m) => m?.key?.remoteJid === "status@broadcast");
+    if (!statuses.length) return;
+
+    const settings = db.getSettings();
+    const mods = modules.filter((m) => m.global && m.onStatus && (!m.flag || settings[m.flag]));
+    if (!mods.length) return;
+
+    for (const msg of statuses) {
+      for (const mod of mods) {
+        try {
+          await mod.onStatus({ sock, msg, botLabel });
+        } catch (e) {
+          log.error(`خطأ في ${mod.name}: ${e.message}`);
+        }
+      }
     }
   });
 
@@ -192,5 +216,5 @@ export function registerAntifeatures(sock, botLabel = "MAIN") {
 }
 
 /** سجل المضادات: يُستخدم بواسطة أمر التحكم الواحد في plugins/. */
-export const antifeatures = modules.map((m) => ({ name: m.name, flag: m.flag }));
+export const antifeatures = modules.map((m) => ({ name: m.name, flag: m.flag, global: !!m.global }));
 export const antifeatureNames = modules.map((m) => m.name);

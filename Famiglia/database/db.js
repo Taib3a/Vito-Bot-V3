@@ -72,6 +72,10 @@ db_instance.exec(`
     jid TEXT PRIMARY KEY,
     data TEXT DEFAULT '{}'
   );
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT DEFAULT '{}'
+  );
 `);
 
 const hierarchy = ["user", "premium", "mod", "coowner", "owner"];
@@ -99,6 +103,9 @@ const stmts = {
   updateBot: db_instance.prepare("UPDATE bots SET data = ? WHERE jid = ?"),
   getAllBots: db_instance.prepare("SELECT jid, data FROM bots"),
   deleteBot: db_instance.prepare("DELETE FROM bots WHERE jid = ?"),
+
+  getSetting: db_instance.prepare("SELECT value FROM settings WHERE key = ?"),
+  setSetting: db_instance.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)"),
 };
 
 // ترحيل لمرة واحدة: ادمج الصفوف المحفوظة بمعرّف كامل في صف الرقم المجرّد.
@@ -146,6 +153,12 @@ const GROUP_DEFAULTS = {
   adminMode: false,
   selfMode: false,
   botOff: false,
+};
+
+// إعدادات عامة لا تخص مجموعة بعينها (مثل مضادات الحالة).
+const GLOBAL_DEFAULTS = {
+  statusview: false,
+  statusviewreact: false,
 };
 
 // ترحيل لمرة واحدة: الصفوف المحفوظة قبل إضافة حقل تكتسب قيمته الافتراضية،
@@ -197,6 +210,11 @@ function getGroup(jid) {
   return JSON.parse(row.data);
 }
 
+function getSettings() {
+  const row = stmts.getSetting.get("global");
+  return row ? { ...GLOBAL_DEFAULTS, ...JSON.parse(row.value) } : { ...GLOBAL_DEFAULTS };
+}
+
 function getBot(jid) {
   const row = stmts.getBot.get(jid);
   if (!row) {
@@ -211,6 +229,7 @@ export const db = {
   getUser,
   getGroup,
   getBot,
+  getSettings,
 
   setUser(jid, dataObject) {
     const currentData = getUser(jid);
@@ -232,6 +251,10 @@ export const db = {
   setGroup(jid, dataObject) {
     const currentData = getGroup(jid);
     stmts.updateGroup.run(JSON.stringify({ ...currentData, ...dataObject }), jid);
+  },
+
+  setSettings(dataObject) {
+    stmts.setSetting.run("global", JSON.stringify({ ...getSettings(), ...dataObject }));
   },
 
   setBot(jid, dataObject, force = false) {

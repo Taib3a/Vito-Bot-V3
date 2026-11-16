@@ -107,12 +107,14 @@ function buildCategoriesDropdown() {
 
 /** الخطوة 3: لوحة تحكم مضاد واحد: حالته وزرّ التبديل. */
 function buildControlPanel(flag, from) {
-  const mod = antifeatures.find((a) => a.flag === flag);
+  const q = String(flag).toLowerCase();
+  const mod = antifeatures.find((a) => a.flag.toLowerCase() === q);
   if (!mod) return null;
 
-  const isOn = !!db.getGroup(from)?.[flag];
+  const isOn = mod.global ? !!db.getSettings()?.[mod.flag] : !!db.getGroup(from)?.[mod.flag];
+  const scope = mod.global ? " 🌍 عام" : "";
   return {
-    text: `${T.head}\n\n📌 *${mod.name}*\n${T.status}: ${isOn ? T.statusOn : T.statusOff}`,
+    text: `${T.head}\n\n📌 *${mod.name}*${scope}\n${T.status}: ${isOn ? T.statusOn : T.statusOff}`,
     buttons: [
       { text: isOn ? T.btnOff : T.btnOn, id: isOn ? `.تعطيل_${flag}` : `.تفعيل_${flag}` },
       { text: T.btnBack, id: ".تفعيل" },
@@ -177,7 +179,8 @@ export default {
       return await reply({ text: `${T.notFound}\n> المتاح: ${names}` });
     }
 
-    db.setGroup(from, { [mod.flag]: on });
+    if (mod.global) db.setSettings({ [mod.flag]: on });
+    else db.setGroup(from, { [mod.flag]: on });
     await react(on ? "✅" : "🚫");
 
     const ctrl = buildControlPanel(mod.flag, from);
