@@ -135,6 +135,43 @@ function migrateUserKeys() {
 
 migrateUserKeys();
 
+const GROUP_DEFAULTS = {
+  welcome: true,
+  antilink: true,
+  antispam: true,
+  antibot: true,
+  antidelete: true,
+  primaryBot: null,
+  adminMode: false,
+  selfMode: false,
+  botOff: false,
+};
+
+// ترحيل لمرة واحدة: الصفوف المحفوظة قبل إضافة حقل تكتسب قيمته الافتراضية،
+// وإلا عُدّ المضاد الجديد معطّلاً في كل مجموعة قديمة.
+function migrateGroupDefaults() {
+  const rows = db_instance.prepare("SELECT jid, data FROM groups").all();
+
+  const run = db_instance.transaction(() => {
+    for (const row of rows) {
+      const data = JSON.parse(row.data);
+      let changed = false;
+
+      for (const [key, value] of Object.entries(GROUP_DEFAULTS)) {
+        if (data[key] === undefined) {
+          data[key] = value;
+          changed = true;
+        }
+      }
+
+      if (changed) stmts.updateGroup.run(JSON.stringify(data), row.jid);
+    }
+  });
+  run();
+}
+
+migrateGroupDefaults();
+
 function getUser(jid) {
   const key = normalizeJid(jid);
   const row = stmts.getUser.get(key);
@@ -153,18 +190,8 @@ function getUser(jid) {
 function getGroup(jid) {
   const row = stmts.getGroup.get(jid);
   if (!row) {
-    const defaultGroup = {
-      welcome: true,
-      antilink: true,
-      antispam: true,
-      antibot: true,
-      primaryBot: null,
-      adminMode: false,
-      selfMode: false,
-      botOff: false,
-    };
-    stmts.insertGroup.run(jid, JSON.stringify(defaultGroup));
-    return defaultGroup;
+    stmts.insertGroup.run(jid, JSON.stringify(GROUP_DEFAULTS));
+    return { ...GROUP_DEFAULTS };
   }
   return JSON.parse(row.data);
 }

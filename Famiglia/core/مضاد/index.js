@@ -1,6 +1,7 @@
 import { readdirSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath, pathToFileURL } from "url";
+import { WAMessageStubType } from "@whiskeysockets/baileys";
 import { log } from "../logger.js";
 import { db } from "../../database/db.js";
 
@@ -82,10 +83,23 @@ export async function runAntifeatures({ sock, msg, from, sender, body, isBotAdmi
 }
 
 /**
- * يربط أحداث الدخول والخروج بكل مضاد يملك onJoin/onLeave.
+ * يربط أحداث الدخول والخروج والحذف بكل مضاد يملك onJoin/onLeave/onDelete.
  * كل معالج معزول بـ try/catch حتى لا يُسقط خطأ واحد البوت.
  */
 export function registerAntifeatures(sock, botLabel = "MAIN") {
+  // ذاكرة الرسائل الأصلية لاسترجاعها عند الحذف. المكتبة تحذف حمولة الرسالة من
+  // الحدث (تُبقي المفتاح فقط)، ولا تُصدّر ذاكرتها الداخلية، فنُبقي نسخة هنا.
+  const messageCache = new Map();
+  const MAX_CACHE_SIZE = 1000;
+
+  sock.ev.on("messages.upsert", ({ messages }) => {
+    for (const msg of messages || []) {
+      if (!msg?.key?.id) continue;
+      messageCache.set(msg.key.id, msg);
+      if (messageCache.size > MAX_CACHE_SIZE) messageCache.delete(messageCache.keys().next().value);
+    }
+  });
+
   sock.ev.on("group-participants.update", async ({ id, participants, action }) => {
     if (!id?.endsWith("@g.us") || !Array.isArray(participants)) return;
 
@@ -107,6 +121,39 @@ export function registerAntifeatures(sock, botLabel = "MAIN") {
       }
     } catch (e) {
       log.error(`[${botLabel}] خطأ في حدث المشاركين: ${e.message}`);
+    }
+  });
+
+  // الحذف يصل كتحديث بروتوكول REVOKE. المكتبة توفّر `message.deleted` عند تفعيل
+  // vaultOptions، لكنه يتطلب خيارات إنشاء المقبس؛ نستمع للتحديث الخام هنا ليعمل
+  // في كل المقابس بلا شرط. الرسالة الأصلية تُجلب من الذاكرة عبر WAMessage.key.
+  sock.ev.on("messages.update", async (updates) => {
+    if (!Array.isArray(updates)) return;
+
+    for (const update of updates) {
+      if (update?.update?.messageStubType !== WAMessageStubType.REVOKE) continue;
+
+      const original = update.update.key;
+      const from = original?.remoteJid || update.key?.remoteJid || "";
+      if (!from.endsWith("@g.us") || !original?.id) continue;
+
+      try {
+        const groupData = db.getGroup(from);
+        for (const mod of modules) {
+          if (!mod.onDelete) continue;
+          if (mod.flag && !groupData?.[mod.flag]) continue;
+
+          try {
+            const deleted = messageCache.get(original.id);
+            if (!deleted) continue;
+            await mod.onDelete({ sock, deleted, botLabel });
+          } catch (e) {
+            log.error(`خطأ في ${mod.name}: ${e.message}`);
+          }
+        }
+      } catch (e) {
+        log.error(`[${botLabel}] خطأ في حدث الحذف: ${e.message}`);
+      }
     }
   });
 
