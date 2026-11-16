@@ -10,6 +10,9 @@ const BOT_FEATURES = antifeatures.filter((a) => a.global);
 // معرّفات الأزرار تُطابَق حرفياً في messageHandler، فتُسجَّل كاملة لا ببادئة.
 const TOGGLE_NAMES = GROUP_FEATURES.flatMap((a) => [`تفعيل_${a.flag}`, `تعطيل_${a.flag}`]);
 const BOT_TOGGLE_NAMES = BOT_FEATURES.flatMap((a) => [`تفعيل_${a.flag}`, `تعطيل_${a.flag}`]);
+// زرّ إيقاف/تشغيل البوت في المجموعة (لوحة رقم البوت).
+const BOT_OFF_TOKEN = "botoff";
+const BOT_OFF_NAMES = [`تفعيل_${BOT_OFF_TOKEN}`, `تعطيل_${BOT_OFF_TOKEN}`];
 const SELECT_NAMES = GROUP_FEATURES.map((a) => `اختر_${a.flag}`);
 const MODE_NAMES = ["تفعيل-ازرار", "تفعيل-قائمه", "تعطيل-ازرار", "تعطيل-قائمه"];
 const PAGE_NAMES = Array.from({ length: 50 }, (_, i) => `تفعيل-المزيد_${i + 1}`);
@@ -134,16 +137,23 @@ function buildControlPanel(flag, from) {
   };
 }
 
-/** لوحة رقم البوت: مضادات الستوري الخاصة بهذا الرقم وحده. */
-function buildBotStatusPanel(botNum) {
+/** لوحة رقم البوت: مضادات الستوري الخاصة بهذا الرقم، وحالة تشغيله في المجموعة. */
+function buildBotStatusPanel(botNum, from) {
   const s = db.getBotSettings(botNum);
+  const off = !!db.getGroup(from)?.botOff;
 
   const buttons = BOT_FEATURES.map((a) => ({
     text: `${s[a.flag] ? "🚫" : "✅"} ${shortName(a.name)}`,
     id: s[a.flag] ? `.تعطيل_${a.flag}` : `.تفعيل_${a.flag}`,
   }));
 
+  buttons.push({
+    text: off ? "🟢 تشغيل البوت" : "🔴 إيقاف البوت",
+    id: off ? `.تفعيل_${BOT_OFF_TOKEN}` : `.تعطيل_${BOT_OFF_TOKEN}`,
+  });
+
   const lines = BOT_FEATURES.map((a) => `• ${a.name}: ${s[a.flag] ? T.statusOn : T.statusOff}`);
+  lines.push(`• البوت في المجموعة: ${off ? "متوقف 🔴" : "يعمل 🟢"}`);
 
   return {
     text: `${T.head}\n\n🤖 *إعدادات خاصة برقم البوت:*\n\`${botNum}\`\n\n${lines.join("\n")}`,
@@ -152,7 +162,7 @@ function buildBotStatusPanel(botNum) {
 }
 
 export default {
-  name: ["تفعيل", "تعطيل", ...TOGGLE_NAMES, ...BOT_TOGGLE_NAMES, ...SELECT_NAMES, ...MODE_NAMES, ...PAGE_NAMES],
+  name: ["تفعيل", "تعطيل", ...TOGGLE_NAMES, ...BOT_TOGGLE_NAMES, ...BOT_OFF_NAMES, ...SELECT_NAMES, ...MODE_NAMES, ...PAGE_NAMES],
   description: "تفعيل وتعطيل المضادات بأزرار قابلة للضغط",
   category: "المجموعات",
   groupOnly: true,
@@ -170,6 +180,20 @@ export default {
 
     // رقم البوت: لوحة الستوري مباشرة، بلا قائمة أقسام.
     if (isBotSelf) {
+      // إيقاف/تشغيل البوت في هذه المجموعة.
+      if (name.includes(BOT_OFF_TOKEN)) {
+        const on = !name.startsWith("تعطيل"); // «تفعيل» = تشغيل البوت
+        if (!on && db.getGroup(from).botOff) return await reply({ text: "🔴 البوت متوقف بالفعل في هذه المجموعة." });
+        if (on && !db.getGroup(from).botOff) return await reply({ text: "🟢 البوت يعمل بالفعل في هذه المجموعة." });
+        db.setGroup(from, { botOff: !on });
+        await react(on ? "🟢" : "🔴");
+        const data = buildBotStatusPanel(botNum, from);
+        const msgText = on
+          ? "🟢 *تم تشغيل البوت في هذه المجموعة.*"
+          : "🔴 *تم إيقاف البوت في هذه المجموعة.*\n> لن يستجيب لأي أمر حتى تكتب *تفعيل* مجدداً.";
+        return await panel({ ...data, text: `${msgText}\n\n${data.text}` });
+      }
+
       const isGlobalFlag = (t) => BOT_FEATURES.some((a) => a.flag.toLowerCase() === String(t).toLowerCase());
 
       const target = name.replace(/^(تفعيل|تعطيل)_?/, "") || String(args[0] || "").toLowerCase();
@@ -178,12 +202,12 @@ export default {
         const on = !name.startsWith("تعطيل");
         db.setBotSettings(botNum, { [mod.flag]: on });
         await react(on ? "✅" : "🚫");
-        const data = buildBotStatusPanel(botNum);
+        const data = buildBotStatusPanel(botNum, from);
         return await panel({ ...data, text: `${on ? T.onOne(mod.name) : T.offOne(mod.name)}\n\n${data.text}` });
       }
 
       await react("🛡️");
-      return await panel(buildBotStatusPanel(botNum));
+      return await panel(buildBotStatusPanel(botNum, from));
     }
 
     // مشرف/مالك: لوحة مضادات المجموعة.
