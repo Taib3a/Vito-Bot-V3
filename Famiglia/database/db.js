@@ -157,8 +157,8 @@ const GROUP_DEFAULTS = {
 
 // إعدادات خاصة برقم البوت نفسه (مثل مضادات الحالة) — لكل رقم إعداداته المستقلة.
 const BOT_SETTINGS_DEFAULTS = {
-  statusview: false,
-  statusviewreact: false,
+  statusview: true,
+  statusviewreact: true,
 };
 
 // ترحيل لمرة واحدة: الصفوف المحفوظة قبل إضافة حقل تكتسب قيمته الافتراضية،
