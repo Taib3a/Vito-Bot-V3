@@ -151,7 +151,7 @@ const GROUP_DEFAULTS = {
   monitor: true,
   viewonce: true,
   primaryBot: null,
-  adminMode: false,
+  adminMode: true,
   selfMode: false,
 };
 
