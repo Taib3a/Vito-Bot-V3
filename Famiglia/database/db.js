@@ -143,59 +143,23 @@ function migrateUserKeys() {
 migrateUserKeys();
 
 const GROUP_DEFAULTS = {
-  // ── مضادات المجموعة (يتحكم بها المشرف) ──
-  "مضادات-المجموعة.welcome": true,
-  "مضادات-المجموعة.antilink": true,
-  "مضادات-المجموعة.antispam": true,
-  "مضادات-المجموعة.antibot": true,
-  "مضادات-المجموعة.antidelete": true,
-  "مضادات-المجموعة.monitor": true,
-
-  // ── إعدادات المشرف (تقييد من يستخدم البوت) ──
-  "المشرف.adminMode": false,
-
-  // ── إعدادات المالك (لا يراها المشرف) ──
-  "المالك.selfMode": false,
-
-  // ── إعدادات داخلية (يكتبها البوت وحده) ──
-  "داخلي.primaryBot": null,
-  "داخلي.botOff": false,
-  "داخلي.warns": {},
+  welcome: true,
+  antilink: true,
+  antispam: true,
+  antibot: true,
+  antidelete: true,
+  monitor: true,
+  primaryBot: null,
+  adminMode: false,
+  selfMode: false,
+  botOff: false,
 };
 
-/** يزيل البادئة النطاقية: "المشرف.adminMode" → "adminMode" (القراءة مبوّبة، والكتابة مسطّحة). */
-const flatten = (obj) =>
-  Object.fromEntries(Object.entries(obj).map(([k, v]) => [k.split(".").pop(), v]));
-
-/** القيم المسطّحة كما تُحفظ في القاعدة. */
-const GROUP_DATA = flatten(GROUP_DEFAULTS);
-
-/** مفاتيح نطاق معيّن من العناوين أعلاه (بلا تكرار يدوي). */
-const keysOf = (scope) =>
-  Object.keys(GROUP_DEFAULTS)
-    .filter((k) => k.startsWith(scope + "."))
-    .map((k) => k.split(".").pop());
-
-// مفاتيح كل نطاق — تُستخدم في الترحيل وفي أمر عرض الإعدادات.
-const ANTIFEATURE_KEYS = keysOf("مضادات-المجموعة");
-const ADMIN_KEYS = keysOf("المشرف");
-const OWNER_KEYS = keysOf("المالك");
-
-// ── إعدادات رقم البوت (لكل رقم على حدة، لا لكل مجموعة) ──
+// إعدادات خاصة برقم البوت نفسه (مثل مضادات الحالة) — لكل رقم إعداداته المستقلة.
 const BOT_SETTINGS_DEFAULTS = {
   statusview: true,
   statusviewreact: true,
 };
-
-// ── إعدادات المستخدم ──
-const USER_DEFAULTS = {
-  role: "user",
-  banned: false,
-};
-
-// ما يُرحَّل للمستخدمين القدامى: قيم الحالة فقط. الحقول الكتابية مثل
-// pushName/registeredAt تُترك حتى تُكتب فعلاً، فلا نملأ القاعدة بقيم كاذبة.
-const USER_MIGRATABLE_KEYS = ["role", "banned"];
 
 // ترحيل لمرة واحدة: الصفوف المحفوظة قبل إضافة حقل تكتسب قيمته الافتراضية،
 // وإلا عُدّ المضاد الجديد معطّلاً في كل مجموعة قديمة.
@@ -207,7 +171,7 @@ function migrateGroupDefaults() {
       const data = JSON.parse(row.data);
       let changed = false;
 
-      for (const [key, value] of Object.entries(GROUP_DATA)) {
+      for (const [key, value] of Object.entries(GROUP_DEFAULTS)) {
         if (data[key] === undefined) {
           data[key] = value;
           changed = true;
@@ -222,36 +186,13 @@ function migrateGroupDefaults() {
 
 migrateGroupDefaults();
 
-// نفس الفكرة للمستخدمين: صف قديم بلا `role`/`banned` يكتسب الافتراضي.
-function migrateUserDefaults() {
-  const rows = db_instance.prepare("SELECT jid, data FROM users").all();
-
-  const run = db_instance.transaction(() => {
-    for (const row of rows) {
-      const data = JSON.parse(row.data);
-      let changed = false;
-
-      for (const key of USER_MIGRATABLE_KEYS) {
-        if (data[key] === undefined) {
-          data[key] = USER_DEFAULTS[key];
-          changed = true;
-        }
-      }
-
-      if (changed) stmts.updateUser.run(JSON.stringify(data), row.jid);
-    }
-  });
-  run();
-}
-
-migrateUserDefaults();
-
 function getUser(jid) {
   const key = normalizeJid(jid);
   const row = stmts.getUser.get(key);
   if (!row) {
     const defaultUser = {
-      ...USER_DEFAULTS,
+      role: "user",
+      banned: false,
       registeredAt: new Date().toISOString(),
     };
     stmts.insertUser.run(key, JSON.stringify(defaultUser));
@@ -263,8 +204,8 @@ function getUser(jid) {
 function getGroup(jid) {
   const row = stmts.getGroup.get(jid);
   if (!row) {
-    stmts.insertGroup.run(jid, JSON.stringify(GROUP_DATA));
-    return { ...GROUP_DATA };
+    stmts.insertGroup.run(jid, JSON.stringify(GROUP_DEFAULTS));
+    return { ...GROUP_DEFAULTS };
   }
   return JSON.parse(row.data);
 }
@@ -289,18 +230,6 @@ export const db = {
   getGroup,
   getBot,
   getBotSettings,
-
-  /** رؤية مصنّفة للإعدادات الافتراضية — لعرضها في أمر إعدادات واحد. */
-  getDefaultsView() {
-    return {
-      antifeatures: Object.fromEntries(ANTIFEATURE_KEYS.map((k) => [k, GROUP_DATA[k]])),
-      admin: Object.fromEntries(ADMIN_KEYS.map((k) => [k, GROUP_DATA[k]])),
-      owner: Object.fromEntries(OWNER_KEYS.map((k) => [k, GROUP_DATA[k]])),
-      bot: { ...BOT_SETTINGS_DEFAULTS },
-      user: { ...USER_DEFAULTS },
-      roles: [...hierarchy],
-    };
-  },
 
   setUser(jid, dataObject) {
     const currentData = getUser(jid);
