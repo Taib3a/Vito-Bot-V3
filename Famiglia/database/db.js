@@ -149,6 +149,7 @@ const GROUP_DEFAULTS = {
   antibot: true,
   antidelete: true,
   monitor: true,
+  viewonce: true,
   primaryBot: null,
   adminMode: false,
   selfMode: false,

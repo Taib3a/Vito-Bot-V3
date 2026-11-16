@@ -253,7 +253,9 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
       if (groupData?.selfMode && !isOwner && !isCoOwner && !fromMe) return;
       if (groupData?.adminMode && !isAdmin && !isMod) return;
 
-      if (body && !isAdmin && !isMod && !isCmd) {
+      // المضادات تعمل على النص والوسائط معاً: مضاد العرض مرة واحدة يحتاج
+      // رسالة بلا نص، فلا يُشترط `body`.
+      if (!isAdmin && !isMod && !isCmd) {
         const handled = await runAntifeatures({ sock, msg, from, sender, body, isBotAdmin, botLabel });
         if (handled) return;
       }
