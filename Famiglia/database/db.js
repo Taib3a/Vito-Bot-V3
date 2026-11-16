@@ -152,13 +152,18 @@ const GROUP_DEFAULTS = {
   primaryBot: null,
   adminMode: false,
   selfMode: false,
-  botOff: false,
 };
 
 // إعدادات خاصة برقم البوت نفسه (مثل مضادات الحالة) — لكل رقم إعداداته المستقلة.
 const BOT_SETTINGS_DEFAULTS = {
   statusview: true,
   statusviewreact: true,
+};
+
+// إعدادات لكل (رقم بوت + مجموعة): رقم واحد قد يتوقف في مجموعة ويبقى في غيرها.
+// يتحكم بها رقم البوت نفسه لا مشرفو المجموعة.
+const BOT_GROUP_DEFAULTS = {
+  botOn: true,
 };
 
 // ترحيل لمرة واحدة: الصفوف المحفوظة قبل إضافة حقل تكتسب قيمته الافتراضية،
@@ -215,6 +220,12 @@ function getBotSettings(botNum = "") {
   return row ? { ...BOT_SETTINGS_DEFAULTS, ...JSON.parse(row.value) } : { ...BOT_SETTINGS_DEFAULTS };
 }
 
+/** إعدادات (رقم بوت + مجموعة). المفتاح `botgroup:<رقم>:<jid>`. */
+function getBotGroup(botNum = "", groupJid = "") {
+  const row = stmts.getSetting.get(`botgroup:${botNum}:${groupJid}`);
+  return row ? { ...BOT_GROUP_DEFAULTS, ...JSON.parse(row.value) } : { ...BOT_GROUP_DEFAULTS };
+}
+
 function getBot(jid) {
   const row = stmts.getBot.get(jid);
   if (!row) {
@@ -230,6 +241,7 @@ export const db = {
   getGroup,
   getBot,
   getBotSettings,
+  getBotGroup,
 
   setUser(jid, dataObject) {
     const currentData = getUser(jid);
@@ -255,6 +267,13 @@ export const db = {
 
   setBotSettings(botNum, dataObject) {
     stmts.setSetting.run(`bot:${botNum}`, JSON.stringify({ ...getBotSettings(botNum), ...dataObject }));
+  },
+
+  setBotGroup(botNum, groupJid, dataObject) {
+    stmts.setSetting.run(
+      `botgroup:${botNum}:${groupJid}`,
+      JSON.stringify({ ...getBotGroup(botNum, groupJid), ...dataObject })
+    );
   },
 
   setBot(jid, dataObject, force = false) {

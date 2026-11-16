@@ -149,6 +149,7 @@ function buildControlPanel(flag, from) {
 /** لوحة رقم البوت: مضادات الستوري الخاصة بهذا الرقم، وأدوات البوت في المجموعة. */
 function buildBotStatusPanel(botNum, from) {
   const s = db.getBotSettings(botNum);
+  const bg = db.getBotGroup(botNum, from);
 
   const buttons = BOT_FEATURES.map((a) => ({
     text: `${s[a.flag] ? "🚫" : "✅"} ${shortName(a.name)}`,
@@ -157,12 +158,12 @@ function buildBotStatusPanel(botNum, from) {
 
   const lines = BOT_FEATURES.map((a) => `• ${a.name}: ${s[a.flag] ? T.statusOn : T.statusOff}`);
 
-  // أدوات البوت: وحدة «تشغيل-وايقاف» تحدّد زرّها وسطر حالتها.
+  // أدوات البوت: وحدة «تشغيل-وايقاف» تحدّد زرّها وسطر حالتها من إعداد (رقم + مجموعة).
   for (const tool of BOT_TOOLS) {
     const mod = moduleOf(tool.flag);
     if (!mod) continue;
-    if (typeof mod.button === "function") buttons.push(mod.button(!!db.getGroup(from)?.botOff));
-    if (typeof mod.status === "function") lines.push(mod.status(!!db.getGroup(from)?.botOff));
+    if (typeof mod.button === "function") buttons.push(mod.button(!!bg.botOn));
+    if (typeof mod.status === "function") lines.push(mod.status(!!bg.botOn));
   }
 
   return {

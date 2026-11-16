@@ -246,9 +246,9 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
     if (isGroup) {
       const groupData = db.getGroup(from);
 
-      // البوت متوقف في هذه المجموعة: يتجاهل كل شيء إلا أوامر الإعادة
-      // (worksWhenOff) من مشرف أو مالك، فلا يصمت تماماً ولا يتجاوب مع الأعضاء.
-      if (groupData?.botOff && !fromMe && !(plugin?.worksWhenOff && (isAdmin || isMod))) return;
+      // البوت متوقف عن هذه المجموعة من هذا الرقم: يتجاهل كل شيء.
+      // الإعداد لكل (رقم + مجموعة)، ورقم البوت نفسه وحده يعيد التشغيل.
+      if (!db.getBotGroup(botNum, from).botOn && !fromMe) return;
 
       if (groupData?.selfMode && !isOwner && !isCoOwner && !fromMe) return;
       if (groupData?.adminMode && !isAdmin && !isMod) return;
