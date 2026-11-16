@@ -68,13 +68,13 @@
 
 <div align="center">
 
-<a href="https://wa.me/Taib_3">
+<a href="https://wa.me/message/AMZN5WRKRTWAL1">
 <img src="https://img.shields.io/badge/💬_واتساب_تائب-تواصل_الآن-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="WhatsApp Taib" height="45"/>
 </a>
 
 <br>
 
-**https://wa.me/Taib_3**
+**https://wa.me/message/AMZN5WRKRTWAL1**
 
 </div>
 
@@ -303,7 +303,7 @@ npm start         # تشغيل البوت
 > يُمنع منعاً باتاً نسخ الكود أو تعديله أو إعادة توزيعه أو بيعه دون إذن صريح.
 > أي استخدام غير مصرح به سيُعتبر انتهاكاً لحقوق المطور.
 >
-> 📱 واتساب المطور: [تائب](https://wa.me/Taib_3)
+> 📱 واتساب المطور: [تائب](https://wa.me/message/AMZN5WRKRTWAL1)
 
 ---
 
