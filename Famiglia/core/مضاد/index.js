@@ -44,6 +44,11 @@ function cleanJid(jid = "") {
   return `${jid.slice(0, at).split(":")[0]}@${jid.slice(at + 1)}`;
 }
 
+/** الرقم المجرّد من معرّف أو مقبس: "123:5@s.whatsapp.net" -> "123". */
+function numOf(jid = "") {
+  return String(jid).split("@")[0].split(":")[0];
+}
+
 /** هل البوت مشرف في هذه المجموعة؟ */
 async function isBotAdminIn(sock, groupJid) {
   try {
@@ -66,11 +71,11 @@ async function isBotAdminIn(sock, groupJid) {
  */
 export async function runAntifeatures({ sock, msg, from, sender, body, isBotAdmin, botLabel }) {
   const groupData = db.getGroup(from);
-  const settings = db.getSettings();
+  const botSettings = db.getBotSettings(numOf(sock.user?.id));
 
   for (const mod of modules) {
     if (!mod.check) continue;
-    if (mod.flag && !(mod.global ? settings[mod.flag] : groupData?.[mod.flag])) continue;
+    if (mod.flag && !(mod.global ? botSettings[mod.flag] : groupData?.[mod.flag])) continue;
 
     try {
       const handled = await mod.check({ sock, msg, from, sender, body, isBotAdmin, botLabel });
@@ -101,16 +106,16 @@ export function registerAntifeatures(sock, botLabel = "MAIN") {
     }
   });
 
-  // حالات واتساب (status@broadcast) لا تخص مجموعة، فتُمرَّر للمضادات العامة وحدها
-  // التي تقرأ تفعيلها من الإعدادات العامة لا من إعدادات المجموعة.
+  // حالات واتساب (status@broadcast) لا تخص مجموعة، فتُمرَّر للمضادات العامة وحدها.
+  // إعداداتها خاصة برقم البوت نفسه، فيتحكم كل بوت في مشاهدة حالاته مستقلاً.
   sock.ev.on("messages.upsert", async ({ messages }) => {
     if (!Array.isArray(messages)) return;
 
     const statuses = messages.filter((m) => m?.key?.remoteJid === "status@broadcast");
     if (!statuses.length) return;
 
-    const settings = db.getSettings();
-    const mods = modules.filter((m) => m.global && m.onStatus && (!m.flag || settings[m.flag]));
+    const botSettings = db.getBotSettings(numOf(sock.user?.id));
+    const mods = modules.filter((m) => m.global && m.onStatus && (!m.flag || botSettings[m.flag]));
     if (!mods.length) return;
 
     for (const msg of statuses) {

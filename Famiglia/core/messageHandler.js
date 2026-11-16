@@ -295,7 +295,7 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
     const ctx = {
       sock, msg, from, sender, senderNum, botJid, botLabel, mainBotNum, activeBotsLive,
       isGroup, groupName, groupMeta, body, isCmd, cmdName, args, text, usedPrefix,
-      isOwner, isCoOwner, isMod, isPremium, isAdmin, isBotAdmin,
+      isOwner, isCoOwner, isMod, isPremium, isAdmin, isBotAdmin, fromMe,
       resolveLid: (lidJid) => resolveLid(lidJid, groupMeta, sock),
       clearGroupCache: () => groupCache.delete(from),
       reply: async (content) => {

@@ -155,8 +155,8 @@ const GROUP_DEFAULTS = {
   botOff: false,
 };
 
-// إعدادات عامة لا تخص مجموعة بعينها (مثل مضادات الحالة).
-const GLOBAL_DEFAULTS = {
+// إعدادات خاصة برقم البوت نفسه (مثل مضادات الحالة) — لكل رقم إعداداته المستقلة.
+const BOT_SETTINGS_DEFAULTS = {
   statusview: false,
   statusviewreact: false,
 };
@@ -210,9 +210,9 @@ function getGroup(jid) {
   return JSON.parse(row.data);
 }
 
-function getSettings() {
-  const row = stmts.getSetting.get("global");
-  return row ? { ...GLOBAL_DEFAULTS, ...JSON.parse(row.value) } : { ...GLOBAL_DEFAULTS };
+function getBotSettings(botNum = "") {
+  const row = stmts.getSetting.get(`bot:${botNum}`);
+  return row ? { ...BOT_SETTINGS_DEFAULTS, ...JSON.parse(row.value) } : { ...BOT_SETTINGS_DEFAULTS };
 }
 
 function getBot(jid) {
@@ -229,7 +229,7 @@ export const db = {
   getUser,
   getGroup,
   getBot,
-  getSettings,
+  getBotSettings,
 
   setUser(jid, dataObject) {
     const currentData = getUser(jid);
@@ -253,8 +253,8 @@ export const db = {
     stmts.updateGroup.run(JSON.stringify({ ...currentData, ...dataObject }), jid);
   },
 
-  setSettings(dataObject) {
-    stmts.setSetting.run("global", JSON.stringify({ ...getSettings(), ...dataObject }));
+  setBotSettings(botNum, dataObject) {
+    stmts.setSetting.run(`bot:${botNum}`, JSON.stringify({ ...getBotSettings(botNum), ...dataObject }));
   },
 
   setBot(jid, dataObject, force = false) {

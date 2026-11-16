@@ -1,9 +1,16 @@
 import { db } from "../../database/db.js";
 import { antifeatures } from "../../core/مضاد/index.js";
 
+// المضادات قسمان:
+//  • مضادات المجموعة: يتحكم بها مشرفو المجموعة، وإعدادها لكل مجموعة.
+//  • مضادات البوت العامة: يتحكم بها رقم البوت نفسه (من نفّذ الأمر)، وإعدادها لكل رقم على حدة.
+const GROUP_FEATURES = antifeatures.filter((a) => !a.global);
+const BOT_FEATURES = antifeatures.filter((a) => a.global);
+
 // معرّفات الأزرار تُطابَق حرفياً في messageHandler، فتُسجَّل كاملة لا ببادئة.
-const TOGGLE_NAMES = antifeatures.flatMap((a) => [`تفعيل_${a.flag}`, `تعطيل_${a.flag}`]);
-const SELECT_NAMES = antifeatures.map((a) => `اختر_${a.flag}`);
+const TOGGLE_NAMES = GROUP_FEATURES.flatMap((a) => [`تفعيل_${a.flag}`, `تعطيل_${a.flag}`]);
+const BOT_TOGGLE_NAMES = BOT_FEATURES.flatMap((a) => [`تفعيل_${a.flag}`, `تعطيل_${a.flag}`]);
+const SELECT_NAMES = GROUP_FEATURES.map((a) => `اختر_${a.flag}`);
 const MODE_NAMES = ["تفعيل-ازرار", "تفعيل-قائمه", "تعطيل-ازرار", "تعطيل-قائمه"];
 const PAGE_NAMES = Array.from({ length: 50 }, (_, i) => `تفعيل-المزيد_${i + 1}`);
 
@@ -28,6 +35,12 @@ const T = {
   onOne: (n) => `✅ تم تفعيل *${n}*.`,
   offOne: (n) => `🚫 تم تعطيل *${n}*.`,
 };
+
+/** الرقم المجرّد: "123:5@s.whatsapp.net" -> "123". */
+const numOf = (jid = "") => String(jid).split("@")[0].split(":")[0];
+
+/** اسم مختصر للأزرار (حدّ واتساب). */
+const shortName = (name) => name.replace(/-ستوري$/, "");
 
 function find(target = "") {
   const q = String(target).toLowerCase();
@@ -80,10 +93,10 @@ function buildMainMenu() {
 
 /** الخطوة 2أ: الأقسام كأزرار قابلة للضغط (بصفحات لئلا تتجاوز حدّ واتساب). */
 function buildCategoriesButtons(page = 0) {
-  const totalPages = Math.ceil(antifeatures.length / 2);
+  const totalPages = Math.ceil(GROUP_FEATURES.length / 2);
   const p = Math.min(Math.max(page, 0), Math.max(totalPages - 1, 0));
   const perPage = totalPages > 1 ? 2 : 3;
-  const slice = antifeatures.slice(p * perPage, p * perPage + perPage);
+  const slice = GROUP_FEATURES.slice(p * perPage, p * perPage + perPage);
 
   const buttons = slice.map((a) => ({ text: a.name, id: `.اختر_${a.flag}` }));
   if (p < totalPages - 1) buttons.push({ text: T.more, id: `.تفعيل-المزيد_${p + 1}` });
@@ -99,22 +112,21 @@ function buildCategoriesDropdown() {
     sections: [
       {
         title: T.btnTitle,
-        rows: antifeatures.map((a) => ({ title: a.name, description: a.flag, id: `.اختر_${a.flag}` })),
+        rows: GROUP_FEATURES.map((a) => ({ title: a.name, description: a.flag, id: `.اختر_${a.flag}` })),
       },
     ],
   };
 }
 
-/** الخطوة 3: لوحة تحكم مضاد واحد: حالته وزرّ التبديل. */
+/** الخطوة 3: لوحة تحكم مضاد مجموعة: حالته وزرّ التبديل. */
 function buildControlPanel(flag, from) {
   const q = String(flag).toLowerCase();
   const mod = antifeatures.find((a) => a.flag.toLowerCase() === q);
   if (!mod) return null;
 
-  const isOn = mod.global ? !!db.getSettings()?.[mod.flag] : !!db.getGroup(from)?.[mod.flag];
-  const scope = mod.global ? " 🌍 عام" : "";
+  const isOn = !!db.getGroup(from)?.[mod.flag];
   return {
-    text: `${T.head}\n\n📌 *${mod.name}*${scope}\n${T.status}: ${isOn ? T.statusOn : T.statusOff}`,
+    text: `${T.head}\n\n📌 *${mod.name}*\n${T.status}: ${isOn ? T.statusOn : T.statusOff}`,
     buttons: [
       { text: isOn ? T.btnOff : T.btnOn, id: isOn ? `.تعطيل_${flag}` : `.تفعيل_${flag}` },
       { text: T.btnBack, id: ".تفعيل" },
@@ -122,19 +134,59 @@ function buildControlPanel(flag, from) {
   };
 }
 
+/** لوحة رقم البوت: مضادات الستوري الخاصة بهذا الرقم وحده. */
+function buildBotStatusPanel(botNum) {
+  const s = db.getBotSettings(botNum);
+
+  const buttons = BOT_FEATURES.map((a) => ({
+    text: `${s[a.flag] ? "🚫" : "✅"} ${shortName(a.name)}`,
+    id: s[a.flag] ? `.تعطيل_${a.flag}` : `.تفعيل_${a.flag}`,
+  }));
+
+  const lines = BOT_FEATURES.map((a) => `• ${a.name}: ${s[a.flag] ? T.statusOn : T.statusOff}`);
+
+  return {
+    text: `${T.head}\n\n🤖 *إعدادات خاصة برقم البوت:*\n\`${botNum}\`\n\n${lines.join("\n")}`,
+    buttons,
+  };
+}
+
 export default {
-  name: ["تفعيل", "تعطيل", ...TOGGLE_NAMES, ...SELECT_NAMES, ...MODE_NAMES, ...PAGE_NAMES],
+  name: ["تفعيل", "تعطيل", ...TOGGLE_NAMES, ...BOT_TOGGLE_NAMES, ...SELECT_NAMES, ...MODE_NAMES, ...PAGE_NAMES],
   description: "تفعيل وتعطيل المضادات بأزرار قابلة للضغط",
   category: "المجموعات",
   groupOnly: true,
-  adminOnly: true,
 
-  async run({ sock, from, msg, sender, args, cmdName, isAdmin, isOwner, reply, react }) {
-    if (!isAdmin && !isOwner) return await reply({ text: T.deny });
+  async run({ sock, from, msg, sender, botJid, args, cmdName, isAdmin, isMod, isOwner, fromMe, reply, react }) {
+    const botNum = numOf(botJid);
+    // رقم البوت الذي نفّذ الأمر بنفسه: لوحته خاصة به (مضادات الستوري فقط).
+    const isBotSelf = !!fromMe;
+
+    if (!isBotSelf && !isAdmin && !isMod && !isOwner) return await reply({ text: T.deny });
 
     const name = String(cmdName || "").toLowerCase();
     const panel = (data) =>
       sendStoreMessage(sock, from, msg, sender, { ...data, title: T.btnTitle, footer: FOOTER });
+
+    // رقم البوت: لوحة الستوري مباشرة، بلا قائمة أقسام.
+    if (isBotSelf) {
+      const isGlobalFlag = (t) => BOT_FEATURES.some((a) => a.flag.toLowerCase() === String(t).toLowerCase());
+
+      const target = name.replace(/^(تفعيل|تعطيل)_?/, "") || String(args[0] || "").toLowerCase();
+      if (target && isGlobalFlag(target)) {
+        const mod = find(target);
+        const on = !name.startsWith("تعطيل");
+        db.setBotSettings(botNum, { [mod.flag]: on });
+        await react(on ? "✅" : "🚫");
+        const data = buildBotStatusPanel(botNum);
+        return await panel({ ...data, text: `${on ? T.onOne(mod.name) : T.offOne(mod.name)}\n\n${data.text}` });
+      }
+
+      await react("🛡️");
+      return await panel(buildBotStatusPanel(botNum));
+    }
+
+    // مشرف/مالك: لوحة مضادات المجموعة.
 
     // الخطوة 1: طريقة العرض.
     if ((name === "تفعيل" || name === "تعطيل") && !args[0]) {
@@ -174,13 +226,13 @@ export default {
     if (!target && args[0]) target = String(args[0]).toLowerCase();
 
     const mod = find(target);
-    if (!mod) {
-      const names = antifeatures.map((a) => `${a.flag} (${a.name})`).join("، ");
+    // مضادات الستوري يتحكم بها رقم البوت وحده، لا مشرفو المجموعة.
+    if (!mod || mod.global) {
+      const names = GROUP_FEATURES.map((a) => `${a.flag} (${a.name})`).join("، ");
       return await reply({ text: `${T.notFound}\n> المتاح: ${names}` });
     }
 
-    if (mod.global) db.setSettings({ [mod.flag]: on });
-    else db.setGroup(from, { [mod.flag]: on });
+    db.setGroup(from, { [mod.flag]: on });
     await react(on ? "✅" : "🚫");
 
     const ctrl = buildControlPanel(mod.flag, from);
