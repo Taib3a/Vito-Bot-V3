@@ -100,7 +100,7 @@ export function registerAntifeatures(sock, botLabel = "MAIN") {
     }
   });
 
-  sock.ev.on("group-participants.update", async ({ id, participants, action }) => {
+  sock.ev.on("group-participants.update", async ({ id, participants, action, author }) => {
     if (!id?.endsWith("@g.us") || !Array.isArray(participants)) return;
 
     try {
@@ -110,17 +110,48 @@ export function registerAntifeatures(sock, botLabel = "MAIN") {
       for (const mod of modules) {
         if (mod.flag && !groupData?.[mod.flag]) continue;
 
-        const fn = action === "add" ? mod.onJoin : action === "remove" ? mod.onLeave : null;
+        const fn =
+          action === "add" ? mod.onJoin :
+          action === "remove" ? mod.onLeave :
+          action === "promote" ? mod.onPromote :
+          null;
         if (!fn) continue;
 
         try {
-          await fn({ sock, groupJid: id, participants, isBotAdmin, botLabel });
+          await fn({ sock, groupJid: id, participants, isBotAdmin, botLabel, actor: author });
         } catch (e) {
           log.error(`خطأ في ${mod.name}: ${e.message}`);
         }
       }
     } catch (e) {
       log.error(`[${botLabel}] خطأ في حدث المشاركين: ${e.message}`);
+    }
+  });
+
+  // تغييرات بيانات المجموعة (الاسم، الوصف، الإعدادات). الجرد الجماعي يبثّ البيانات
+  // كاملة بلا `author`، فيتجاهله المضاد الذي يميّز التغيير الحقيقي بالفاعل.
+  sock.ev.on("groups.update", async (updates) => {
+    if (!Array.isArray(updates)) return;
+
+    for (const update of updates) {
+      const groupJid = update?.id;
+      if (!groupJid?.endsWith("@g.us")) continue;
+
+      try {
+        const groupData = db.getGroup(groupJid);
+        for (const mod of modules) {
+          if (!mod.onGroupUpdate) continue;
+          if (mod.flag && !groupData?.[mod.flag]) continue;
+
+          try {
+            await mod.onGroupUpdate({ sock, groupJid, update, botLabel });
+          } catch (e) {
+            log.error(`خطأ في ${mod.name}: ${e.message}`);
+          }
+        }
+      } catch (e) {
+        log.error(`[${botLabel}] خطأ في حدث المجموعة: ${e.message}`);
+      }
     }
   });
 

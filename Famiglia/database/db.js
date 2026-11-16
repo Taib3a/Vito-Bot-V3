@@ -141,6 +141,7 @@ const GROUP_DEFAULTS = {
   antispam: true,
   antibot: true,
   antidelete: true,
+  monitor: true,
   primaryBot: null,
   adminMode: false,
   selfMode: false,
