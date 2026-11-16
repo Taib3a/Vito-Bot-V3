@@ -1,139 +1,175 @@
 import { db } from "../../database/db.js";
 import { antifeatures } from "../../core/مضاد/index.js";
 
-// الأزرار التفاعلية تُرسل معرّفها الكامل، والمطابقة في messageHandler حرفية؛
-// لذا يُسجَّل كل معرّف باسم كامل لا ببادئة.
-const PAGE_SIZE = 2;
-const MAX_PAGES = 50;
-
-const BUTTON_NAMES = [
-  ...antifeatures.flatMap((a) => [`تفعيل_${a.flag}`, `تعطيل_${a.flag}`]),
-  ...Array.from({ length: MAX_PAGES + 1 }, (_, i) => `تفعيل_المزيد_${i}`),
-  ...Array.from({ length: MAX_PAGES + 1 }, (_, i) => `تعطيل_المزيد_${i}`),
-];
+// معرّفات الأزرار تُطابَق حرفياً في messageHandler، فتُسجَّل كاملة لا ببادئة.
+const TOGGLE_NAMES = antifeatures.flatMap((a) => [`تفعيل_${a.flag}`, `تعطيل_${a.flag}`]);
+const SELECT_NAMES = antifeatures.map((a) => `اختر_${a.flag}`);
+const MODE_NAMES = ["تفعيل-ازرار", "تفعيل-قائمه", "تعطيل-ازرار", "تعطيل-قائمه"];
+const PAGE_NAMES = Array.from({ length: 50 }, (_, i) => `تفعيل-المزيد_${i + 1}`);
 
 const FOOTER = "𝙱𝙾𝚃 𝚅𝙸𝚃𝙾 𝚅𝟹";
 
 const T = {
-  head: "『🛡️』*لوحة المضادات*",
-  btnTitle: "🛡️ لوحة المضادات",
-  onPrompt: "👇 *اختر الخاصية لتفعيلها:*",
-  offPrompt: "👇 *اختر الخاصية لتعطيلها:*",
-  onEmpty: "✅ *كل المضادات مفعّلة بالفعل.*",
-  offEmpty: "🚫 *كل المضادات معطّلة بالفعل.*",
+  head: "🛡️ *لوحة المضادات*",
+  btnTitle: "لوحة المضادات",
+  mainPrompt: "اختر طريقة عرض الأقسام:",
+  btnInteractive: "🎯 أزرار قابلة للضغط",
+  btnDropdown: "📋 أزرار منسدلة",
+  chooseCategory: "اختر القسم للتحكم به:",
+  status: "الحالة",
+  statusOn: "يعمل ✅",
+  statusOff: "متوقف 🚫",
+  btnOn: "✅ تفعيل",
+  btnOff: "🚫 إيقاف",
+  btnBack: "⬅️ رجوع",
   more: "➕ المزيد",
-  back: "⬅️ رجوع",
   deny: "❌ هذا الأمر لمشرفي المجموعة ومالك البوت فقط.",
   notFound: "❌ لا يوجد مضاد بهذا الاسم.",
   onOne: (n) => `✅ تم تفعيل *${n}*.`,
   offOne: (n) => `🚫 تم تعطيل *${n}*.`,
-  onAll: (n) => `✅ تم تفعيل *كل* المضادات (${n}).`,
-  offAll: (n) => `🚫 تم تعطيل *كل* المضادات (${n}).`,
 };
 
-/** يبحث عن مضاد بالاسم العربي أو بعلمه (antilink، antispam…). */
 function find(target = "") {
   const q = String(target).toLowerCase();
   return antifeatures.find((a) => a.name.toLowerCase() === q || a.flag.toLowerCase() === q);
 }
 
-function contextInfo(sender) {
-  return {
+/** يبني رسالة تفاعلية: أزرار أو قائمة منسدلة، وإلا رسالة نصية. */
+async function sendStoreMessage(sock, from, msg, sender, { title, text, buttons = [], sections = [], footer, image = null }) {
+  const imagenRaw = image || global.botImages[Math.floor(Math.random() * global.botImages.length)];
+  const imagenFinal = typeof imagenRaw === "string" ? { url: imagenRaw } : imagenRaw;
+  const canalJid = global.my?.canal1;
+
+  const contextInfo = {
     mentionedJid: [sender],
-    forwardedNewsletterMessageInfo: {
-      newsletterJid: global.my?.canal1,
-      serverMessageId: -1,
-    },
+    forwardedNewsletterMessageInfo: { newsletterJid: canalJid, serverMessageId: -1 },
   };
-}
 
-function statusLines(groupData) {
-  return antifeatures.map((a) => `${groupData[a.flag] ? "✅" : "🚫"} ${a.name}`).join("\n");
-}
-
-/** لوحة الأزرار: تعرض الحالات كلها، وتُبقي أزرار الخصائص القابلة للتنفيذ فقط. */
-function buildPanel(kind, groupData, page = 0) {
-  const on = kind === "on";
-  const verb = on ? "تفعيل" : "تعطيل";
-  const body = `${T.head}\n\n${statusLines(groupData)}\n\n${on ? T.onPrompt : T.offPrompt}`;
-
-  const pending = antifeatures.filter((a) => (on ? !groupData[a.flag] : !!groupData[a.flag]));
-  if (pending.length === 0) {
-    return { text: `${T.head}\n\n${statusLines(groupData)}\n\n${on ? T.onEmpty : T.offEmpty}`, buttons: [] };
+  if (buttons.length === 0 && sections.length === 0) {
+    const payload = { mentions: [sender], contextInfo };
+    if (image) {
+      payload.image = imagenFinal;
+      payload.caption = text;
+    } else {
+      payload.text = text;
+    }
+    return await sock.sendMessage(from, payload, { quoted: msg });
   }
 
-  const totalPages = Math.ceil(pending.length / PAGE_SIZE);
-  const p = Math.min(Math.max(page, 0), totalPages - 1);
-  const slice = pending.slice(p * PAGE_SIZE, p * PAGE_SIZE + PAGE_SIZE);
-
-  const buttons = slice.map((a) => ({ text: `${verb} ${a.name}`, id: `.${verb}_${a.flag}` }));
-
-  if (p < totalPages - 1) buttons.push({ text: T.more, id: `.${verb}_المزيد_${p + 1}` });
-  else if (p > 0) buttons.push({ text: T.back, id: `.${verb}_المزيد_0` });
-
-  return { text: body, buttons };
-}
-
-async function sendPanel(sock, from, msg, sender, { text, buttons }) {
-  if (!buttons.length) {
-    return await sock.sendMessage(
-      from,
-      { text, mentions: [sender], contextInfo: contextInfo(sender) },
-      { quoted: msg }
-    );
-  }
-
-  const image = global.botImages[Math.floor(Math.random() * global.botImages.length)];
   return await sock.sendButtonMessage(from, text, buttons, {
-    title: T.btnTitle,
-    footer: FOOTER,
+    title: title || "",
+    footer: footer || "",
     quoted: msg,
-    image,
+    image: imagenFinal,
     mentions: [sender],
-    contextInfo: contextInfo(sender),
+    sections,
+    contextInfo,
   });
 }
 
+/** الخطوة 1: اختيار طريقة العرض (أزرار أو قائمة منسدلة). */
+function buildMainMenu() {
+  return {
+    text: `${T.head}\n\n${T.mainPrompt}`,
+    buttons: [
+      { text: T.btnInteractive, id: ".تفعيل-ازرار" },
+      { text: T.btnDropdown, id: ".تفعيل-قائمه" },
+    ],
+  };
+}
+
+/** الخطوة 2أ: الأقسام كأزرار قابلة للضغط (بصفحات لئلا تتجاوز حدّ واتساب). */
+function buildCategoriesButtons(page = 0) {
+  const totalPages = Math.ceil(antifeatures.length / 2);
+  const p = Math.min(Math.max(page, 0), Math.max(totalPages - 1, 0));
+  const perPage = totalPages > 1 ? 2 : 3;
+  const slice = antifeatures.slice(p * perPage, p * perPage + perPage);
+
+  const buttons = slice.map((a) => ({ text: a.name, id: `.اختر_${a.flag}` }));
+  if (p < totalPages - 1) buttons.push({ text: T.more, id: `.تفعيل-المزيد_${p + 1}` });
+  else if (p > 0) buttons.push({ text: T.btnBack, id: ".تفعيل" });
+
+  return { text: `${T.head}\n\n${T.chooseCategory}`, buttons };
+}
+
+/** الخطوة 2ب: الأقسام كقائمة منسدلة. */
+function buildCategoriesDropdown() {
+  return {
+    text: `${T.head}\n\n${T.chooseCategory}`,
+    sections: [
+      {
+        title: T.btnTitle,
+        rows: antifeatures.map((a) => ({ title: a.name, description: a.flag, id: `.اختر_${a.flag}` })),
+      },
+    ],
+  };
+}
+
+/** الخطوة 3: لوحة تحكم مضاد واحد: حالته وزرّ التبديل. */
+function buildControlPanel(flag, from) {
+  const mod = antifeatures.find((a) => a.flag === flag);
+  if (!mod) return null;
+
+  const isOn = !!db.getGroup(from)?.[flag];
+  return {
+    text: `${T.head}\n\n📌 *${mod.name}*\n${T.status}: ${isOn ? T.statusOn : T.statusOff}`,
+    buttons: [
+      { text: isOn ? T.btnOff : T.btnOn, id: isOn ? `.تعطيل_${flag}` : `.تفعيل_${flag}` },
+      { text: T.btnBack, id: ".تفعيل" },
+    ],
+  };
+}
+
 export default {
-  name: ["تفعيل", "تعطيل", ...BUTTON_NAMES],
+  name: ["تفعيل", "تعطيل", ...TOGGLE_NAMES, ...SELECT_NAMES, ...MODE_NAMES, ...PAGE_NAMES],
   description: "تفعيل وتعطيل المضادات بأزرار قابلة للضغط",
   category: "المجموعات",
   groupOnly: true,
   adminOnly: true,
 
   async run({ sock, from, msg, sender, args, cmdName, isAdmin, isOwner, reply, react }) {
-    // مالك البوت أو مشرف المجموعة فقط.
     if (!isAdmin && !isOwner) return await reply({ text: T.deny });
 
     const name = String(cmdName || "").toLowerCase();
-    const on = !name.startsWith("تعطيل");
-    const kind = on ? "on" : "off";
+    const panel = (data) =>
+      sendStoreMessage(sock, from, msg, sender, { ...data, title: T.btnTitle, footer: FOOTER });
 
-    // بعد تجريد اسم الأمر يبقى: "" أو "<flag>" أو "المزيد_<n>" أو "الكل".
+    // الخطوة 1: طريقة العرض.
+    if ((name === "تفعيل" || name === "تعطيل") && !args[0]) {
+      await react("📋");
+      return await panel(buildMainMenu());
+    }
+
+    // الخطوة 2أ: الأقسام كأزرار.
+    if (name === "تفعيل-ازرار" || name === "تعطيل-ازرار") {
+      await react("🎯");
+      return await panel(buildCategoriesButtons(0));
+    }
+
+    // الخطوة 2ب: الأقسام كقائمة منسدلة.
+    if (name === "تفعيل-قائمه" || name === "تعطيل-قائمه") {
+      await react("📋");
+      return await panel(buildCategoriesDropdown());
+    }
+
+    // تنقّل بين صفحات الأقسام.
+    if (name.startsWith("تفعيل-المزيد_")) {
+      await react("➕");
+      return await panel(buildCategoriesButtons(Number(name.split("_").pop()) || 0));
+    }
+
+    // الخطوة 3: لوحة تحكم مضاد.
+    if (name.startsWith("اختر_")) {
+      const ctrl = buildControlPanel(name.replace("اختر_", ""), from);
+      if (!ctrl) return await reply({ text: T.notFound });
+      await react("⚙️");
+      return await panel(ctrl);
+    }
+
+    // تبديل الحالة: من زر (تفعيل_<flag>) أو نص (.تفعيل <flag>).
+    const on = !name.startsWith("تعطيل");
     let target = name.replace(/^(تفعيل|تعطيل)_?/, "");
     if (!target && args[0]) target = String(args[0]).toLowerCase();
-
-    // بلا هدف: اعرض لوحة الخصائص.
-    if (!target) {
-      await react("📋");
-      return await sendPanel(sock, from, msg, sender, buildPanel(kind, db.getGroup(from), 0));
-    }
-
-    // تنقّل بين الصفحات.
-    if (target.startsWith("المزيد")) {
-      const page = Number(target.split("_").pop()) || 0;
-      await react("📋");
-      return await sendPanel(sock, from, msg, sender, buildPanel(kind, db.getGroup(from), page));
-    }
-
-    // الكل.
-    if (target === "الكل") {
-      const patch = {};
-      for (const a of antifeatures) patch[a.flag] = on;
-      db.setGroup(from, patch);
-      await react(on ? "✅" : "🚫");
-      return await reply({ text: on ? T.onAll(antifeatures.length) : T.offAll(antifeatures.length) });
-    }
 
     const mod = find(target);
     if (!mod) {
@@ -144,9 +180,8 @@ export default {
     db.setGroup(from, { [mod.flag]: on });
     await react(on ? "✅" : "🚫");
 
-    // رسالة واحدة: تأكيد العملية + اللوحة المحدّثة.
-    const panel = buildPanel(kind, db.getGroup(from), 0);
+    const ctrl = buildControlPanel(mod.flag, from);
     const confirm = on ? T.onOne(mod.name) : T.offOne(mod.name);
-    return await sendPanel(sock, from, msg, sender, { ...panel, text: `${confirm}\n\n${panel.text}` });
+    return await panel({ ...ctrl, text: `${confirm}\n\n${ctrl.text}` });
   },
 };
