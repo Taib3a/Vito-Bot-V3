@@ -39,19 +39,24 @@ function resolveAttacker(event = {}) {
 
 /**
  * يحدّد كيف نُشير إلى المهاجم في التحذير:
- * - اسم مستخدم (`actorUsername`) أو JID بحروف → رابط دردشة (المنشن لا يعمل معهما).
- * - رقم (JID أرقام فقط) → منشن عادي.
- * نتحقّق من `actorUsername` أولاً، فإن وُجد نستخدم الرابط، وإلا فالمنشن.
+ * - اسم مستخدم (`actorUsername`) متاح → المنشن بالاسم: النص `@username`
+ *   والمصفوفة تضمّ الاسم والـ JID الحقيقي (يربطه واتساب بالاسم).
+ * - بلا اسم مستخدم → منشن عادي بالرقم `@<number>`.
+ * - JID بحروف بلا اسم مستخدم → رابط دردشة.
  */
-function attackerReference({ attacker, attackerNum, actorUsername }) {
+function attackerReference({ attacker, attackerNum, actorUsername, actorPn }) {
   const uname = String(actorUsername || "").replace(/^@/, "").trim();
-  if (uname) return { text: `https://wa.me/${uname}`, mentions: [] };
+
+  if (uname) {
+    const ids = [...new Set([attacker, actorPn, uname].filter(Boolean))];
+    return { text: `@${uname}`, mentions: ids };
+  }
 
   if (attacker && /^\d+$/.test(attackerNum)) {
     return { text: `@${attackerNum}`, mentions: [attacker] };
   }
 
-  // JID بلا أرقام (حروف) بلا اسم مستخدم: لا منشن، نبني الرابط من الجزء النصي.
+  // JID بحروف بلا اسم مستخدم: لا منشن، نبني الرابط من الجزء النصي.
   const userPart = String(attacker || "").split("@")[0].split(":")[0];
   if (userPart) return { text: `https://wa.me/${userPart}`, mentions: [] };
 
@@ -93,8 +98,8 @@ export default {
 
     state.cooldownUntil = now + COOLDOWN_MS;
 
-    // طريقة الإشارة للمهاجم: اسم مستخدم → رابط دردشة، رقم → منشن.
-    const ref = attackerReference({ attacker, attackerNum, actorUsername });
+    // طريقة الإشارة للمهاجم: اسم مستخدم → منشن بالاسم، رقم → منشن بالرقم.
+    const ref = attackerReference({ attacker, attackerNum, actorUsername, actorPn });
     const tag = ref.text || (attacker ? attackerNum : "مجهول");
     log.warn(
       `[${botLabel}] مضاد الإغراق: هجوم على ${groupJid} — ${list.length} عضو، Δ${delta}ms، المهاجم ${tag}`,
