@@ -153,6 +153,7 @@ export function registerAntifeatures(sock, botLabel = "MAIN") {
           action === "add" ? mod.onJoin :
           action === "remove" ? mod.onLeave :
           action === "promote" ? mod.onPromote :
+          action === "demote" ? mod.onDemote :
           null;
         if (!fn) continue;
 

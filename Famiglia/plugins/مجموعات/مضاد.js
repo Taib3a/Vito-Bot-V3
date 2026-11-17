@@ -145,26 +145,22 @@ function buildControlPanel(flag, from) {
   };
 }
 
-/** لوحة رقم البوت: نصّية بلا أزرار، لأن رقم البوت لا يستطيع ضغطها. */
+/** لوحة البوت: نصّية بسيطة، سطر واحد لكل إعداد مع أمره. */
 function buildBotStatusPanel(botNum, from) {
   const s = db.getBotSettings(botNum);
   const bg = db.getBotGroup(botNum, from);
 
   const lines = BOT_FEATURES.map(
-    (a) => `• ${a.name}: ${s[a.flag] ? T.statusOn : T.statusOff}\n  ↳ اكتب: *${s[a.flag] ? `تعطيل_${a.flag}` : `تفعيل_${a.flag}`}*`,
+    (a) => `• ${a.name}: ${s[a.flag] ? T.statusOn : T.statusOff} ← *${s[a.flag] ? `تعطيل_${a.flag}` : `تفعيل_${a.flag}`}*`,
   );
 
-  // أدوات البوت: وحدة «تشغيل-وايقاف» تحدّد سطر حالتها وتلميح الأمر.
+  // أدوات البوت: وحدة «تشغيل-وايقاف» تعرض حالتها مع الأمر في سطر واحد.
   for (const tool of BOT_TOOLS) {
     const mod = moduleOf(tool.flag);
-    if (!mod) continue;
-    if (typeof mod.status === "function") lines.push(mod.status(!!bg.botOn));
-    if (typeof mod.hint === "function") lines.push(mod.hint(!!bg.botOn));
+    if (typeof mod?.line === "function") lines.push(mod.line(!!bg.botOn));
   }
 
-  return {
-    text: `${T.head}\n\n🤖 *إعدادات خاصة برقم البوت:*\n\n${lines.join("\n")}`,
-  };
+  return { text: `${T.head}\n\n🤖 *إعدادات البوت*\n\n${lines.join("\n")}` };
 }
 
 export default {
@@ -173,10 +169,21 @@ export default {
   category: "المجموعات",
   groupOnly: true,
 
-  async run({ sock, from, msg, sender, botJid, args, cmdName, isAdmin, isMod, isOwner, fromMe, reply, react }) {
+  async run({ sock, from, msg, sender, botJid, args, cmdName, isAdmin, isMod, isOwner, fromMe, botMentioned, reply, react }) {
     const botNum = numOf(botJid);
     // رقم البوت الذي نفّذ الأمر بنفسه: لوحته خاصة به (مضادات الستوري فقط).
     const isBotSelf = !!fromMe;
+
+    // منشن البوت: أي عضو يعرض لوحة إعدادات البوت بلا صلاحيات إشراف.
+    if (botMentioned && !isBotSelf) {
+      await react("🛡️");
+      return await sendStoreMessage(sock, from, msg, sender, {
+        text: buildBotStatusPanel(botNum, from).text,
+        image: Array.isArray(global.botImages) && global.botImages.length
+          ? global.botImages[Math.floor(Math.random() * global.botImages.length)]
+          : null,
+      });
+    }
 
     if (!isBotSelf && !isAdmin && !isMod && !isOwner) return await reply({ text: T.deny });
 

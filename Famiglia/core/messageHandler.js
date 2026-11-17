@@ -113,7 +113,7 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
     const senderLid = cleanJid(senderLidJid);
     const botJid = cleanJid(sock.user?.id || "");
 
-    const body =
+    let body =
       msg.message?.conversation ||
       msg.message?.extendedTextMessage?.text ||
       msg.message?.imageMessage?.caption ||
@@ -124,6 +124,22 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
       // ضغطة التدفّق الأصلي تصل كـparamsJson، لا كنص.
       extractButtonId(msg.message) ||
       "";
+
+    // منشن البوت في مجموعة = طلب لوحة إعدادات البوت (يُعامل كأمر «تفعيل»).
+    const mentionedJid =
+      msg.message?.extendedTextMessage?.contextInfo?.mentionedJid ||
+      msg.message?.imageMessage?.contextInfo?.mentionedJid ||
+      msg.message?.videoMessage?.contextInfo?.mentionedJid ||
+      [];
+    const botLidJid = cleanJid(sock.user?.lid || "");
+    const botMentioned =
+      isGroup &&
+      mentionedJid.some((j) => {
+        const c = cleanJid(j);
+        return c === botJid || (!!botLidJid && c === botLidJid);
+      });
+    // منشن البوت بلا نصّ أمر: يُحوّل إلى «تفعيل» لعرض لوحته.
+    if (botMentioned && !prefixes.some((p) => body.startsWith(p))) body = `${prefixes[0]}تفعيل`;
 
     const msgType = msg.message ? Object.keys(msg.message)[0] ?? "unknown" : "unknown";
 
@@ -300,7 +316,7 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
     const ctx = {
       sock, msg, from, sender, senderNum, botJid, botLabel, mainBotNum, activeBotsLive,
       isGroup, groupName, groupMeta, body, isCmd, cmdName, args, text, usedPrefix,
-      isOwner, isCoOwner, isMod, isPremium, isAdmin, isBotAdmin, fromMe,
+      isOwner, isCoOwner, isMod, isPremium, isAdmin, isBotAdmin, fromMe, botMentioned,
       resolveLid: (lidJid) => resolveLid(lidJid, groupMeta, sock),
       clearGroupCache: () => groupCache.delete(from),
       reply: async (content) => {

@@ -1,10 +1,15 @@
-import { downloadContentFromMessage } from "@whiskeysockets/baileys";
+import { downloadMediaMessage } from "@whiskeysockets/baileys";
 
-async function getBuffer(message, type) {
-  const stream = await downloadContentFromMessage(message, type);
-  const chunks = [];
-  for await (const chunk of stream) chunks.push(chunk);
-  return Buffer.concat(chunks);
+/** يستخرج مفتاح الوسيط وجسمه من الرسالة المقتبسة. */
+function extractMedia(quoted) {
+  const message =
+    quoted.viewOnceMessageV2?.message ||
+    quoted.viewOnceMessage?.message ||
+    quoted.viewOnceMessageV2Extension?.message ||
+    quoted;
+
+  const key = ["imageMessage", "videoMessage", "audioMessage"].find((k) => message?.[k]?.viewOnce);
+  return key ? { key, media: message[key] } : null;
 }
 
 export default {
@@ -31,55 +36,27 @@ export default {
         null;
 
       const quoted = contextInfo?.quotedMessage || null;
-      if (!quoted) {
-        return await reply({ text: T.noQuote });
-      }
+      if (!quoted) return await reply({ text: T.noQuote });
 
-      // فكّ تغليف رسالة المشاهدة مرة واحدة
-      const message =
-        quoted.viewOnceMessageV2?.message ||
-        quoted.viewOnceMessage?.message ||
-        quoted.viewOnceMessageV2Extension?.message ||
-        quoted;
-
-      const isViewOnce =
-        message.imageMessage?.viewOnce ||
-        message.videoMessage?.viewOnce ||
-        message.audioMessage?.viewOnce;
-
-      if (!isViewOnce) {
-        return await reply({ text: T.notViewOnce });
-      }
+      const found = extractMedia(quoted);
+      if (!found) return await reply({ text: T.notViewOnce });
 
       await react("👁️");
 
-      let outMessage = null;
-
-      if (message.imageMessage) {
-        const buffer = await getBuffer(message.imageMessage, "image");
-        outMessage = {
-          image: buffer,
-          caption: message.imageMessage.caption || "👁️ مكشوفة",
-        };
-      } else if (message.videoMessage) {
-        const buffer = await getBuffer(message.videoMessage, "video");
-        outMessage = {
-          video: buffer,
-          caption: message.videoMessage.caption || "👁️ مكشوفة",
-        };
-      } else if (message.audioMessage) {
-        const buffer = await getBuffer(message.audioMessage, "audio");
-        outMessage = {
-          audio: buffer,
-          mimetype: "audio/mp4",
-          ptt: false,
-        };
-      }
-
-      if (!outMessage) {
+      // downloadMediaMessage يتطلّب رسالة كاملة بمفتاح، فنعيد بناء الغلاف.
+      const type = found.key === "imageMessage" ? "image" : found.key === "videoMessage" ? "video" : "audio";
+      const stub = { key: contextInfo.stanzaId ? { id: contextInfo.stanzaId, remoteJid: from } : undefined, message: quoted };
+      const buffer = await downloadMediaMessage(stub, "buffer", {}, { logger: console, reuploadRequest: sock.updateMediaMessage });
+      if (!buffer?.length) {
         await react("❌");
         return await reply({ text: T.fail });
       }
+
+      const media = found.media;
+      const outMessage =
+        type === "audio"
+          ? { audio: buffer, mimetype: media.mimetype || "audio/mp4", ptt: false }
+          : { [type]: buffer, caption: media.caption || "👁️ مكشوفة" };
 
       await sock.sendMessage(from, outMessage, { quoted: msg });
       await react("✅");

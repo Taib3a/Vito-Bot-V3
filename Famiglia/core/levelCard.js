@@ -5,7 +5,20 @@ import { fileURLToPath } from "node:url";
 import { db } from "../database/db.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+const BACKGROUND_URL = "https://uploadkb.com/image5223.html";
 const BACKGROUND_PATH = path.join(here, "..", "assets", "level-bg.jpg");
+
+/** يحمّل الخلفية من الرابط المباشر، ويسقط على الملف المحلي إن تعذّر الجلب. */
+async function loadBackground() {
+  try {
+    const res = await fetch(BACKGROUND_URL);
+    if (res.ok) {
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (buf.length) return await loadImage(buf);
+    }
+  } catch {}
+  return loadImage(await readFile(BACKGROUND_PATH));
+}
 
 const GOLD_LIGHT = "#f7e7a1";
 const GOLD = "#d4af37";
@@ -123,7 +136,7 @@ function drawLevel(ctx, level, panel) {
 }
 
 export async function renderLevelCard({ avatar, displayName, level }) {
-  const background = await loadImage(await readFile(BACKGROUND_PATH));
+  const background = await loadBackground();
 
   const canvas = createCanvas(BG_W, BG_H);
   const ctx = canvas.getContext("2d");
@@ -136,9 +149,9 @@ export async function renderLevelCard({ avatar, displayName, level }) {
   return canvas.toBuffer("image/jpeg", 92);
 }
 
-/** يرسل إعلان الترقية: بطاقة مصوّرة، وإن تعذّر الرسم فنبضة نصّية. */
+/** يرسل إعلان الترقية: بطاقة مصوّرة (المستوى داخل الصورة)، وإن تعذّر الرسم فنبضة نصّية. */
 export async function announceLevelUp({ sock, from, jid, level }) {
-  const caption = `⬆️ *ترقية* — @${jid.split("@")[0]} وصل إلى المستوى ${level}`;
+  const caption = `⬆️ *ترقية* — @${jid.split("@")[0]}`;
   try {
     const avatar = await resolveAvatar(sock, jid);
     const image = await renderLevelCard({ avatar, displayName: db.getPushName(jid) || null, level });
