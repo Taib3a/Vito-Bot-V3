@@ -1,16 +1,17 @@
 import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { db } from "../database/db.js";
 
-// خلفية بطاقة المستوى تُجلَب من رابط مباشر (لا ملف محلي).
-const BACKGROUND_URL = "https://uploadkb.com/image5223.html";
+const here = path.dirname(fileURLToPath(import.meta.url));
 
-/** يحمّل الخلفية من الرابط المباشر. */
+// خلفية بطاقة المستوى تُحمَّل من ملف محلي (لا رابط خارجي).
+const BACKGROUND_PATH = path.join(here, "..", "assets", "level-bg.jpg");
+
+/** يحمّل الخلفية من الملف المحلي. */
 async function loadBackground() {
-  const res = await fetch(BACKGROUND_URL);
-  if (!res.ok) throw new Error(`تعذّر جلب الخلفية (${res.status})`);
-  const buf = Buffer.from(await res.arrayBuffer());
-  if (!buf.length) throw new Error("خلفية فارغة");
-  return loadImage(buf);
+  return loadImage(await readFile(BACKGROUND_PATH));
 }
 
 const GOLD_LIGHT = "#f7e7a1";
