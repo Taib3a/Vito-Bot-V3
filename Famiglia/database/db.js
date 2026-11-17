@@ -151,9 +151,8 @@ const GROUP_DEFAULTS = {
   monitor: true,
   viewonce: true,
   primaryBot: null,
-  adminMode: false,
+  adminMode: true,
   selfMode: false,
-  levelup: true,
 };
 
 // إعدادات خاصة برقم البوت نفسه (مثل مضادات الحالة) — لكل رقم إعداداته المستقلة.

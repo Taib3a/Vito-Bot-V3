@@ -260,10 +260,7 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
         if (handled) return;
       }
 
-      // منح الخبرة (ونظام المستوى) قابل للتعطيل من لوحة المشرف/المالك.
-      const xpOn = db.getGroup(from)?.levelup !== false;
-
-      if (!isCmd && body && xpOn) {
+      if (!isCmd && body) {
         const levelUp = handleChatXp(sender);
         if (levelUp) await sock.sendMessage(from, { text: levelUp, mentions: [sender] });
       }
@@ -349,7 +346,7 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
     try {
       await plugin.run(ctx);
       log.message({ ...boxInfo, isCmd: true });
-      if (isGroup && db.getGroup(from)?.levelup !== false) {
+      if (isGroup) {
         const levelUp = handleCommandXp(sender);
         if (levelUp) await sock.sendMessage(from, { text: levelUp, mentions: [sender] });
       }
