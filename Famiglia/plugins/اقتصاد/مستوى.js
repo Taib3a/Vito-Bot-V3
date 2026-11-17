@@ -5,12 +5,12 @@ import { log } from "../../core/logger.js";
 
 export default {
   name: ["مستوى"],
-  description: "يعرض مستواك ونقاط الخبرة في بطاقة مصوّرة",
+  description: "يعرض مستواك في بطاقة مصوّرة داخل الإطار",
   category: "الاقتصاد",
 
   async run({ sock, from, sender, msg, reply }) {
     const user = db.getUser(sender);
-    const { level, xp, currentFloor, nextFloor, missing } = xpProgress(user.xp || 0);
+    const { level, xp, missing } = xpProgress(user.xp || 0);
 
     try {
       const avatar = await resolveAvatar(sock, sender);
@@ -18,10 +18,6 @@ export default {
         avatar,
         displayName: db.getPushName(sender) || null,
         level,
-        xp,
-        currentFloor,
-        nextFloor,
-        missing,
       });
       await sock.sendMessage(from, { image, caption: "" }, { quoted: msg });
     } catch (e) {
