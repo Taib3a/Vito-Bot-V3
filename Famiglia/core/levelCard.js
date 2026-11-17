@@ -137,20 +137,21 @@ export async function renderLevelCard({ avatar, displayName, level, xp, currentF
   const ctx = canvas.getContext("2d");
   ctx.drawImage(background, 0, 0, w, h);
 
-  // تعتيم الجهة اليمنى (المنطقة الهادئة) لإبراز العناصر فوقها.
-  const shade = ctx.createLinearGradient(w * 0.34, 0, w, 0);
+  // تعتيم خفيف للشريط السفلي لإبراز الصورة والمستوى فوقه.
+  const shade = ctx.createLinearGradient(0, h * 0.55, 0, h);
   shade.addColorStop(0, "rgba(0, 0, 0, 0)");
-  shade.addColorStop(1, "rgba(0, 0, 0, 0.55)");
+  shade.addColorStop(1, "rgba(0, 0, 0, 0.5)");
   ctx.fillStyle = shade;
-  ctx.fillRect(w * 0.34, 0, w * 0.66, h);
+  ctx.fillRect(0, h * 0.55, w, h * 0.45);
 
   drawOuterFrame(ctx, w, h);
 
-  // صورة المستخدم في دائرة ذهبية أعلى اليمين.
-  const avatarRadius = Math.round(h * 0.125);
-  const avatarX = Math.round(w * 0.80);
-  const avatarY = Math.round(h * 0.26);
-  drawAvatar(ctx, avatar, avatarX, avatarY, avatarRadius);
+  const cy = Math.round(h * 0.70);
+
+  // يسار الإطار: صورة المستخدم في دائرة ذهبية.
+  const avatarRadius = Math.round(h * 0.13);
+  const avatarX = Math.round(w * 0.24);
+  drawAvatar(ctx, avatar, avatarX, cy, avatarRadius);
 
   if (displayName) {
     const name = displayName.length > 18 ? `${displayName.slice(0, 18)}…` : displayName;
@@ -159,14 +160,15 @@ export async function renderLevelCard({ avatar, displayName, level, xp, currentF
     ctx.fillStyle = "#f3ead8";
     ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
     ctx.shadowBlur = 12;
-    ctx.fillText(name, avatarX, avatarY + avatarRadius + 46);
+    ctx.fillText(name, avatarX, cy + avatarRadius + 44);
+    ctx.shadowBlur = 0;
   }
 
-  // لوحة المستوى أسفل اليمين.
+  // يمين الإطار: لوحة المستوى برقم ذهبي كبير.
   const panelW = Math.round(w * 0.40);
   const panelH = Math.round(h * 0.40);
-  const panelX = Math.round(w - 78 - panelW);
-  const panelY = Math.round(h * 0.50);
+  const panelX = Math.round(w * 0.54);
+  const panelY = cy - Math.round(panelH / 2);
   drawLevelPanel(ctx, { x: panelX, y: panelY, w: panelW, h: panelH });
 
   const cx = panelX + panelW / 2;
@@ -176,16 +178,16 @@ export async function renderLevelCard({ avatar, displayName, level, xp, currentF
 
   ctx.font = `22px "${FONT_REGULAR}"`;
   ctx.fillStyle = "rgba(232, 224, 207, 0.8)";
-  ctx.fillText("المستوى", cx, panelY + 62);
+  ctx.fillText("المستوى", cx, panelY + 56);
 
   ctx.font = `bold 92px "${FONT_BOLD}"`;
   ctx.fillStyle = goldGradient(ctx, panelX, panelY, panelX + panelW, panelY + panelH);
-  ctx.fillText(String(level), cx, panelY + 158);
+  ctx.fillText(String(level), cx, panelY + 150);
 
   const barW = panelW - 90;
   const barH = 20;
   const barX = panelX + 45;
-  const barY = panelY + panelH - 108;
+  const barY = panelY + panelH - 104;
 
   ctx.shadowBlur = 0;
   ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
@@ -210,10 +212,10 @@ export async function renderLevelCard({ avatar, displayName, level, xp, currentF
   ctx.shadowBlur = 10;
   ctx.font = `24px "${FONT_REGULAR}"`;
   ctx.fillStyle = "#e8e0cf";
-  ctx.fillText(`${xp} / ${nextFloor}`, cx, barY + 62);
+  ctx.fillText(`${xp} / ${nextFloor}`, cx, barY + 54);
   ctx.font = `20px "${FONT_REGULAR}"`;
   ctx.fillStyle = "rgba(230, 220, 200, 0.72)";
-  ctx.fillText(`المتبقي ${missing} خبرة`, cx, barY + 98);
+  ctx.fillText(`المتبقي ${missing} خبرة`, cx, barY + 86);
 
   return canvas.toBuffer("image/jpeg", 92);
 }
