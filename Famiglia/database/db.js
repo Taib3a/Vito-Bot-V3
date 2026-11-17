@@ -145,6 +145,8 @@ migrateUserKeys();
 const GROUP_DEFAULTS = {
   welcome: true,
   antilink: true,
+  anticontact: true,
+  antibadword: true,
   antispam: true,
   antibot: true,
   antidelete: true,

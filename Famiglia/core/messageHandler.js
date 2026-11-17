@@ -273,13 +273,13 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
       // المضادات تعمل على النص والوسائط معاً: مضاد العرض مرة واحدة يحتاج
       // رسالة بلا نص، فلا يُشترط `body`.
       if (!isAdmin && !isMod && !isCmd) {
-        const handled = await runAntifeatures({ sock, msg, from, sender, body, isBotAdmin, botLabel, isCmd });
+        const handled = await runAntifeatures({ sock, msg, from, sender, body, isBotAdmin, isAdmin, isOwner, isMod, botLabel, isCmd });
         if (handled) return;
       }
 
       // رفع المستوى التلقائي مضاد يعمل لكل الأعضاء بلا استثناء،
       // فيُمرَّر له حتى رسائل المشرفين، ولا يحجب الرسالة.
-      await runAllUsersAntifeatures({ sock, msg, from, sender, body, isBotAdmin, botLabel, isCmd });
+      await runAllUsersAntifeatures({ sock, msg, from, sender, body, isBotAdmin, isAdmin, isOwner, isMod, botLabel, isCmd });
     }
 
     // الأوامر تُطبع في نهاية تنفيذها، أما الرسائل العادية فتُطبع فوراً.

@@ -69,7 +69,7 @@ async function isBotAdminIn(sock, groupJid) {
  * يمرّر الرسالة على المضادات المطابقة للفلتر.
  * يعيد true إذا تعامل أحدها مع الرسالة (فلا تُعالج كأمر).
  */
-async function runMods(filterFn, { sock, msg, from, sender, body, isBotAdmin, botLabel, isCmd }) {
+async function runMods(filterFn, { sock, msg, from, sender, body, isBotAdmin, isAdmin, isOwner, isMod, botLabel, isCmd }) {
   const groupData = db.getGroup(from);
   const botSettings = db.getBotSettings(numOf(sock.user?.id));
 
@@ -78,7 +78,7 @@ async function runMods(filterFn, { sock, msg, from, sender, body, isBotAdmin, bo
     if (mod.flag && !(mod.global ? botSettings[mod.flag] : groupData?.[mod.flag])) continue;
 
     try {
-      const handled = await mod.check({ sock, msg, from, sender, body, isBotAdmin, botLabel, isCmd });
+      const handled = await mod.check({ sock, msg, from, sender, body, isBotAdmin, isAdmin, isOwner, isMod, botLabel, isCmd });
       if (handled) return true;
     } catch (e) {
       log.error(`خطأ في ${mod.name}: ${e.message}`);
