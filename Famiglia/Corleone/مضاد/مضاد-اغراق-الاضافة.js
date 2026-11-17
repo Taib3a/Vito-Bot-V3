@@ -37,6 +37,27 @@ function resolveAttacker(event = {}) {
   return "";
 }
 
+/**
+ * يحدّد كيف نُشير إلى المهاجم في التحذير:
+ * - اسم مستخدم (`actorUsername`) أو JID بحروف → رابط دردشة (المنشن لا يعمل معهما).
+ * - رقم (JID أرقام فقط) → منشن عادي.
+ * نتحقّق من `actorUsername` أولاً، فإن وُجد نستخدم الرابط، وإلا فالمنشن.
+ */
+function attackerReference({ attacker, attackerNum, actorUsername }) {
+  const uname = String(actorUsername || "").replace(/^@/, "").trim();
+  if (uname) return { text: `https://wa.me/${uname}`, mentions: [] };
+
+  if (attacker && /^\d+$/.test(attackerNum)) {
+    return { text: `@${attackerNum}`, mentions: [attacker] };
+  }
+
+  // JID بلا أرقام (حروف) بلا اسم مستخدم: لا منشن، نبني الرابط من الجزء النصي.
+  const userPart = String(attacker || "").split("@")[0].split(":")[0];
+  if (userPart) return { text: `https://wa.me/${userPart}`, mentions: [] };
+
+  return { text: "", mentions: [] };
+}
+
 export default {
   name: "مضاد-اغراق-الاضافة",
   flag: "antiflood",
@@ -72,7 +93,9 @@ export default {
 
     state.cooldownUntil = now + COOLDOWN_MS;
 
-    const tag = attacker ? `@${attackerNum}` : "مجهول";
+    // طريقة الإشارة للمهاجم: اسم مستخدم → رابط دردشة، رقم → منشن.
+    const ref = attackerReference({ attacker, attackerNum, actorUsername });
+    const tag = ref.text || (attacker ? attackerNum : "مجهول");
     log.warn(
       `[${botLabel}] مضاد الإغراق: هجوم على ${groupJid} — ${list.length} عضو، Δ${delta}ms، المهاجم ${tag}`,
     );
@@ -99,15 +122,15 @@ export default {
       log.warn(`[${botLabel}] مضاد الإغراق: البوت ليس مشرفاً في ${groupJid} — تعذّر الإغلاق/الطرد`);
     }
 
-    // 3) تحذير عاجل في المجموعة مع ذكر المهاجم.
+    // 3) تحذير عاجل في المجموعة مع ذكر المهاجم (منشن للرقم، رابط للاسم).
     const warnText =
       `⚠️ تم اكتشاف هجوم إغراق! تم إغلاق المجموعة` +
-      (attacker ? ` وطرد المهاجم ${tag}` : ` وطرد المهاجم`) +
+      (ref.text ? ` وطرد المهاجم ${ref.text}` : ` وطرد المهاجم`) +
       `. يرجى مراجعة المشرفين.`;
     try {
       await sock.sendMessage(groupJid, {
         text: warnText,
-        ...(attacker ? { mentions: [attacker] } : {}),
+        ...(ref.mentions.length ? { mentions: ref.mentions } : {}),
       });
     } catch (e) {
       log.error(`مضاد الإغراق: تعذّر إرسال التحذير (${e.message})`);
