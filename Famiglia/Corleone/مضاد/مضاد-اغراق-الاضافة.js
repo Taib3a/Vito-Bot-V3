@@ -45,7 +45,7 @@ function resolveAttacker(event = {}) {
  * النص يعرض بالتفضيل: اسم المستخدم ← الرقم ← رابط wa.me كاحتياطي أخير.
  */
 function attackerReference({ attacker, attackerNum, actorUsername, actorPn }) {
-  const uname = String(actorUsername || "").replace(/^@/, "").trim();
+  const uname = String(actorUsername || "").replace(/^[@~]+/, "").trim();
   const pn = jidOf(actorPn);
   const pnNum = numOf(pn);
   const ids = [...new Set([uname, pn, attacker].filter(Boolean))];
