@@ -1,4 +1,4 @@
-import { xpProgress, rankForLevel } from "../../core/xp.js";
+import { xpProgress } from "../../core/xp.js";
 import { db } from "../../database/db.js";
 
 const FALLBACK_PHOTO = "https://cdn.dix.lat/me/0b0v_20260828-c91x-qz9u-550c.jpg";
@@ -76,7 +76,7 @@ export default {
     const caption =
       ( `𓂃ෆ˚ 🍮 ملف ${mention} ౨ৎ\n\n`) +
       ( `𓂃ෆ˚ 🍮 العملات ${total} [المحفظة: ${eco.bolsillo} | البنك: ${eco.banco}]\n`) +
-      ( `⏤͟͟͞͞  ⚡ المستوى: ${level}  •  ${rankForLevel(level)}\n`) +
+      ( `⏤͟͟͞͞  ⚡ المستوى: ${level}\n`) +
       parejaLine +
       ( `𓂃ෆ˚ *الخبرة:* ${xp} [المتبقي ${missing} للمستوى ${level + 1}]`);
 
