@@ -2,6 +2,7 @@ import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { db } from "../database/db.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const BACKGROUND_PATH = path.join(here, "..", "assets", "level-bg.jpg");
@@ -133,4 +134,16 @@ export async function renderLevelCard({ avatar, displayName, level }) {
   drawLevel(ctx, level, PANEL);
 
   return canvas.toBuffer("image/jpeg", 92);
+}
+
+/** يرسل إعلان الترقية: بطاقة مصوّرة، وإن تعذّر الرسم فنبضة نصّية. */
+export async function announceLevelUp({ sock, from, jid, level }) {
+  const caption = `⬆️ *ترقية* — @${jid.split("@")[0]} وصل إلى المستوى ${level}`;
+  try {
+    const avatar = await resolveAvatar(sock, jid);
+    const image = await renderLevelCard({ avatar, displayName: db.getPushName(jid) || null, level });
+    await sock.sendMessage(from, { image, caption, mentions: [jid] });
+  } catch {
+    await sock.sendMessage(from, { text: caption, mentions: [jid] });
+  }
 }

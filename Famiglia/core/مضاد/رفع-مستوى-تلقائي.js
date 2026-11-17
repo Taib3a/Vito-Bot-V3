@@ -1,5 +1,6 @@
 import { db } from "../../database/db.js";
 import { chatXpAmount, grantXp, CHAT_XP_COOLDOWN_MS } from "../xp.js";
+import { announceLevelUp } from "../levelCard.js";
 
 export default {
   name: "رفع-مستوى-تلقائي",
@@ -17,8 +18,8 @@ export default {
 
     db.setUser(sender, { lastXpAt: now });
 
-    const levelUp = grantXp(sender, chatXpAmount());
-    if (levelUp) await sock.sendMessage(from, { text: levelUp, mentions: [sender] });
+    const level = grantXp(sender, chatXpAmount());
+    if (level) await announceLevelUp({ sock, from, jid: sender, level });
 
     // لا يحجب الرسالة: يمنح الخبرة ثم تُعرض الرسالة عادياً.
     return false;

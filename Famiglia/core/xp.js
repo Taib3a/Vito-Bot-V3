@@ -27,7 +27,7 @@ export function chatXpAmount() {
   return Math.floor(Math.random() * (CHAT_XP_MAX - CHAT_XP_MIN + 1)) + CHAT_XP_MIN;
 }
 
-/** يمنح خبرة، ويعيد نص إعلان الترقية عند تجاوز حدّ مستوى، وإلا null. */
+/** يمنح خبرة، ويعيد رقم المستوى الجديد عند الترقية، وإلا null. */
 export function grantXp(jid, amount) {
   const user = db.getUser(jid);
   const before = levelFromXp(user.xp || 0);
@@ -36,10 +36,10 @@ export function grantXp(jid, amount) {
   const after = levelFromXp(xp);
   if (after <= before) return null;
 
-  return `⬆️ *ترقية* — @${jid.split("@")[0]} وصل إلى المستوى ${after}`;
+  return after;
 }
 
-/** خبرة الأمر الواحد، ويعيد نص إعلان الترقية أو null. */
+/** خبرة الأمر الواحد، ويعيد رقم المستوى الجديد عند الترقية أو null. */
 export function handleCommandXp(sender) {
   return grantXp(sender, COMMAND_XP);
 }

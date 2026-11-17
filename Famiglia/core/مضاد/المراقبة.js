@@ -8,6 +8,31 @@ const MAX_KNOWN = 500;
 
 const numOf = (jid = "") => String(jid).split("@")[0].split(":")[0];
 
+/** يجلب صورة المجموعة المراقَبة، ويعيد null إن تعذّر ذلك. */
+async function groupImage(sock, groupJid) {
+  try {
+    const url = await sock.profilePictureUrl(groupJid, "image");
+    if (!url) return null;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return Buffer.from(await res.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+/** يرسل نص المراقبة مع صورة المجموعة إن توفّرت، وإلا نصاً فقط. */
+async function sendMonitor(sock, groupJid, text, mentions) {
+  const image = await groupImage(sock, groupJid);
+  if (image) {
+    try {
+      await sock.sendMessage(groupJid, { image, caption: text, mentions });
+      return;
+    } catch {}
+  }
+  await sock.sendMessage(groupJid, { text, mentions });
+}
+
 function jidOf(p) {
   if (!p) return null;
   if (typeof p === "string") return p;
@@ -47,10 +72,12 @@ export default {
 
     if (!lines.length) return false;
 
-    await sock.sendMessage(groupJid, {
-      text: `👁️ *مراقبة المجموعة*\n👤 بواسطة: @${numOf(update.author)}\n\n${lines.join("\n")}`,
-      mentions: [update.author],
-    });
+    await sendMonitor(
+      sock,
+      groupJid,
+      `👁️ *مراقبة المجموعة*\n👤 بواسطة: @${numOf(update.author)}\n\n${lines.join("\n")}`,
+      [update.author],
+    );
     log.info(`[${botLabel}] المراقبة: تغيير في ${groupJid}`);
     return true;
   },
@@ -60,10 +87,12 @@ export default {
     if (!list.length) return false;
 
     const who = list.map((j) => `@${numOf(j)}`).join("، ");
-    await sock.sendMessage(groupJid, {
-      text: `👁️ *مراقبة المجموعة*\n⬆️ *ترقية إلى مشرف*\n👤 الأعضاء: ${who}${actor ? `\n🛡️ بواسطة: @${numOf(actor)}` : ""}`,
-      mentions: actor ? [...list, actor] : list,
-    });
+    await sendMonitor(
+      sock,
+      groupJid,
+      `👁️ *مراقبة المجموعة*\n⬆️ *ترقية إلى مشرف*\n👤 الأعضاء: ${who}${actor ? `\n🛡️ بواسطة: @${numOf(actor)}` : ""}`,
+      actor ? [...list, actor] : list,
+    );
     log.info(`[${botLabel}] المراقبة: ترقية في ${groupJid}`);
     return true;
   },

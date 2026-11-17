@@ -45,7 +45,7 @@ export default {
     clearGroupCache()
 
     const targetNum = targetJid.split('@')[0]
-    let textoDemote = `│✐꒷★ @${targetNum} h⍺ sıdo ძᧉgꭇ⍺ძ⍺ძo ძᧉ ⍺dmını𝗌tꭇ⍺doꭇ.\n`
+    let textoDemote = `│✐꒷★ @${targetNum} تمّت إزالة إشرافه.\n`
     textoDemote += ( `> نُفّذ بواسطة @${senderNum}`)
 
     await sock.sendMessage(from, {

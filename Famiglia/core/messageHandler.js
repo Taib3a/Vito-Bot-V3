@@ -4,6 +4,7 @@ import { getPlugins } from "./pluginLoader.js";
 import { db } from "../database/db.js";
 import { runAntifeatures, runAllUsersAntifeatures } from "./مضاد/index.js";
 import { handleCommandXp } from "./xp.js";
+import { announceLevelUp } from "./levelCard.js";
 import { claimOnce, getLiveSock } from "./subbotManager.js";
 import { extractButtonId } from "./buttons.js";
 
@@ -346,8 +347,8 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
       await plugin.run(ctx);
       log.message({ ...boxInfo, isCmd: true });
       if (isGroup && db.getGroup(from)?.levelup !== false) {
-        const levelUp = handleCommandXp(sender);
-        if (levelUp) await sock.sendMessage(from, { text: levelUp, mentions: [sender] });
+        const level = handleCommandXp(sender);
+        if (level) await announceLevelUp({ sock, from, jid: sender, level });
       }
     } catch (e) {
       log.error(`الأمر ${cmdName}: ${e.message}`);

@@ -41,7 +41,7 @@ export default {
     clearGroupCache()
 
     const targetNum = targetJid.split('@')[0]
-    let textoPromote = `│✐꒷★ @${targetNum} h⍺ sıdo pꭇomovıdo ⍺ ⍺dmını𝗌tꭇ⍺doꭇ.\n`
+    let textoPromote = `│✐꒷★ @${targetNum} تمّت ترقيته إلى مشرف.\n`
     textoPromote += ( `> نُفّذ بواسطة @${senderNum}`)
 
     await sock.sendMessage(from, {
