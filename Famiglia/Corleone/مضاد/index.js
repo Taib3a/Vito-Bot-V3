@@ -139,7 +139,7 @@ export function registerAntifeatures(sock, botLabel = "MAIN") {
     }
   });
 
-  sock.ev.on("group-participants.update", async ({ id, participants, action, author }) => {
+  sock.ev.on("group-participants.update", async ({ id, participants, action, author, authorPn, authorUsername }) => {
     if (!id?.endsWith("@g.us") || !Array.isArray(participants)) return;
 
     try {
@@ -158,7 +158,7 @@ export function registerAntifeatures(sock, botLabel = "MAIN") {
         if (!fn) continue;
 
         try {
-          await fn({ sock, groupJid: id, participants, isBotAdmin, botLabel, actor: author });
+          await fn({ sock, groupJid: id, participants, isBotAdmin, botLabel, actor: author, actorPn: authorPn, actorUsername: authorUsername });
         } catch (e) {
           log.error(`خطأ في ${mod.name}: ${e.message}`);
         }

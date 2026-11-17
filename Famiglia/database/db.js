@@ -148,6 +148,7 @@ const GROUP_DEFAULTS = {
   anticontact: true,
   antibadword: true,
   antispam: true,
+  antiflood: true,
   antibot: true,
   antidelete: true,
   monitor: true,
