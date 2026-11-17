@@ -48,7 +48,7 @@ jobs:
         run: |
           node --input-type=module -e "
           process.env.BOT_DB_PATH = '/tmp/ci.db';
-          const { loadPlugins, getPlugins } = await import('./Famiglia/core/pluginLoader.js');
+          const { loadPlugins, getPlugins } = await import('./Famiglia/Corleone/pluginLoader.js');
           const { db } = await import('./Famiglia/database/db.js');
           await loadPlugins();
           const plugins = getPlugins();

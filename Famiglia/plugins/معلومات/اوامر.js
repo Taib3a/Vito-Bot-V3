@@ -1,8 +1,8 @@
 import axios from "axios";
-import { getPlugins } from "../../core/pluginLoader.js";
+import { getPlugins } from "../../Corleone/pluginLoader.js";
 import { db } from "../../database/db.js";
-import { getMainSock } from "../../core/subbotManager.js";
-import config from "../../core/settings.js";
+import { getMainSock } from "../../Corleone/subbotManager.js";
+import config from "../../Corleone/settings.js";
 
 
 let bannerCache = null;

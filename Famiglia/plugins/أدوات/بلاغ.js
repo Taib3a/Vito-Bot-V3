@@ -1,4 +1,4 @@
-import { getAllSockets } from "../../core/subbotManager.js"
+import { getAllSockets } from "../../Corleone/subbotManager.js"
 
 const REPORT_GROUP_ID = "120363427598752084@g.us"
 

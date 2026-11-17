@@ -10,7 +10,7 @@ export default {
     await reply({ text: ( `🔄 جارٍ إعادة تحميل جلسة *${botLabel}*، أعود بعد لحظة...`) });
 
     try {
-      const { clearSocketFiles } = await import("../../core/connection.js");
+      const { clearSocketFiles } = await import("../../Corleone/connection.js");
       if (sock.sessionDir) {
         await clearSocketFiles(sock.sessionDir);
       }

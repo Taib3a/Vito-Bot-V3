@@ -1,5 +1,5 @@
 import { db } from '../../database/db.js'
-import { activeBots, claimOnce } from '../../core/subbotManager.js'
+import { activeBots, claimOnce } from '../../Corleone/subbotManager.js'
 
 function cleanJid(jid = "") {
   if (!jid) return "";

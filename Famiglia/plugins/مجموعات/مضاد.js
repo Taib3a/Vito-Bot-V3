@@ -1,5 +1,5 @@
 import { db } from "../../database/db.js";
-import { antifeatures, antifeatureModules } from "../../core/مضاد/index.js";
+import { antifeatures, antifeatureModules } from "../../Corleone/مضاد/index.js";
 
 // المضادات ثلاثة أقسام:
 //  • مضادات المجموعة: يتحكم بها مشرفو المجموعة، وإعدادها لكل مجموعة.

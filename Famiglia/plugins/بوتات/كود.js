@@ -1,4 +1,4 @@
-import { requestSubbotCode, activeBots } from "../../core/subbotManager.js";
+import { requestSubbotCode, activeBots } from "../../Corleone/subbotManager.js";
 import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
 const cooldowns = new Map();

@@ -1,4 +1,4 @@
-import { removeSubbot, activeBots } from '../../core/subbotManager.js'
+import { removeSubbot, activeBots } from '../../Corleone/subbotManager.js'
 
 export default {
   name: ["حذف-بوت"],

@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { downloadMediaMessage } from "@whiskeysockets/baileys";
-import { loadPlugins } from "../../core/pluginLoader.js";
+import { loadPlugins } from "../../Corleone/pluginLoader.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // مجلد الإضافات مشتق من موقع هذا الملف: Famiglia/plugins/مالك/ضيف.js

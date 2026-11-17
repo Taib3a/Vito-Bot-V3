@@ -1,5 +1,5 @@
 import { db } from "../../database/db.js";
-import { checkCooldown, setCooldown, formatTime } from "../../core/economy.js";
+import { checkCooldown, setCooldown, formatTime } from "../../Corleone/economy.js";
 import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
 export default {

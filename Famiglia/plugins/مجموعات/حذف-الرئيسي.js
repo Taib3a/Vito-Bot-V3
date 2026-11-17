@@ -1,5 +1,5 @@
 import { db } from '../../database/db.js'
-import { claimOnce } from '../../core/subbotManager.js'
+import { claimOnce } from '../../Corleone/subbotManager.js'
 
 export default {
   name: ["حذف-الرئيسي"],

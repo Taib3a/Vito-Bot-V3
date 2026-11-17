@@ -1,7 +1,7 @@
-import { printBanner, log } from "./Famiglia/core/logger.js";
-import { createConnection } from "./Famiglia/core/connection.js";
-import { loadPlugins, watchPlugins } from "./Famiglia/core/pluginLoader.js";
-import { launchAllSubbots, registerMainBot } from "./Famiglia/core/subbotManager.js";
+import { printBanner, log } from "./Famiglia/Corleone/logger.js";
+import { createConnection } from "./Famiglia/Corleone/connection.js";
+import { loadPlugins, watchPlugins } from "./Famiglia/Corleone/pluginLoader.js";
+import { launchAllSubbots, registerMainBot } from "./Famiglia/Corleone/subbotManager.js";
 import fs from "fs";
 import path from "path";
 

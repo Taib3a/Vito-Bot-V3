@@ -1,5 +1,5 @@
-import config from "../../core/settings.js";
-import { activeBots } from "../../core/subbotManager.js";
+import config from "../../Corleone/settings.js";
+import { activeBots } from "../../Corleone/subbotManager.js";
 import { jidNormalizedUser, isLidUser } from "@whiskeysockets/baileys";
 
 export default {

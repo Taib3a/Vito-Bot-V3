@@ -1,5 +1,5 @@
 import { db } from "../../database/db.js";
-import { claimOnce, getAllSockets } from "../../core/subbotManager.js";
+import { claimOnce, getAllSockets } from "../../Corleone/subbotManager.js";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const numOf = (jid = "") => jid.split("@")[0].split(":")[0];

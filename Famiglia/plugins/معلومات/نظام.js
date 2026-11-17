@@ -2,7 +2,7 @@ import os from "os";
 import process from "process";
 import fs from "fs";
 import { db } from "../../database/db.js";
-import config from "../../core/settings.js";
+import config from "../../Corleone/settings.js";
 
 function formatBytes(bytes) {
   if (!bytes || isNaN(bytes) || bytes === Infinity) return "0.00";

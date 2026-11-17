@@ -81,9 +81,9 @@ export default {
 
     try {
       const { db } = await importar('./Famiglia/database/db.js')
-      const { default: config } = await importar('./Famiglia/core/settings.js')
-      const { getPlugins } = await importar('./Famiglia/core/pluginLoader.js')
-      const { getAllSockets, getMainSock } = await importar('./Famiglia/core/subbotManager.js')
+      const { default: config } = await importar('./Famiglia/Corleone/settings.js')
+      const { getPlugins } = await importar('./Famiglia/Corleone/pluginLoader.js')
+      const { getAllSockets, getMainSock } = await importar('./Famiglia/Corleone/subbotManager.js')
 
       // نفس بانر واسم القائمة (يُقرأ من قاعدة البيانات عند كل استخدام)
       const currentBotNum = sock.user?.id ? sock.user.id.split('@')[0].split(':')[0].replace(/\D/g, '') : ''

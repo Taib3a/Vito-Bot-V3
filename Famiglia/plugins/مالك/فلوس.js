@@ -1,5 +1,5 @@
 import { db } from '../../database/db.js'
-import config from '../../core/settings.js' // ajusta la ruta según dónde esté tu settings.js
+import config from '../../Corleone/settings.js' // ajusta la ruta según dónde esté tu settings.js
 
 const MAX = 999_999_999_999
 

@@ -1,4 +1,4 @@
-import config from '../../core/settings.js'
+import config from '../../Corleone/settings.js'
 
 export default {
   name: ["مالك"],

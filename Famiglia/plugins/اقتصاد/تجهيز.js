@@ -1,5 +1,5 @@
 import { db } from "../../database/db.js";
-import { ITEMS } from "../../core/gamedata.js";
+import { ITEMS } from "../../Corleone/gamedata.js";
 
 function getPersonajes(jid) {
   const user = db.getUser(jid);

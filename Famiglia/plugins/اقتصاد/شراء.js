@@ -1,5 +1,5 @@
 import { db } from '../../database/db.js'
-import { ITEMS } from '../../core/gamedata.js'
+import { ITEMS } from '../../Corleone/gamedata.js'
 
 export default {
   name: ["شراء"],

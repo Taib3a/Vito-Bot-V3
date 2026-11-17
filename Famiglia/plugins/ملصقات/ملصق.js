@@ -6,7 +6,7 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 import { downloadMediaMessage } from '@whiskeysockets/baileys'
 import { db } from '../../database/db.js'
-import config from '../../core/settings.js'
+import config from '../../Corleone/settings.js'
 
 const execAsync = promisify(exec)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))

@@ -40,7 +40,7 @@ export default {
       log.warn(`مضاد الروابط: تعذّر الحذف (${e.message})`);
     }
 
-    const count = addWarning(from, sender);
+    const count = addWarning("antilink", from, sender);
 
     try {
       if (count < MAX_WARNINGS) {
@@ -52,7 +52,7 @@ export default {
         return true;
       }
 
-      clearWarnings(from, sender);
+      clearWarnings("antilink", from, sender);
 
       if (isBotAdmin) {
         await sock.groupParticipantsUpdate(from, [sender], "remove");

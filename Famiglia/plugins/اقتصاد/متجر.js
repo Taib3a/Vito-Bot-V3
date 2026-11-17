@@ -1,4 +1,4 @@
-import { ITEMS } from '../../core/gamedata.js'
+import { ITEMS } from '../../Corleone/gamedata.js'
 
 export default {
   name: ["متجر"],

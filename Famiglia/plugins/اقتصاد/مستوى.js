@@ -1,7 +1,7 @@
-import { xpProgress } from "../../core/xp.js";
+import { xpProgress } from "../../Corleone/xp.js";
 import { db } from "../../database/db.js";
-import { renderLevelCard, resolveAvatar } from "../../core/levelCard.js";
-import { log } from "../../core/logger.js";
+import { renderLevelCard, resolveAvatar } from "../../Corleone/levelCard.js";
+import { log } from "../../Corleone/logger.js";
 
 export default {
   name: ["مستوى"],

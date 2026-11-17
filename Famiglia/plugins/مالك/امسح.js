@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { loadPlugins } from "../../core/pluginLoader.js";
+import { loadPlugins } from "../../Corleone/pluginLoader.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

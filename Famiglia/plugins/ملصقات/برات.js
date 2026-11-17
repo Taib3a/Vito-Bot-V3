@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import axios from 'axios'
-import config from '../../core/settings.js'
+import config from '../../Corleone/settings.js'
 import { db } from '../../database/db.js'
 
 const execAsync = promisify(exec)

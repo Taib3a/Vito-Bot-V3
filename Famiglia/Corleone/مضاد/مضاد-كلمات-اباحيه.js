@@ -59,7 +59,7 @@ export default {
       log.warn(`مضاد الكلمات الإباحية: تعذّر الحذف (${e.message})`);
     }
 
-    const count = addWarning(from, sender);
+    const count = addWarning("antibadword", from, sender);
 
     try {
       if (count < MAX_WARNINGS) {
@@ -71,7 +71,7 @@ export default {
         return true;
       }
 
-      clearWarnings(from, sender);
+      clearWarnings("antibadword", from, sender);
 
       if (isBotAdmin) {
         await sock.groupParticipantsUpdate(from, [sender], "remove");

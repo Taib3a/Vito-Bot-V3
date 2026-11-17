@@ -1,4 +1,4 @@
-import { xpProgress } from "../../core/xp.js";
+import { xpProgress } from "../../Corleone/xp.js";
 import { db } from "../../database/db.js";
 
 const FALLBACK_PHOTO = "https://cdn.dix.lat/me/0b0v_20260828-c91x-qz9u-550c.jpg";

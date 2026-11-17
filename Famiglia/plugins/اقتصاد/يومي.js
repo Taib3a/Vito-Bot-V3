@@ -1,5 +1,5 @@
 import { db } from "../../database/db.js";
-import { checkCooldown, setCooldown, addBolsillo, formatTime } from "../../core/economy.js";
+import { checkCooldown, setCooldown, addBolsillo, formatTime } from "../../Corleone/economy.js";
 
 export default {
   name: ["يومي"],

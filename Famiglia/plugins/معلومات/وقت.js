@@ -26,7 +26,7 @@ export default {
       : ''
 
     const { db } = await import('../../database/db.js')
-    const config = (await import('../../core/settings.js')).default
+    const config = (await import('../../Corleone/settings.js')).default
 
     const botData = db.getBot(currentBotJid)
     const esLabelAutomatico = botData?.label?.startsWith('SUB_') || botData?.label === 'Subbot' || botData?.label === 'MAIN'

@@ -1,5 +1,5 @@
 import { db } from '../../database/db.js'
-import config from '../../core/settings.js'
+import config from '../../Corleone/settings.js'
 
 export default {
   name: ["حذف-اسم-الملصق"],

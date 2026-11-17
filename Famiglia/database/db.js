@@ -2,7 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import config from "../core/settings.js";
+import config from "../Corleone/settings.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DB_PATH = process.env.BOT_DB_PATH || join(__dirname, "vito.sqlite");

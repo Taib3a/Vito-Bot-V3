@@ -1,4 +1,4 @@
-import { broadcastReaccionCanal } from '../../core/subbotManager.js'
+import { broadcastReaccionCanal } from '../../Corleone/subbotManager.js'
 
 export default {
   name: ["تفاعل-قناة"],
