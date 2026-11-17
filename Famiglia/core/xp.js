@@ -2,7 +2,7 @@ import { db } from "../database/db.js";
 
 const CHAT_XP_MIN = 3;
 const CHAT_XP_MAX = 8;
-const CHAT_XP_COOLDOWN_MS = 60 * 1000;
+export const CHAT_XP_COOLDOWN_MS = 60 * 1000;
 const COMMAND_XP = 5;
 
 function xpForLevel(level) {
@@ -22,21 +22,24 @@ export function xpProgress(xp) {
   return { level, xp, currentFloor, nextFloor, missing: nextFloor - xp };
 }
 
-function addXp(jid, amount) {
+/** مقدار الخبرة العشوائي لرسالة دردشة. */
+export function chatXpAmount() {
+  return Math.floor(Math.random() * (CHAT_XP_MAX - CHAT_XP_MIN + 1)) + CHAT_XP_MIN;
+}
+
+/** يمنح خبرة، ويعيد نص إعلان الترقية عند تجاوز حدّ مستوى، وإلا null. */
+export function grantXp(jid, amount) {
   const user = db.getUser(jid);
-  db.setUser(jid, { xp: (user.xp || 0) + amount });
+  const before = levelFromXp(user.xp || 0);
+  const xp = (user.xp || 0) + amount;
+  db.setUser(jid, { xp });
+  const after = levelFromXp(xp);
+  if (after <= before) return null;
+
+  return `⬆️ *ترقية* — @${jid.split("@")[0]} وصل إلى المستوى ${after}`;
 }
 
-export function handleChatXp(sender) {
-  const user = db.getUser(sender);
-  const now = Date.now();
-  if (user.lastXpAt && now - user.lastXpAt < CHAT_XP_COOLDOWN_MS) return;
-
-  const amount = Math.floor(Math.random() * (CHAT_XP_MAX - CHAT_XP_MIN + 1)) + CHAT_XP_MIN;
-  db.setUser(sender, { lastXpAt: now });
-  addXp(sender, amount);
-}
-
+/** خبرة الأمر الواحد، ويعيد نص إعلان الترقية أو null. */
 export function handleCommandXp(sender) {
-  addXp(sender, COMMAND_XP);
+  return grantXp(sender, COMMAND_XP);
 }

@@ -66,19 +66,19 @@ async function isBotAdminIn(sock, groupJid) {
 }
 
 /**
- * يمرّر الرسالة على كل مضاد مفعّل في المجموعة.
+ * يمرّر الرسالة على المضادات المطابقة للفلتر.
  * يعيد true إذا تعامل أحدها مع الرسالة (فلا تُعالج كأمر).
  */
-export async function runAntifeatures({ sock, msg, from, sender, body, isBotAdmin, botLabel }) {
+async function runMods(filterFn, { sock, msg, from, sender, body, isBotAdmin, botLabel, isCmd }) {
   const groupData = db.getGroup(from);
   const botSettings = db.getBotSettings(numOf(sock.user?.id));
 
   for (const mod of modules) {
-    if (!mod.check) continue;
+    if (!mod.check || !filterFn(mod)) continue;
     if (mod.flag && !(mod.global ? botSettings[mod.flag] : groupData?.[mod.flag])) continue;
 
     try {
-      const handled = await mod.check({ sock, msg, from, sender, body, isBotAdmin, botLabel });
+      const handled = await mod.check({ sock, msg, from, sender, body, isBotAdmin, botLabel, isCmd });
       if (handled) return true;
     } catch (e) {
       log.error(`خطأ في ${mod.name}: ${e.message}`);
@@ -86,6 +86,16 @@ export async function runAntifeatures({ sock, msg, from, sender, body, isBotAdmi
   }
 
   return false;
+}
+
+/** مضادات الحماية: تستهدف المخالفين، فلا تُشغَّل للمشرفين. */
+export async function runAntifeatures(ctx) {
+  return runMods((m) => !m.allUsers, ctx);
+}
+
+/** مضادات تعمل لكل الأعضاء بلا استثناء (رفع المستوى التلقائي). */
+export async function runAllUsersAntifeatures(ctx) {
+  return runMods((m) => !!m.allUsers, ctx);
 }
 
 /**

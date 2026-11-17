@@ -150,6 +150,7 @@ const GROUP_DEFAULTS = {
   antidelete: true,
   monitor: true,
   viewonce: true,
+  levelup: true,
   primaryBot: null,
   adminMode: false,
   selfMode: false,
