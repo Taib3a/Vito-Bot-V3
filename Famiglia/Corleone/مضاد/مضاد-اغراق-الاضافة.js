@@ -38,29 +38,25 @@ function resolveAttacker(event = {}) {
 }
 
 /**
- * يحدّد كيف نُشير إلى المهاجم في التحذير:
- * - اسم مستخدم (`actorUsername`) متاح → المنشن بالاسم: النص `@username`
- *   والمصفوفة تضمّ الاسم والـ JID الحقيقي (يربطه واتساب بالاسم).
- * - بلا اسم مستخدم → منشن عادي بالرقم `@<number>`.
- * - JID بحروف بلا اسم مستخدم → رابط دردشة.
+ * يبني مرجع الإشارة إلى المهاجم من كل بيانات هويته المتاحة.
+ *
+ * المصفوفة `mentions` تضمّ كل ما نملكه (الاسم، رقم الهاتف، الـ JID الحقيقي)
+ * بلا تكرار — فيلتقط واتساب الحساب الصحيح أياً كان نوعه (PN أو LID أو Username).
+ * النص يعرض بالتفضيل: اسم المستخدم ← الرقم ← رابط wa.me كاحتياطي أخير.
  */
 function attackerReference({ attacker, attackerNum, actorUsername, actorPn }) {
   const uname = String(actorUsername || "").replace(/^@/, "").trim();
+  const pn = jidOf(actorPn);
+  const pnNum = numOf(pn);
+  const ids = [...new Set([uname, pn, attacker].filter(Boolean))];
 
-  if (uname) {
-    const ids = [...new Set([attacker, actorPn, uname].filter(Boolean))];
-    return { text: `@${uname}`, mentions: ids };
-  }
+  // النص بالتفضيل: اسم المستخدم ← رقم الهاتف ← رقم الـ JID ← رابط.
+  if (uname) return { text: `@${uname}`, mentions: ids };
+  if (pnNum) return { text: `@${pnNum}`, mentions: ids };
+  if (attacker && /^\d+$/.test(attackerNum)) return { text: `@${attackerNum}`, mentions: ids };
 
-  if (attacker && /^\d+$/.test(attackerNum)) {
-    return { text: `@${attackerNum}`, mentions: [attacker] };
-  }
-
-  // JID بحروف بلا اسم مستخدم: لا منشن، نبني الرابط من الجزء النصي.
   const userPart = String(attacker || "").split("@")[0].split(":")[0];
-  if (userPart) return { text: `https://wa.me/${userPart}`, mentions: [] };
-
-  return { text: "", mentions: [] };
+  return { text: userPart ? `https://wa.me/${userPart}` : "", mentions: ids };
 }
 
 export default {
@@ -98,7 +94,7 @@ export default {
 
     state.cooldownUntil = now + COOLDOWN_MS;
 
-    // طريقة الإشارة للمهاجم: اسم مستخدم → منشن بالاسم، رقم → منشن بالرقم.
+    // الإشارة للمهاجم: المصفوفة تضمّ كل بيانات هويته، والنص يعرض الاسم أو الرقم.
     const ref = attackerReference({ attacker, attackerNum, actorUsername, actorPn });
     const tag = ref.text || (attacker ? attackerNum : "مجهول");
     log.warn(
