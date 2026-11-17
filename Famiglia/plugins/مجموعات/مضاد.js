@@ -163,7 +163,7 @@ function buildBotStatusPanel(botNum, from) {
   }
 
   return {
-    text: `${T.head}\n\n🤖 *إعدادات خاصة برقم البوت:*\n\`${botNum}\`\n\n${lines.join("\n")}`,
+    text: `${T.head}\n\n🤖 *إعدادات خاصة برقم البوت:*\n\n${lines.join("\n")}`,
   };
 }
 
@@ -184,6 +184,13 @@ export default {
     const panel = (data) =>
       sendStoreMessage(sock, from, msg, sender, { ...data, title: T.btnTitle, footer: FOOTER });
 
+    // صورة عشوائية من صور البوت لترويسة اللوحة.
+    const pickBotImage = () =>
+      Array.isArray(global.botImages) && global.botImages.length
+        ? global.botImages[Math.floor(Math.random() * global.botImages.length)]
+        : null;
+    const botPanel = (text) => sendStoreMessage(sock, from, msg, sender, { text, image: pickBotImage() });
+
     // رقم البوت: لوحة نصّية مباشرة، بلا قائمة أقسام وبلا أزرار (لا يستطيع ضغطها).
     if (isBotSelf) {
       // أمر نصّي لأداة بوت (تشغيل/ايقاف): يُطابَق بالاسم لا بالعلَم.
@@ -192,9 +199,9 @@ export default {
         const mod = moduleOf(toolCmd.flag);
         const on = mod.commands[name];
         const res = await mod.run({ sock, from, on, botNum });
-        if (!res.changed) return await reply({ text: res.text });
+        if (!res.changed) return await botPanel(res.text);
         await react(on ? "🟢" : "🔴");
-        return await reply({ text: `${res.text}\n\n${buildBotStatusPanel(botNum, from).text}` });
+        return await botPanel(`${res.text}\n\n${buildBotStatusPanel(botNum, from).text}`);
       }
 
       const flag = name.replace(/^(تفعيل|تعطيل)_?/, "") || String(args[0] || "").toLowerCase();
@@ -205,9 +212,9 @@ export default {
       if (tool) {
         const mod = moduleOf(tool.flag);
         const res = await mod.run({ sock, from, on, botNum });
-        if (!res.changed) return await reply({ text: res.text });
+        if (!res.changed) return await botPanel(res.text);
         await react(on ? "🟢" : "🔴");
-        return await reply({ text: `${res.text}\n\n${buildBotStatusPanel(botNum, from).text}` });
+        return await botPanel(`${res.text}\n\n${buildBotStatusPanel(botNum, from).text}`);
       }
 
       const isGlobalFlag = (t) => BOT_FEATURES.some((a) => a.flag.toLowerCase() === String(t).toLowerCase());
@@ -216,11 +223,11 @@ export default {
         db.setBotSettings(botNum, { [mod.flag]: on });
         await react(on ? "✅" : "🚫");
         const data = buildBotStatusPanel(botNum, from);
-        return await reply({ text: `${on ? T.onOne(mod.name) : T.offOne(mod.name)}\n\n${data.text}` });
+        return await botPanel(`${on ? T.onOne(mod.name) : T.offOne(mod.name)}\n\n${data.text}`);
       }
 
       await react("🛡️");
-      return await reply({ text: buildBotStatusPanel(botNum, from).text });
+      return await botPanel(buildBotStatusPanel(botNum, from).text);
     }
 
     // مشرف/مالك: لوحة مضادات المجموعة.
