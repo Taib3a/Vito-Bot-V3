@@ -159,6 +159,57 @@ export function makeSendResilient(sock) {
   return sock;
 }
 
+// حماية الإضافات الصادرة: تمنع استخدام البوت نفسه أداةً لإغراق المجموعة.
+// هجوم الإغراق الشائع يستدعي groupParticipantsUpdate(action='add') عدّة مرات
+// متتالية على أرقام وهمية، فلا يُبَثّ حدث دخول (الأرقام غير موجودة) ويبقى
+// المضاد المبني على الأحداث أعمى. الحجب هنا يقطع الهجوم من مصدره.
+const ADD_GUARD_WINDOW_MS = 6_000;
+const ADD_GUARD_MAX = 3;
+const ADD_GUARD_COOLDOWN_MS = 60_000;
+const addGuard = new Map();
+
+/** يلفّ groupParticipantsUpdate فيمنع رشقات الإضافة المتتالية. */
+export function guardGroupAddFlood(sock) {
+  if (sock.__addGuard || typeof sock.groupParticipantsUpdate !== "function") return sock;
+  sock.__addGuard = true;
+  const original = sock.groupParticipantsUpdate.bind(sock);
+
+  sock.groupParticipantsUpdate = async (jid, participants, action) => {
+    if (action !== "add" || !jid?.endsWith("@g.us")) return original(jid, participants, action);
+
+    const now = Date.now();
+    const state = addGuard.get(jid) || { times: [], blockedUntil: 0 };
+
+    if (now < state.blockedUntil) {
+      log.warn(`حماية الإغراق: حُجبت محاولة إضافة إلى ${jid} (خلال فترة الحجب).`);
+      return [];
+    }
+
+    state.times = state.times.filter((t) => now - t <= ADD_GUARD_WINDOW_MS);
+    state.times.push(now);
+    if (addGuard.size > 1000) addGuard.delete(addGuard.keys().next().value);
+    addGuard.set(jid, state);
+
+    if (state.times.length > ADD_GUARD_MAX) {
+      state.blockedUntil = now + ADD_GUARD_COOLDOWN_MS;
+      state.times = [];
+      log.warn(
+        `حماية الإغراق: رُصدت ${state.times.length + ADD_GUARD_MAX} محاولات إضافة سريعة إلى ${jid} — حُجبت ${ADD_GUARD_COOLDOWN_MS / 1000}ث.`,
+      );
+      try {
+        await sock.groupSettingUpdate(jid, "announcement");
+      } catch (e) {
+        log.error(`حماية الإغراق: تعذّر إغلاق المجموعة (${e.message})`);
+      }
+      return [];
+    }
+
+    return original(jid, participants, action);
+  };
+
+  return sock;
+}
+
 /**
  * يتحقق أن المقبس يستقبل فعلاً بعد "الاتصال".
  *
@@ -549,6 +600,8 @@ export async function createConnection({
   initButtons(sock);
   // انتظار إعادة الفتح + محاولة ثانية عند 428 بدل إسقاط الأمر.
   makeSendResilient(sock);
+  // حجب رشقات الإضافة الصادرة (يمنع استخدام البوت أداةَ إغراق).
+  guardGroupAddFlood(sock);
 
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
     if (type !== "notify") return;

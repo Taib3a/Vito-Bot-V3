@@ -10,7 +10,7 @@ import { mkdir } from "fs/promises";
 import { log } from "./logger.js";
 import config from "./settings.js";
 import { openDatabase } from "./sqlite.js";
-import { useSQLiteAuthState, attachSocketState, makeSendResilient, getLiveSocketFor, probeAlive } from "./connection.js";
+import { useSQLiteAuthState, attachSocketState, makeSendResilient, guardGroupAddFlood, getLiveSocketFor, probeAlive } from "./connection.js";
 import { db } from "../database/db.js";
 import { handleMessage, registerGroupCacheEvents } from "./messageHandler.js";
 import { registerAntifeatures } from "./مضاد/index.js";
@@ -262,6 +262,7 @@ async function startSubbotConnection(id, sessionDir, phoneNumber = null, onCode 
   // الفرعية تحتاج sendButtonMessage أيضاً (الأوامر التفاعلية)، وحماية 428.
   initButtons(sock);
   makeSendResilient(sock);
+  guardGroupAddFlood(sock);
 
   if (useCode) {
     await new Promise((r) => setTimeout(r, 3000));

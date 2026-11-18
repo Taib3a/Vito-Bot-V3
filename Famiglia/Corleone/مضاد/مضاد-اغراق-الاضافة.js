@@ -6,14 +6,18 @@ const numOf = (jid = "") => String(jid).split("@")[0].split(":")[0];
 // Baileys يمرّر المشاركين كائنات { id, ... } أو نصوصاً.
 const jidOf = (p) => (!p ? "" : typeof p === "string" ? p : p.id || p.jid || p.participant || "");
 
-// نافذة الهجوم: إضافتان خلال نصف ثانية مؤشر قاطع على بوت مهاجم (البشر لا يفعلونها).
-const WINDOW_MS = 500;
+// نافذة رصد الهجوم. الهجوم الحقيقي يستدعي groupParticipantsUpdate عدة مرات
+// متتالية بـ await، فتتباعد الأحداث مئات الملّي ثانية — نافذة ضيقة (نصف ثانية)
+// تفوته. نوسّعها إلى 6 ثوانٍ لالتقاط الرشقة كاملة.
+const WINDOW_MS = 6_000;
+// عدد الإضافات (أو مجموع الأعضاء المضافين) خلال النافذة الذي يُعدّ هجوماً.
+const THRESHOLD = 3;
 // بعد تنفيذ العقوبة نُهدّئ المراقبة حتى لا تتكرر المعالجة لكل حدث في الرشقة نفسها.
-const COOLDOWN_MS = 10_000;
+const COOLDOWN_MS = 60_000;
 // حدّ أقصى لعدد المجموعات المتتبَّعة في الذاكرة.
 const MAX_KEYS = 1000;
 
-// groupJid -> { lastAddAt, cooldownUntil }
+// groupJid -> { adds: [{ t, n }], cooldownUntil }
 const floodState = new Map();
 
 function ownerNumbers() {
@@ -78,18 +82,20 @@ export default {
     if (!list.length) return;
 
     const now = Date.now();
-    const state = floodState.get(groupJid) || { lastAddAt: 0, cooldownUntil: 0 };
+    const state = floodState.get(groupJid) || { adds: [], cooldownUntil: 0 };
 
     // فترة التهدئة: بقية رشقة الهجوم تُتجاهَل.
     if (now < state.cooldownUntil) return;
 
-    const delta = state.lastAddAt ? now - state.lastAddAt : Infinity;
-    state.lastAddAt = now;
+    // نافذة متدرّجة: نسجّل الإضافة الحالية ونسقط ما خرج من النافذة.
+    state.adds = state.adds.filter((e) => now - e.t <= WINDOW_MS);
+    state.adds.push({ t: now, n: list.length });
     if (floodState.size > MAX_KEYS) floodState.delete(floodState.keys().next().value);
     floodState.set(groupJid, state);
 
-    // هجوم: دفعة واحدة بعدّة أعضاء، أو إضافتان خلال نصف ثانية.
-    if (list.length < 2 && delta > WINDOW_MS) return;
+    // هجوم: بلوغ عتبة الإضافات خلال النافذة (يشمل الدفعة الواحدة).
+    const added = state.adds.reduce((sum, e) => sum + e.n, 0);
+    if (added < THRESHOLD) return;
 
     // كشف المهاجم من الحدث (author ثم بدائله).
     const attacker = resolveAttacker({ actor, actorPn, actorUsername });
@@ -103,12 +109,13 @@ export default {
     }
 
     state.cooldownUntil = now + COOLDOWN_MS;
+    state.adds = [];
 
     // الإشارة للمهاجم: المصفوفة تضمّ كل بيانات هويته، والنص يعرض الاسم أو الرقم.
     const ref = attackerReference({ attacker, attackerNum, actorUsername, actorPn });
     const tag = ref.text || (attacker ? attackerNum : "مجهول");
     log.warn(
-      `[${botLabel}] مضاد الإغراق: هجوم على ${groupJid} — ${list.length} عضو، Δ${delta}ms، المهاجم ${tag}`,
+      `[${botLabel}] مضاد الإغراق: هجوم على ${groupJid} — ${added} إضافة خلال ${WINDOW_MS / 1000}ث، المهاجم ${tag}`,
     );
 
     // 1) إغلاق المجموعة فوراً لوقف أي محاولة إضافة أخرى.
@@ -117,6 +124,14 @@ export default {
         await sock.groupSettingUpdate(groupJid, "announcement");
       } catch (e) {
         log.error(`مضاد الإغراق: تعذّر إغلاق المجموعة (${e.message})`);
+      }
+
+      // تعزيز استباقي: قصر الإضافة على المشرفين فقط، فيُسدّ الطريق على أي
+      // عضو مخترق يعيد المحاولة حتى لو فُتحت المجموعة لاحقاً.
+      try {
+        await sock.groupMemberAddMode(groupJid, "admin_add");
+      } catch (e) {
+        log.error(`مضاد الإغراق: تعذّر تقييد الإضافة للمشرفين (${e.message})`);
       }
 
       // 2) طرد المهاجم حتى لو كان مشرفاً (قد يكون حسابه مخترقاً).
