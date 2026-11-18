@@ -41,7 +41,7 @@ jobs:
 
       - name: Syntax-check every source file
         run: |
-          find index.js Famiglia -name '*.js' -print0 \
+          find index.js Famiglia tools -name '*.js' -print0 \
             | xargs -0 -n1 node --check
 
       - name: Load every plugin and round-trip the database
