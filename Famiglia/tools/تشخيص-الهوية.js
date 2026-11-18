@@ -3,17 +3,17 @@
  * وتختبر هل يعمل المنشن باسم المستخدم (Username) أم بالرقم فقط.
  *
  * التشغيل:
- *   node tools/تشخيص-الهوية.js --sim                 # فحص محلي بلا اتصال (ترميز المنشن)
- *   node tools/تشخيص-الهوية.js                        # استماع حيّ + إرسال اختبار منشن
- *   node tools/تشخيص-الهوية.js --group 123@g.us       # تحديد المجموعة
- *   node tools/تشخيص-الهوية.js --jid 967...@s.whatsapp.net   # تحديد هدف المنشن
- *   node tools/تشخيص-الهوية.js --session ./sessions/main      # مجلد جلسة آخر
+ *   node Famiglia/tools/تشخيص-الهوية.js --sim                 # فحص محلي بلا اتصال (ترميز المنشن)
+ *   node Famiglia/tools/تشخيص-الهوية.js                        # استماع حيّ + إرسال اختبار منشن
+ *   node Famiglia/tools/تشخيص-الهوية.js --group 123@g.us       # تحديد المجموعة
+ *   node Famiglia/tools/تشخيص-الهوية.js --jid 967...@s.whatsapp.net   # تحديد هدف المنشن
+ *   node Famiglia/tools/تشخيص-الهوية.js --session ./sessions/main      # مجلد جلسة آخر
  *
  * ملاحظة: الاستماع الحيّ يفتح مقبساً على الجلسة المحدَّدة، فأوقف البوت العادي
  * أولاً حتى لا تتصادم الجلستان (connectionReplaced).
  */
-import { createConnection } from "../Famiglia/Corleone/connection.js";
-import { log } from "../Famiglia/Corleone/logger.js";
+import { createConnection } from "../Corleone/connection.js";
+import { log } from "../Corleone/logger.js";
 import { jidDecode, isPnUser, isLidUser, generateWAMessageContent } from "@whiskeysockets/baileys";
 
 const args = process.argv.slice(2);
