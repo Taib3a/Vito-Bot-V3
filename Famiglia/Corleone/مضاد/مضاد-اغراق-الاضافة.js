@@ -23,13 +23,22 @@ function ownerNumbers() {
     .map((n) => numOf(String(n)));
 }
 
+// واتساب لا يدعم المنشن باسم المستخدم: حقل `mentionedJid` في البروتوكول يقبل
+// JIDs فعلية فقط (PN أو LID). أي نص آخر يُرسَل كما هو ولا يُنتج منشناً.
+const isMentionableJid = (j) => /@(s\.whatsapp\.net|lid)$/.test(String(j || ""));
+
 /**
  * يستخرج JID المهاجم (من أضاف الأعضاء) من الحدث بدقة.
  * الحدث يوفّر `author` (message.key.participant) وبدائله:
  * `authorPn` (رقم الهاتف) و`authorUsername`؛ ويُمرَّر هنا كـ actor/actorPn/actorUsername.
+ * نُفضّل JID صالحاً (PN/LID) لأن الطرد والمنشن يحتاجانه، والاسم المستخدم بديل نصّي فقط.
  */
 function resolveAttacker(event = {}) {
   const candidates = [event.actor, event.actorPn, event.actorUsername];
+  for (const c of candidates) {
+    const jid = jidOf(c);
+    if (isMentionableJid(jid)) return jid;
+  }
   for (const c of candidates) {
     const jid = jidOf(c);
     if (jid) return jid;
@@ -38,25 +47,26 @@ function resolveAttacker(event = {}) {
 }
 
 /**
- * يبني مرجع الإشارة إلى المهاجم من كل بيانات هويته المتاحة.
+ * يبني مرجع الإشارة إلى المهاجم.
  *
- * المصفوفة `mentions` تضمّ كل ما نملكه (الاسم، رقم الهاتف، الـ JID الحقيقي)
- * بلا تكرار — فيلتقط واتساب الحساب الصحيح أياً كان نوعه (PN أو LID أو Username).
- * النص يعرض بالتفضيل: اسم المستخدم ← الرقم ← رابط wa.me كاحتياطي أخير.
+ * `mentions` تضمّ JIDs فعلية فقط (رقم الهاتف ثم الـ LID) — اسم المستخدم لا
+ * يُدرَج فيها لأنه لا يعمل في المنشن. النص يعرض رقم الهاتف (فيعرضه واتساب
+ * باسم صاحب الحساب)، ثم رقم الـ JID، ثم رابط wa.me كاحتياطي أخير.
  */
 function attackerReference({ attacker, attackerNum, actorUsername, actorPn }) {
   const uname = String(actorUsername || "").replace(/^[@~]+/, "").trim();
   const pn = jidOf(actorPn);
   const pnNum = numOf(pn);
-  const ids = [...new Set([uname, pn, attacker].filter(Boolean))];
+  const mentions = [...new Set([pn, attacker].filter(isMentionableJid))];
 
-  // النص بالتفضيل: اسم المستخدم ← رقم الهاتف ← رقم الـ JID ← رابط.
-  if (uname) return { text: `@${uname}`, mentions: ids };
-  if (pnNum) return { text: `@${pnNum}`, mentions: ids };
-  if (attacker && /^\d+$/.test(attackerNum)) return { text: `@${attackerNum}`, mentions: ids };
+  // النص: رقم الهاتف ← رقم الـ JID (كلاهما منشن صالح).
+  if (pnNum) return { text: `@${pnNum}`, mentions };
+  if (/^\d+$/.test(attackerNum)) return { text: `@${attackerNum}`, mentions };
 
-  const userPart = String(attacker || "").split("@")[0].split(":")[0];
-  return { text: userPart ? `https://wa.me/${userPart}` : "", mentions: ids };
+  // لا JID صالح: لا يمكن المنشن — نعرض الاسم أو رابط wa.me كنص عادي فقط.
+  if (uname) return { text: uname, mentions };
+  const userPart = numOf(attacker);
+  return { text: userPart ? `https://wa.me/${userPart}` : "", mentions };
 }
 
 export default {
