@@ -138,8 +138,17 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
         const c = cleanJid(j);
         return c === botJid || (!!botLidJid && c === botLidJid);
       });
-    // منشن البوت بلا نصّ أمر: يُحوّل إلى «تفعيل» لعرض لوحته.
-    if (botMentioned && !prefixes.some((p) => body.startsWith(p))) body = `${prefixes[0]}تفعيل`;
+    // منشن البوت **وحده** (بلا أي كلام) = طلب لوحة إعدادات البوت.
+    // لا يكفي وجود منشن للبوت في الرسالة: رسائل النظام وإشعارات البوتات
+    // الأخرى (مثل «ترقية إشراف») تمنشن البوت أيضاً، وكانت تفتح اللوحة بلا
+    // أمر. نُنظّف المنشنات من النص، فإن لم يبقَ شيء كان منشناً صافياً.
+    const withoutMentions = body
+      .replace(/@\u2068[^\u2069]*\u2069/g, "") // منشن باسم المستخدم @⁨~اسم⁩
+      .replace(/@\d+/g, "") // منشن بالرقم @123
+      .replace(/[\s\u200b\u200e\u200f\u2066\u2069]/g, "");
+    if (botMentioned && withoutMentions === "" && !prefixes.some((p) => body.startsWith(p))) {
+      body = `${prefixes[0]}تفعيل`;
+    }
 
     const msgType = msg.message ? Object.keys(msg.message)[0] ?? "unknown" : "unknown";
 
