@@ -22,12 +22,12 @@
   `pluginLoader.js`, `settings.js`, `logger.js`, `sqlite.js`…).
 - `Famiglia/plugins/` — الأوامر (تُحمَّل تلقائياً من كل المجلدات الفرعية).
 - `Famiglia/Corleone/مضاد/` — الميزات المضادة (antifeatures).
-- `tools/` — أدوات مستقلة عن البوت (لا تُحمَّل كأوامر).
+- `Famiglia/تشخيص-الهوية.js` — أداة تشخيص مستقلة عن البوت (لا تُحمَّل كأمر).
 
 ## الأوامر
 
 ```bash
-npm run check   # فحص صياغة index.js + Famiglia/ + tools/ (node --check)
+npm run check   # فحص صياغة index.js + Famiglia/ (node --check)
 npm start       # تشغيل البوت
 ```
 
@@ -39,7 +39,7 @@ npm start       # تشغيل البوت
 - لا تستخدم `set -e` في سكربتات الصدف.
 - استخدم `import` في أعلى الملف.
 - استخدم `log` من `Famiglia/Corleone/logger.js`، لا `console.log` داخل البوت
-  (الأداة المستقلة في `tools/` يجوز لها `console.log`).
+  (الأداة المستقلة في `Famiglia/تشخيص-الهوية.js` يجوز لها `console.log`).
 - المعرّفات في المنطق المضاد تصل من حدث `group-participants.update` كـ:
   `author` (JID الفعلي)، `authorPn` (رقم الهاتف)، `authorUsername` (اسم المستخدم).
 - هوية المرسل في `messages.upsert` توجد في `msg.key`: `participant`,
@@ -57,12 +57,12 @@ npm start       # تشغيل البوت
 
 ## أدوات التشخيص
 
-`tools/تشخيص-الهوية.js` — أداة مستقلة تكشف هوية المرسل وتختبر المنشن:
+`Famiglia/تشخيص-الهوية.js` — أداة مستقلة تكشف هوية المرسل وتختبر المنشن:
 
 ```bash
-node tools/تشخيص-الهوية.js --sim    # محلي بلا اتصال
-node tools/تشخيص-الهوية.js --demo   # بيانات وهمية
-node tools/تشخيص-الهوية.js           # حيّ (أوقف البوت العادي أولاً)
+node Famiglia/تشخيص-الهوية.js --sim    # محلي بلا اتصال
+node Famiglia/تشخيص-الهوية.js --demo   # بيانات وهمية
+node Famiglia/تشخيص-الهوية.js           # حيّ (أوقف البوت العادي أولاً)
 ```
 
 ## ملاحظات
