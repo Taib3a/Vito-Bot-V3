@@ -27,9 +27,14 @@ global.botNames = [
 // ✅ صور البوت (ترويسة الرسائل التفاعلية)
 // ═══════════════════════════════════════════════
 global.botImages = [
-  'https://cdn.dix.lat/me/0b0b_20260909-c91x-51mf-7015.png',
-  'https://cdn.dix.lat/me/04ae_20260909-c91x-b1r7-56f5.png',
-  'https://cdn.dix.lat/me/kqfd_20260909-c91x-xkkt-ed5c.png',
+  'https://cdn.dix.lat/me/1og9_20261118-r2x1-nerw-82b8.jpg',
+  'https://cdn.dix.lat/me/tmp/8365f1f7-f4f1-4a64-ae17-922f12d46e44.jpg',
+  'https://cdn.dix.lat/me/qmt1_20261118-r2x1-ex89-6b1b.jpg',
+  'https://cdn.dix.lat/me/s57m_20261118-r2x1-66p0-47bd.jpg',
+  'https://cdn.dix.lat/me/t7jd_20261118-r2x1-m062-0817.jpg',
+  'https://cdn.dix.lat/me/l98q_20261118-r2x1-ong0-ce93.jpg',
+  'https://cdn.dix.lat/me/cvp4_20261118-r2x1-apaz-ca87.jpg',
+  'https://cdn.dix.lat/me/fbp6_20261118-r2x1-rmrq-8e0a.jpg',
 ];
 
 // ═══════════════════════════════════════════════
