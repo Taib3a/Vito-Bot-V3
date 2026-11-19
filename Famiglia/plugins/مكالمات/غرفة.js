@@ -1,4 +1,5 @@
 import { getVoip, addCall, parseMediaArgs, wireCallEvents } from "../../Corleone/مكالمات/ربط.js"
+import { missingRequirements, mediaRequirementMessage } from "../../Corleone/مكالمات/المتطلبات.js"
 
 export default {
   name: ["غرفة"],
@@ -7,8 +8,17 @@ export default {
   ownerOnly: true,
 
   async run({ sock, from, msg, reply, react, args }) {
-    const requireApproval = args.includes("approval")
-    const { media, resolution, isVideo, tempFiles, cleanup: cleanupMedia } = await parseMediaArgs(sock, msg, args)
+    const requireApproval = args.some((a) => /^approval$/i.test(a)) ? true : args.some((a) => /^open$/i.test(a)) ? false : undefined
+    const forceVideo = args.some((a) => /^video$/i.test(a))
+    const { media, resolution, isVideo, hasMedia, autoEndCall, loop, tempFiles, cleanup: cleanupMedia } = await parseMediaArgs(sock, msg, args)
+
+    if (hasMedia) {
+      const missing = await missingRequirements({ media: true })
+      if (missing.length) {
+        cleanupMedia()
+        return reply({ text: mediaRequirementMessage(missing) })
+      }
+    }
 
     await react("🚪")
     const sent = await reply({
@@ -17,7 +27,12 @@ export default {
 
     try {
       const voip = getVoip(sock)
-      const call = await voip.createRoom(media, resolution, { requireApproval })
+      const call = await voip.createRoom(media, resolution, {
+        requireApproval,
+        isVideo: forceVideo || isVideo,
+        loop,
+        autoEndCall
+      })
       addCall(from, call)
 
       const { edit } = wireCallEvents({ sock, from, call, key: sent?.key, tempFiles, title: "الغرفة" })
@@ -26,7 +41,7 @@ export default {
       edit(
         `🚪 *الغرفة جاهزة*\n` +
           (link ? `> الرابط: ${link}\n` : "") +
-          (requireApproval ? "> 🔐 تتطلب موافقة قبل الانضمام\n" : "") +
+          (requireApproval === true ? "> 🔐 تتطلب موافقة قبل الانضمام\n" : "") +
           `> *.إغلاق* لإغلاقها · *.انتظار* لإدارة الموافقة`
       )
     } catch (e) {

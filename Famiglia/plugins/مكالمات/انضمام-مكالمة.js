@@ -1,4 +1,5 @@
 import { getVoip, addCall, parseMediaArgs, wireCallEvents } from "../../Corleone/مكالمات/ربط.js"
+import { missingRequirements, mediaRequirementMessage } from "../../Corleone/مكالمات/المتطلبات.js"
 
 export default {
   name: ["انضمام-مكالمة"],
@@ -14,15 +15,23 @@ export default {
       })
     }
 
-    const isVideo = args.includes("video")
-    const { media, resolution, tempFiles, cleanup: cleanupMedia } = await parseMediaArgs(sock, msg, args)
+    const isVideo = args.some((a) => /^video$/i.test(a))
+    const { media, resolution, hasMedia, autoEndCall, loop, tempFiles, cleanup: cleanupMedia } = await parseMediaArgs(sock, msg, args)
+
+    if (hasMedia) {
+      const missing = await missingRequirements({ media: true })
+      if (missing.length) {
+        cleanupMedia()
+        return reply({ text: mediaRequirementMessage(missing) })
+      }
+    }
 
     await react("🚪")
     const sent = await reply({ text: "🚪 *جارٍ الانضمام إلى المكالمة...*" })
 
     try {
       const voip = getVoip(sock)
-      const call = await voip.joinLink(link, media, resolution, { isVideo })
+      const call = await voip.joinLink(link, media, resolution, { isVideo, loop, autoEndCall })
       addCall(from, call)
       wireCallEvents({ sock, from, call, key: sent?.key, tempFiles, title: "المكالمة" })
     } catch (e) {

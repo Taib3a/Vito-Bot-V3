@@ -18,10 +18,11 @@ export function getVoip(sock) {
   return sock.voipInstance
 }
 
-// يحلّل وسائط الأمر: روابط + ردّ على صوت/فيديو + دقة.
-export async function parseMediaArgs(sock, msg, args) {
-  const resolutionArg = args.find((a) => RESOLUTION_RE.test(a))
-  const urls = args.filter((a) => /^https?:\/\//i.test(a))
+// يحلّل وسائط الأمر: روابط + ردّ على صوت/فيديو + دقة + auto/loop.
+export async function parseMediaArgs(sock, msg, args, { skipIndexes = [] } = {}) {
+  const rest = args.filter((_, i) => !skipIndexes.includes(i))
+  const resolutionArg = rest.find((a) => RESOLUTION_RE.test(a))
+  const urls = rest.filter((a) => /^https?:\/\//i.test(a) && !/call\.whatsapp\.com/i.test(a))
   const media = [...urls]
   const tempFiles = []
 
@@ -61,7 +62,10 @@ export async function parseMediaArgs(sock, msg, args) {
   return {
     media: finalMedia,
     resolution: resolutionArg ? resolutionArg.toLowerCase() : undefined,
+    autoEndCall: rest.some((a) => /^auto$/i.test(a)),
+    loop: rest.some((a) => /^loop$/i.test(a)),
     isVideo,
+    hasMedia: media.length > 0,
     tempFiles,
     cleanup: () => {
       for (const f of tempFiles) try { fs.existsSync(f) && fs.unlinkSync(f) } catch {}
