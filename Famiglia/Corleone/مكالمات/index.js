@@ -266,6 +266,12 @@ class VoipCall extends EventEmitter {
     get silenced() {
         return this.#silenced;
     }
+    get items() {
+        return this.#items;
+    }
+    get index() {
+        return this.#index;
+    }
     addParticipant(target) {
         return this.#activeCall?.addParticipant(target);
     }
