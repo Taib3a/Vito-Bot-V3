@@ -9,21 +9,25 @@ export default {
   ownerOnly: true,
 
   async run({ sock, from, msg, reply, react, args }) {
-    const contextInfo = msg?.message?.extendedTextMessage?.contextInfo
-    const quoted = contextInfo?.quotedMessage
-    const hasQuotedMedia = !!(quoted?.audioMessage || quoted?.videoMessage)
-
     // يقبل "240" كما يقبل "240p"
     const normalizedArgs = args.map((a) => (/^\d{3,4}$/.test(String(a)) ? `${a}p` : a))
 
-    const { media, resolution, isVideo, hasMedia, tempFiles, cleanup: cleanupMedia } =
-      await parseMediaArgs(sock, msg, normalizedArgs)
+    const {
+      media,
+      resolution,
+      isVideo,
+      hasMedia,
+      hasQuotedMedia: quotedHasMedia,
+      mediaError,
+      tempFiles,
+      cleanup: cleanupMedia
+    } = await parseMediaArgs(sock, msg, normalizedArgs)
 
     // اسم قناة عربية (مثل: الجزيرة) أو رابط صفحة بث
     const channelWord = normalizedArgs.filter((a) => !/^https?:\/\//i.test(a) && !/^\d{3,4}p$/i.test(a)).join(" ").trim()
     const pageUrl = normalizedArgs.find((a) => /^https?:\/\//i.test(a) && !/\.(mp3|aac|m4a|ogg|opus|flac|wav|mp4|webm|mov|mkv|m4v|3gp)(\?|#|$)/i.test(a))
 
-    if (!hasMedia && !hasQuotedMedia && !channelWord && !pageUrl) {
+    if (!hasMedia && !quotedHasMedia && !channelWord && !pageUrl) {
       return reply({
         text:
           "🎬 *طريقة الاستخدام:*\n" +
@@ -38,11 +42,27 @@ export default {
     }
 
     // الردّ على وسائط لكن التنزيل فشل → لا نبثّ صمتاً بلا تنبيه
-    if (hasQuotedMedia && !hasMedia && !channelWord && !pageUrl) {
+    if (quotedHasMedia && !hasMedia && !channelWord && !pageUrl) {
       cleanupMedia()
-      return reply({
-        text: "❌ *تعذّر تنزيل الوسائط المردود عليها.*\n> أعد إرسال المقطع أو تأكّد أن الحجم ضمن الحد المسموح."
-      })
+      const reason = mediaError?.message || mediaError?.toString?.() || ""
+      const text =
+        "❌ *تعذّر تنزيل الوسائط المردود عليها.*\n" +
+        (reason ? `> السبب: ${String(reason).slice(0, 160)}\n` : "") +
+        "> أعد إرسال المقطع أو تأكّد أن الحجم ضمن الحد المسموح."
+      if (typeof sock?.sendButtonMessage === "function") {
+        return sock
+          .sendButtonMessage(
+            from,
+            text,
+            [
+              { text: "🔁 إعادة المحاولة", id: ".مكالمه" },
+              { text: "📺 القنوات", id: ".قنوات" }
+            ],
+            { footer: "أعد الردّ على المقطع ثم اضغط الزر", quoted: msg }
+          )
+          .catch(() => reply({ text }))
+      }
+      return reply({ text })
     }
 
     // مصدر البث: وسائط مردود عليها، أو رابط/اسم قناة من الوسائط
