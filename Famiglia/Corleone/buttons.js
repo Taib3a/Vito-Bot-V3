@@ -109,6 +109,7 @@ export function initButtons(conn) {
       sections = [],
       image = null,
       contextInfo = null,
+      selectLabel = "اختر من القائمة",
     } = opts;
 
     const formatted = buttons.map(formatButton);
@@ -117,7 +118,7 @@ export function initButtons(conn) {
       formatted.push({
         name: "single_select",
         buttonParamsJson: JSON.stringify({
-          title: "Seleccionar",
+          title: selectLabel,
           sections: sections.map((s) => ({
             title: s.title,
             rows: s.rows.map((r) => ({ title: r.title, description: r.description || "", id: r.id })),

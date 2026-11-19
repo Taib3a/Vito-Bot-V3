@@ -19,48 +19,73 @@ const GROUPS = [
 
 const FEATURED = ["الجزيرة", "القرآن الكريم", "العربية للأعمال"]
 
+// أي قناة تُضاف إلى قنوات.js ولم تُدرج في GROUPS تظهر في قسم «أخرى»
+function unlisted(all) {
+  const known = new Set(GROUPS.flatMap((g) => g.names))
+  return all.filter((n) => !known.has(n))
+}
+
+function sectionsFor(all, prefix, filter) {
+  const matches = (n) => !filter || n.toLowerCase().includes(filter)
+
+  const sections = GROUPS.map((g) => ({
+    title: g.title,
+    rows: g.names
+      .filter((n) => all.includes(n) && matches(n))
+      .map((n) => ({ title: n, description: `بثّ ${n}`, id: `${prefix}مكالمة2 ${n}` }))
+  }))
+
+  const extra = unlisted(all).filter(matches)
+  if (extra.length) {
+    sections.push({
+      title: "📻 أخرى",
+      rows: extra.map((n) => ({ title: n, description: `بثّ ${n}`, id: `${prefix}مكالمة2 ${n}` }))
+    })
+  }
+
+  return sections.filter((s) => s.rows.length)
+}
+
 export default {
   name: ["قنوات", "القنوات"],
   description: "يعرض القنوات العربية المتاحة بأزرار جاهزة لبدء البثّ",
   category: "مكالمات",
   ownerOnly: true,
 
-  async run({ sock, from, msg, reply, args }) {
+  async run({ sock, from, msg, reply, args, usedPrefix = "." }) {
     const all = channelNames()
     if (!all.length) return reply({ text: "❌ لا توجد قنوات متاحة." })
 
-    const sections = GROUPS.map((g) => ({
-      title: g.title,
-      rows: g.names
-        .filter((n) => all.includes(n))
-        .map((n) => ({ title: n, description: `بثّ ${n}`, id: `.مكالمة2 ${n}` }))
-    })).filter((s) => s.rows.length)
+    const filter = String(args.join(" ") || "").trim().toLowerCase()
+    const sections = sectionsFor(all, usedPrefix, filter)
+    const shown = sections.reduce((n, s) => n + s.rows.length, 0)
 
-    // القائمة النصية: كل قناة تحت قسمها
-    const listing = GROUPS.map((g) => {
-      const names = g.names.filter((n) => all.includes(n))
-      return names.length ? `*${g.title}*\n` + names.map((n) => `> ${n}`).join("\n") : ""
-    })
-      .filter(Boolean)
-      .join("\n\n")
+    if (!shown) {
+      return reply({
+        text: `🔍 *لا قناة تطابق:* ${args.join(" ")}\n> اكتب *${usedPrefix}قنوات* لعرض كل القنوات.`
+      })
+    }
 
+    const summary = sections.map((s) => `> ${s.title} — ${s.rows.length}`).join("\n")
     const text =
-      `📺 *القنوات المتاحة (${all.length})*\n\n` +
-      listing +
-      `\n\n💡 اضغط زراً سريعاً أو افتح *كل القنوات* من القائمة.`
+      `📺 *القنوات المتاحة (${shown}${filter ? ` من ${all.length}` : ""})*\n\n` +
+      summary +
+      `\n\n💡 افتح القائمة لاختيار قناة، أو اكتب:\n` +
+      `> *${usedPrefix}مكالمة2 <اسم القناة>*\n` +
+      `> *${usedPrefix}قنوات <كلمة>* للبحث`
 
     // واتساب يعرض 3 أزرار فقط — الباقي في القائمة المنسدلة
-    const buttons = FEATURED.filter((n) => all.includes(n)).map((n) => ({
-      text: n,
-      id: `.مكالمة2 ${n}`
-    }))
+    const buttons = FEATURED
+      .filter((n) => all.includes(n) && (!filter || n.toLowerCase().includes(filter)))
+      .map((n) => ({ text: n, id: `${usedPrefix}مكالمة2 ${n}` }))
 
     if (typeof sock?.sendButtonMessage === "function") {
       try {
         return await sock.sendButtonMessage(from, text, buttons, {
           title: "📺 القنوات العربية",
           footer: "اضغط قناة للبثّ · القائمة فيها كل الأقسام",
-          quoted: msg,
+          quoted: msg?.message ? msg : null,
+          selectLabel: "اختر قناة",
           sections
         })
       } catch {
@@ -68,8 +93,10 @@ export default {
       }
     }
 
-    return reply({
-      text: text + `\n\n*للبثّ مباشرة:*\n` + buttons.map((b) => `> ${b.text} → ${b.id}`).join("\n")
-    })
+    const listing = sections
+      .map((s) => `*${s.title}*\n` + s.rows.map((r) => `> ${r.title}`).join("\n"))
+      .join("\n\n")
+
+    return reply({ text: `${text}\n\n${listing}` })
   }
 }
