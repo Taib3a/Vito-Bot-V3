@@ -1,5 +1,5 @@
-import { getVoip, addCall, parseMediaArgs, wireCallEvents } from "../../Corleone/اضافات/مكالمات/ربط.js"
-import { missingRequirements, mediaRequirementMessage } from "../../Corleone/اضافات/مكالمات/المتطلبات.js"
+import { getVoip, addCall, parseMediaArgs, wireCallEvents } from "../../ربط.js"
+import { missingRequirements, mediaRequirementMessage } from "../../المتطلبات.js"
 
 export default {
   name: ["غرفة"],

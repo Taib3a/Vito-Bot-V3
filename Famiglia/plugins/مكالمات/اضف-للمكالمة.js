@@ -1,4 +1,4 @@
-import { currentCall } from "../../Corleone/اضافات/مكالمات/ربط.js"
+import { currentCall } from "../../ربط.js"
 
 export default {
   name: ["اضف-للمكالمة"],

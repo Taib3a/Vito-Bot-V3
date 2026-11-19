@@ -1,4 +1,4 @@
-import { spotifySearch, spotifyTrackFromUrl, spotifyToAudio, cleanFileName, MEDIA_OPTS } from "../../Corleone/اضافات/الوسائط/المصادر.js"
+import { spotifySearch, spotifyTrackFromUrl, spotifyToAudio, cleanFileName, MEDIA_OPTS } from "../../المصادر.js"
 
 const SPOTIFY_URL_RE = /open\.spotify\.com/i
 const MAX_RESULTS = 5

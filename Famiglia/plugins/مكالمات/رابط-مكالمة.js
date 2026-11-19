@@ -1,4 +1,4 @@
-import { currentCall, getVoip } from "../../Corleone/اضافات/مكالمات/ربط.js"
+import { currentCall, getVoip } from "../../ربط.js"
 
 export default {
   name: ["رابط-مكالمة"],
