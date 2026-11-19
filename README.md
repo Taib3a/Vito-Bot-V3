@@ -207,9 +207,8 @@ Vito-Bot-V3/
 └── Famiglia/
     ├── assets/                       # صور المشروع (منها level-bg.jpg خلفية بطاقة المستوى)
     ├── اضافات/
-    │   └── محركات.js                 # جسر محرّك VoIP: getVoip · parseMediaArgs · سجل المكالمات · فحص المتطلبات
-    ├── voipClient.js · WaVoipCoordinator.js · signaling.js · srtp.js · rtp.js · ...
-    │                                 # محرّك VoIP وملفاته المساعدة (50 ملفاً مسطّحاً)
+    │   └── محركات.js                 # محرّك VoIP كاملاً (49 وحدة مدمجة) + جسر الإضافات
+    ├── audio-codec.js                # WASM مُجمَّع (599 ك.ب) — يُستورد ديناميكياً، يُترك منفصلاً
     ├── Corleone/                     # الوحدات الأساسية
     │   ├── connection.js             # الاتصال بواتساب + الربط + إعادة الاتصال
     │   ├── prompt.js                 # موجّه أسئلة الكونسول
