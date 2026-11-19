@@ -249,6 +249,7 @@ export async function resolveStreamUrl(input) {
   const isMaintenance = (u) => /(maintenance|soon|offline|test\.m3u8)/i.test(u)
   const ordered = [...candidates.filter((c) => !isMaintenance(c)), ...candidates.filter(isMaintenance)]
 
+  const working = []
   for (const candidate of ordered) {
     try {
       const head = await fetchHead(candidate)
@@ -256,16 +257,27 @@ export async function resolveStreamUrl(input) {
       const media = AUDIO_MIME_RE.test(head.contentType) || VIDEO_MIME_RE.test(head.contentType)
       if (!playlist && !media) continue
       if (playlist && /maintenance\d*\.ts/i.test(head.body)) continue
-      return {
-        url: candidate,
-        isLive: playlist || /mpegurl/i.test(head.contentType),
-        via: "page",
-        candidates
-      }
+      working.push({ candidate, playlist, body: head.body, contentType: head.contentType })
     } catch {
       continue
     }
   }
 
-  throw new Error(`فُحصت ${candidates.length} روابط ولم يعمل أيّها كبث`)
+  if (!working.length) {
+    throw new Error(`فُحصت ${candidates.length} روابط ولم يعمل أيّها كبث`)
+  }
+
+  // مانيفست الفيديو وحده يخلو من الصوت (الصوت في مسار منفصل يربطه المانيفست
+  // الرئيسي). نفضّل الرئيسي، وإلا خرج البثّ صامتاً.
+  const isMaster = (w) => /#EXT-X-STREAM-INF/i.test(w.body)
+  const best = working.find(isMaster) || working[0]
+
+  return {
+    url: best.candidate,
+    isLive: best.playlist || /mpegurl/i.test(best.contentType),
+    via: "page",
+    candidates,
+    // مانيفست فيديو مجرّد: الصوت في مسار منفصل، فيُدمج بـ ffmpeg
+    videoOnly: best.playlist && !isMaster(best)
+  }
 }

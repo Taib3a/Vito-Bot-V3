@@ -2,18 +2,19 @@ import { getVoip, addCall, wireCallEvents } from "../../اضافات/محركا�
 import { missingRequirements, mediaRequirementMessage } from "../../اضافات/محركات.js"
 import { resolveStreamUrl } from "../../Corleone/بث/بث.js"
 
-const RESOLUTIONS = /^(240p|360p|480p|720p|1080p)$/i
+// يقبل "240" و"240p" — المستخدم يكتب الجودة بلا حرف p عادةً
+const RESOLUTIONS = /^(240|360|480|720|1080)p?$/i
 const REFRESH_DELAY_MS = 8_000
 
 export default {
   name: ["مكالمة2", "بث-قناة"],
-  description: "يبثّ قناة عربية أو رابط بث مباشر بالصوت داخل غرفة مكالمة برابط دائم",
+  description: "يبثّ قناة عربية أو رابط بث مباشر بالصوت والفيديو داخل غرفة مكالمة برابط دائم",
   category: "مكالمات",
   ownerOnly: true,
 
   async run({ sock, from, reply, react, args }) {
     const resolutionArg = args.find((a) => RESOLUTIONS.test(a))
-    const resolution = resolutionArg ? resolutionArg.toLowerCase() : null
+    const resolution = resolutionArg ? `${resolutionArg.toLowerCase().replace(/p$/, "")}p` : null
     const target = args.filter((a) => !RESOLUTIONS.test(a)).join(" ").trim()
 
     if (!target) {
@@ -46,8 +47,9 @@ export default {
 
     try {
       const voip = getVoip(sock)
+      // فيديو + صوت: القناة بلا صورة مجرد راديو
       const call = await voip.createRoom(resolved.url, resolution, {
-        isVideo: false,
+        isVideo: true,
         loop: true,
         autoEndCall: false,
         requireApproval: false
@@ -72,7 +74,7 @@ export default {
         try {
           const next = await resolveStreamUrl(target)
           if (next.url !== resolved.url || resolved.via === "page" || resolved.via === "yt-dlp") {
-            await voip.coordinator?.loadAudio(call.callId, next.url)
+            await voip.coordinator?.loadVideo(call.callId, next.url)
             resolved = next
           }
         } catch {
@@ -87,7 +89,6 @@ export default {
         setTimeout(refresh, REFRESH_DELAY_MS)
       }
       call.on("reconnecting", onStall)
-      call.on("audio_finished", onStall)
       call.on("ended", () => {
         stopped = true
       })
