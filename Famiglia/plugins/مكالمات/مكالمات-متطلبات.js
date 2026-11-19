@@ -1,4 +1,4 @@
-import { hasFfmpeg, hasFfprobe } from "../../Corleone/مكالمات/المتطلبات.js"
+import { hasFfmpeg, hasFfprobe } from "../../Corleone/اضافات/مكالمات/المتطلبات.js"
 
 export default {
   name: ["مكالمات-متطلبات"],

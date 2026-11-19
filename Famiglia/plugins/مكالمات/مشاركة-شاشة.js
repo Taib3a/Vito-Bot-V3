@@ -1,4 +1,4 @@
-import { currentCall } from "../../Corleone/مكالمات/ربط.js"
+import { currentCall } from "../../Corleone/اضافات/مكالمات/ربط.js"
 
 export default {
   name: ["مشاركة-شاشة"],

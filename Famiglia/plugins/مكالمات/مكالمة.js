@@ -1,5 +1,5 @@
-import { getVoip, addCall, removeCall, parseMediaArgs } from "../../Corleone/مكالمات/ربط.js"
-import { missingRequirements, mediaRequirementMessage } from "../../Corleone/مكالمات/المتطلبات.js"
+import { getVoip, addCall, removeCall, parseMediaArgs } from "../../Corleone/اضافات/مكالمات/ربط.js"
+import { missingRequirements, mediaRequirementMessage } from "../../Corleone/اضافات/مكالمات/المتطلبات.js"
 
 export default {
   name: ["مكالمة"],

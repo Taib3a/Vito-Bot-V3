@@ -1,4 +1,4 @@
-import { getVoip, addCall, parseMediaArgs, wireCallEvents } from "../../Corleone/مكالمات/ربط.js"
+import { getVoip, addCall, parseMediaArgs, wireCallEvents } from "../../Corleone/اضافات/مكالمات/ربط.js"
 
 export default {
   name: ["قبول-مكالمة"],

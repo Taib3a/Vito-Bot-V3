@@ -1,4 +1,4 @@
-import { getVoip } from "../../Corleone/مكالمات/ربط.js"
+import { getVoip } from "../../Corleone/اضافات/مكالمات/ربط.js"
 
 export default {
   name: ["رفض-مكالمة"],
