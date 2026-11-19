@@ -32,8 +32,6 @@ async function loadDir(dir) {
   const tasks = [];
   for (const entry of entries) {
     const full = path.join(dir, entry.name);
-    // المجلدات التي تبدأ بـ _ مكتبات مشتركة لا إضافات، فلا تُحمَّل كأوامر.
-    if (entry.isDirectory() && entry.name.startsWith("_")) continue;
     if (entry.isDirectory()) tasks.push(loadDir(full));
     else if (entry.name.endsWith(".js")) tasks.push(loadPlugin(full));
   }

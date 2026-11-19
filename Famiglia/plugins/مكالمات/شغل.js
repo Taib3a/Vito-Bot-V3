@@ -1,9 +1,9 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { currentCall } from "../_محرّكات/مكالمات/ربط.js"
-import { missingRequirements, mediaRequirementMessage } from "../_محرّكات/مكالمات/المتطلبات.js"
-import { searchYouTube, youtubeAudioBuffer, cleanFileName } from "../_محرّكات/الوسائط/المصادر.js"
+import { currentCall } from "../../Corleone/مكالمات/ربط.js"
+import { missingRequirements, mediaRequirementMessage } from "../../Corleone/مكالمات/المتطلبات.js"
+import { searchYouTube, youtubeAudioBuffer, cleanFileName } from "../../Corleone/الوسائط/المصادر.js"
 
 const STAGING = path.join(os.tmpdir(), "vito_songs")
 

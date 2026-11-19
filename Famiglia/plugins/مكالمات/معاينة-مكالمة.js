@@ -1,4 +1,4 @@
-import { getVoip } from "../_محرّكات/مكالمات/ربط.js"
+import { getVoip } from "../../Corleone/مكالمات/ربط.js"
 
 export default {
   name: ["معاينة-مكالمة"],
