@@ -1,9 +1,10 @@
 import { getVoip, addCall, parseMediaArgs, wireCallEvents } from "../../اضافات/محركات.js"
 import { missingRequirements, mediaRequirementMessage } from "../../اضافات/محركات.js"
+import { resolveStreamUrl, findChannel } from "../../Corleone/بث/بث.js"
 
 export default {
   name: ["مكالمه", "مكالمة-وسائط"],
-  description: "يبثّ وسائط (صوت أو فيديو) داخل غرفة مكالمة برابط دائم — ردّ على الوسائط واكتب الأمر مع الدقة",
+  description: "يبثّ وسائط أو قناة داخل غرفة مكالمة برابط دائم — ردّ على وسائط أو مرّر رابطاً/اسم قناة",
   category: "مكالمات",
   ownerOnly: true,
 
@@ -18,24 +19,55 @@ export default {
     const { media, resolution, isVideo, hasMedia, tempFiles, cleanup: cleanupMedia } =
       await parseMediaArgs(sock, msg, normalizedArgs)
 
-    if (!hasMedia && !hasQuotedMedia) {
+    // اسم قناة عربية (مثل: الجزيرة) أو رابط صفحة بث
+    const channelWord = normalizedArgs.filter((a) => !/^https?:\/\//i.test(a) && !/^\d{3,4}p$/i.test(a)).join(" ").trim()
+    const pageUrl = normalizedArgs.find((a) => /^https?:\/\//i.test(a) && !/\.(mp3|aac|m4a|ogg|opus|flac|wav|mp4|webm|mov|mkv|m4v|3gp)(\?|#|$)/i.test(a))
+
+    if (!hasMedia && !hasQuotedMedia && !channelWord && !pageUrl) {
       return reply({
         text:
           "🎬 *طريقة الاستخدام:*\n" +
           "> ردّ على مقطع صوت أو فيديو واكتب:\n" +
           "> *.مكالمه* — بالجودة الأصلية\n" +
           "> *.مكالمه 240* — بجودة محددة\n" +
+          "> أو *.مكالمه <اسم قناة>* — مثال: *.مكالمه الجزيرة*\n" +
+          "> أو *.مكالمه <رابط>*\n" +
           "> الجودات: 240 · 360 · 480 · 720 · 1080\n" +
           "> *.مكالمة-اغلاق <الرابط>* لإغلاق البث"
       })
     }
 
     // الردّ على وسائط لكن التنزيل فشل → لا نبثّ صمتاً بلا تنبيه
-    if (hasQuotedMedia && !hasMedia) {
+    if (hasQuotedMedia && !hasMedia && !channelWord && !pageUrl) {
       cleanupMedia()
       return reply({
         text: "❌ *تعذّر تنزيل الوسائط المردود عليها.*\n> أعد إرسال المقطع أو تأكّد أن الحجم ضمن الحد المسموح."
       })
+    }
+
+    // مصدر البث: وسائط مردود عليها، أو رابط/اسم قناة من الوسائط
+    let sourceMedia = media
+    let sourceIsVideo = isVideo
+
+    const isLocalMedia = hasMedia && !/^https?:\/\//i.test(String(media || ""))
+    const target = channelWord || pageUrl
+
+    if (!isLocalMedia && target) {
+      // parseMediaArgs يمرّر أي رابط كما هو — حتى صفحات HTML — فحلّه دائماً
+      try {
+        const resolved = /^https?:\/\//i.test(target)
+          ? await resolveStreamUrl(target)
+          : (() => {
+              const known = findChannel(target)
+              if (!known) throw new Error(`قناة غير معروفة: ${target}\n> استخدم *.قنوات* لعرض القائمة`)
+              return { url: known.url }
+            })()
+        sourceMedia = resolved.url
+        sourceIsVideo = false
+      } catch (e) {
+        cleanupMedia()
+        return reply({ text: `❌ ${e?.message || e}` })
+      }
     }
 
     const missing = await missingRequirements({ media: true })
@@ -46,13 +78,13 @@ export default {
 
     await react("🎬")
     const sent = await reply({
-      text: `🎬 *جارٍ تجهيز البث${isVideo ? " المرئي" : " الصوتي"}...*`
+      text: `🎬 *جارٍ تجهيز البث${sourceIsVideo ? " المرئي" : " الصوتي"}...*`
     })
 
     try {
       const voip = getVoip(sock)
-      const call = await voip.createRoom(media, resolution, {
-        isVideo: isVideo,
+      const call = await voip.createRoom(sourceMedia, resolution, {
+        isVideo: sourceIsVideo,
         loop: true,
         autoEndCall: false,
         requireApproval: false
@@ -72,7 +104,7 @@ export default {
       edit(
         `🎬 *البث جاهز داخل المجموعة*\n` +
           (link ? `> الرابط: ${link}\n` : "") +
-          `> النوع: ${isVideo ? "فيديو مع صوت" : "صوت"}\n` +
+          `> النوع: ${sourceIsVideo ? "فيديو مع صوت" : "صوت"}\n` +
           `> الجودة: ${resolution || "الأصلية"}\n` +
           `> 🔁 يتكرّر تلقائياً · الرابط دائم\n` +
           `> *.مكالمة-اغلاق ${link || "<الرابط>"}* لإيقافه`
