@@ -36,7 +36,7 @@ jobs:
           node-version: ${{ matrix.node }}
 
       # ffmpeg/ffprobe are system requirements for the VoIP media pipeline
-      # (see Famiglia/Corleone/مكالمات/المتطلبات.js), so CI mirrors production.
+      # (see Famiglia/اضافات/محركات.js), so CI mirrors production.
       - name: Install ffmpeg
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
 
@@ -53,7 +53,7 @@ jobs:
       - name: Verify VoIP requirements are detectable
         run: |
           node --input-type=module -e "
-          const { hasFfmpeg, hasFfprobe, missingRequirements } = await import('./Famiglia/Corleone/مكالمات/المتطلبات.js');
+          const { hasFfmpeg, hasFfprobe, missingRequirements } = await import('./Famiglia/اضافات/محركات.js');
           if (!(await hasFfmpeg())) throw new Error('ffmpeg missing');
           if (!(await hasFfprobe())) throw new Error('ffprobe missing');
           const missing = await missingRequirements({ media: true });
