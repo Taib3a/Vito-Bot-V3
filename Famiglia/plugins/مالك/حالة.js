@@ -7,7 +7,7 @@ import {
   normalizeVideo,
   uploadStatus,
   ensureStatusTools
-} from "../../Corleone/الحالات/الرفع.js"
+} from "../_محرّكات/الحالات/الرفع.js"
 
 const OWNER_FLAG = /(?:^|\s)--owner(?=\s|$)/i
 const OWNER_FLAG_GLOBAL = /(?:^|\s)--owner(?=\s|$)/gi

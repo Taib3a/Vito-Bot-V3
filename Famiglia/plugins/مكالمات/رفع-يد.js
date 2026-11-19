@@ -1,4 +1,4 @@
-import { currentCall } from "../../Corleone/مكالمات/ربط.js"
+import { currentCall } from "../_محرّكات/مكالمات/ربط.js"
 
 export default {
   name: ["رفع-يد"],

@@ -1,4 +1,4 @@
-import { searchYouTube, youtubeAudioBuffer, cleanFileName, LIMIT_MB, MEDIA_OPTS } from "../../Corleone/الوسائط/المصادر.js"
+import { searchYouTube, youtubeAudioBuffer, cleanFileName, LIMIT_MB, MEDIA_OPTS } from "../_محرّكات/الوسائط/المصادر.js"
 
 export default {
   name: ["اغنية"],

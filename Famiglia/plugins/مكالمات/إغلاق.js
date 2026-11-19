@@ -1,4 +1,4 @@
-import { callsOf, getVoip } from "../../Corleone/مكالمات/ربط.js"
+import { callsOf, getVoip } from "../_محرّكات/مكالمات/ربط.js"
 
 export default {
   name: ["إغلاق"],
