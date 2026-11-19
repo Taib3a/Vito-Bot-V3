@@ -1,9 +1,9 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { currentCall } from "../../ربط.js"
-import { missingRequirements, mediaRequirementMessage } from "../../المتطلبات.js"
-import { searchYouTube, youtubeAudioBuffer, cleanFileName } from "../../المصادر.js"
+import { currentCall } from "../../اضافات/محركات.js"
+import { missingRequirements, mediaRequirementMessage } from "../../اضافات/محركات.js"
+import { searchYouTube, youtubeAudioBuffer, cleanFileName } from "../../اضافات/محركات.js"
 
 const STAGING = path.join(os.tmpdir(), "vito_songs")
 

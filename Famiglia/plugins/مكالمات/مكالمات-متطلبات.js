@@ -1,4 +1,4 @@
-import { hasFfmpeg, hasFfprobe } from "../../المتطلبات.js"
+import { hasFfmpeg, hasFfprobe } from "../../اضافات/محركات.js"
 
 export default {
   name: ["مكالمات-متطلبات"],

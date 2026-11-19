@@ -1,4 +1,4 @@
-import { callsOf, getVoip } from "../../ربط.js"
+import { callsOf, getVoip } from "../../اضافات/محركات.js"
 
 export default {
   name: ["إغلاق"],

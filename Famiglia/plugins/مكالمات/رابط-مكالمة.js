@@ -1,4 +1,4 @@
-import { currentCall, getVoip } from "../../ربط.js"
+import { currentCall, getVoip } from "../../اضافات/محركات.js"
 
 export default {
   name: ["رابط-مكالمة"],

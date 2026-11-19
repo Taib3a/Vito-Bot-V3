@@ -1,5 +1,5 @@
-import { getVoip, addCall, removeCall, parseMediaArgs } from "../../ربط.js"
-import { missingRequirements, mediaRequirementMessage } from "../../المتطلبات.js"
+import { getVoip, addCall, removeCall, parseMediaArgs } from "../../اضافات/محركات.js"
+import { missingRequirements, mediaRequirementMessage } from "../../اضافات/محركات.js"
 
 export default {
   name: ["مكالمة"],

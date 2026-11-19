@@ -1,4 +1,4 @@
-import { getVoip, addCall, parseMediaArgs, wireCallEvents } from "../../ربط.js"
+import { getVoip, addCall, parseMediaArgs, wireCallEvents } from "../../اضافات/محركات.js"
 
 export default {
   name: ["قبول-مكالمة"],

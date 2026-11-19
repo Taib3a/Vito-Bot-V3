@@ -1,4 +1,4 @@
-import { getVoip } from "../../ربط.js"
+import { getVoip } from "../../اضافات/محركات.js"
 
 export default {
   name: ["رفض-مكالمة"],

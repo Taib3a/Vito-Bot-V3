@@ -1,4 +1,4 @@
-import { currentCall } from "../../ربط.js"
+import { currentCall } from "../../اضافات/محركات.js"
 
 export default {
   name: ["اضف-للمكالمة"],

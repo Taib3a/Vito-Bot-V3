@@ -1,4 +1,4 @@
-import { searchYouTube, youtubeAudioBuffer, cleanFileName, LIMIT_MB, MEDIA_OPTS } from "../../المصادر.js"
+import { searchYouTube, youtubeAudioBuffer, cleanFileName, LIMIT_MB, MEDIA_OPTS } from "../../اضافات/محركات.js"
 
 export default {
   name: ["اغنية"],
