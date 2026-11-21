@@ -3,9 +3,9 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import axios from "axios"
-import { findChannel, channelNames, GROUPS } from "./قنوات.js"
+import { findChannel, channelNames, GROUPS, COUNTRIES_TREE } from "./قنوات.js"
 
-export { channelNames, findChannel, GROUPS }
+export { channelNames, findChannel, GROUPS, COUNTRIES_TREE }
 
 // ── أدوات مساعدة ────────────────────────────────────────────────
 
