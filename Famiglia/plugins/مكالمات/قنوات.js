@@ -117,11 +117,15 @@ const clip = (s, n) => {
   return v.length > n ? `${v.slice(0, n - 1)}…` : v
 }
 
+// حجم الصفحة يتبع وضع العرض: الأزرار تعرض عنصرين، والمنسدلة تسعة.
+// لو استخدم الاثنان حجماً واحداً لصارت صفحات الأزرار فارغة أو بلا «المزيد».
+const pageSize = (mode) => (mode === "ز" ? SLOTS_BTN : SLOTS)
+
 // صفحة من قائمة + رقم الصفحة ومجموعها
-function paginate(items, p) {
-  const pages = Math.max(1, Math.ceil(items.length / SLOTS))
+function paginate(items, p, size = SLOTS) {
+  const pages = Math.max(1, Math.ceil(items.length / size))
   const cur = Math.min(Math.max(0, p | 0), pages - 1)
-  return { slice: items.slice(cur * SLOTS, cur * SLOTS + SLOTS), cur, pages }
+  return { slice: items.slice(cur * size, cur * size + size), cur, pages }
 }
 
 // كل قنوات تصنيف واحد عبر جميع الدول — لتصفّح التصنيف بلا تحديد دولة
@@ -259,7 +263,7 @@ export default {
       // المستخدم في آخر صفحة بلا زر رجوع (واتساب يسمح بثلاثة أزرار فقط).
       if (hit.arg === PREV || hit.arg === NEXT) {
         const total = levelItems(f).length
-        const pages = Math.max(1, Math.ceil(total / SLOTS))
+        const pages = Math.max(1, Math.ceil(total / pageSize(f.mode)))
         const raw = (f.page || 0) + (hit.arg === NEXT ? 1 : -1)
         const page = raw < 0 ? pages - 1 : raw >= pages ? 0 : raw
         return draw(setFlow(from, { ...f, page }))
@@ -268,26 +272,26 @@ export default {
       const i = +hit.arg
 
       if (hit.lv === "د") {
-        const c = paginate(COUNTRIES_TREE, f.page || 0).slice[i]
+        const c = paginate(COUNTRIES_TREE, f.page || 0, pageSize(f.mode)).slice[i]
         if (!c) return reply(T.empty)
         return draw(setFlow(from, { ...f, level: "ص", scope: "د", page: 0, country: c }))
       }
 
       if (hit.lv === "ص") {
         if (f.scope === "ص") {
-          const c = paginate(globalCategories(), f.page || 0).slice[i]
+          const c = paginate(globalCategories(), f.page || 0, pageSize(f.mode)).slice[i]
           if (!c) return reply(T.empty)
           const channels = channelsOfCategory(c.title)
           if (!channels.length) return reply(T.empty)
           return draw(setFlow(from, { ...f, level: "ق", page: 0, country: null, category: { title: c.title, channels } }))
         }
-        const c = paginate(f.country?.categories || [], f.page || 0).slice[i]
+        const c = paginate(f.country?.categories || [], f.page || 0, pageSize(f.mode)).slice[i]
         if (!c) return reply(T.empty)
         return draw(setFlow(from, { ...f, level: "ق", page: 0, category: c }))
       }
 
       // المستوى 3: اختيار قناة → اعرض الجودة
-      const ch = paginate(f.category?.channels || [], f.page || 0).slice[i]
+      const ch = paginate(f.category?.channels || [], f.page || 0, pageSize(f.mode)).slice[i]
       if (!ch) return reply(T.empty)
 
       await react("🎚️")
@@ -478,7 +482,7 @@ async function render({ f, send, reply, usedPrefix }) {
   }
 
   if (f.level === "د") {
-    const { slice, cur, pages } = paginate(COUNTRIES_TREE, f.page || 0)
+    const { slice, cur, pages } = paginate(COUNTRIES_TREE, f.page || 0, pageSize(f.mode))
     const rows = slice.map((c, i) => {
       const n = c.categories.reduce((m, x) => m + x.channels.length, 0)
       return {
@@ -496,7 +500,7 @@ async function render({ f, send, reply, usedPrefix }) {
 
   if (f.level === "ص") {
     const source = f.scope === "ص" ? globalCategories() : (f.country?.categories || [])
-    const { slice, cur, pages } = paginate(source, f.page || 0)
+    const { slice, cur, pages } = paginate(source, f.page || 0, pageSize(f.mode))
     if (!slice.length) return reply(T.empty)
 
     const rows = slice.map((c, i) => ({
@@ -510,7 +514,7 @@ async function render({ f, send, reply, usedPrefix }) {
   }
 
   const chans = f.category?.channels || []
-  const { slice, cur, pages } = paginate(chans, f.page || 0)
+  const { slice, cur, pages } = paginate(chans, f.page || 0, pageSize(f.mode))
   if (!slice.length) return reply(T.empty)
 
   const rows = slice.map((ch, i) => ({
