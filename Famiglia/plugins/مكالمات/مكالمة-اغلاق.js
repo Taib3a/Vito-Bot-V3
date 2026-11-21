@@ -1,4 +1,5 @@
 import { callsOf, removeCall } from "../../اضافات/محركات.js"
+import { getLiveByCall, removeLive } from "../../Corleone/بث/مباشر.js"
 
 // يستخرج رمز الغرفة من رابط واتساب للمكالمة
 function tokenOf(input) {
@@ -63,8 +64,12 @@ export default {
 
     await react("🔴")
     try {
+      // نوقف إعادة التشغيل أولاً، وإلا أعاد بناء الغرفة فور إنهائها
+      const record = getLiveByCall(target)
+      if (typeof record?.stop === "function") record.stop()
       await target.hangup()
       removeCall(from, target)
+      if (record) removeLive(record.id)
       return reply({ text: "🔴 *أُغلق البث بنجاح.*" })
     } catch (e) {
       removeCall(from, target)

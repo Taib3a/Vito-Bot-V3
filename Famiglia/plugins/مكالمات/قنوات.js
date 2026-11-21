@@ -1,49 +1,32 @@
-import { channelNames } from "../../Corleone/بث/بث.js"
+import { channelNames, GROUPS } from "../../Corleone/بث/بث.js"
 import streamChannel from "./مكالمة2.js"
 import { listLive } from "../../Corleone/بث/مباشر.js"
 
 // صورة المصدر الذي جاءت منه القنوات (iptv-org) — ترويسة كل رسالة
 const SOURCE_IMAGE = "https://avatars.githubusercontent.com/iptv-org"
 
-// ترتيب الأقسام — الأسماء يجب أن تطابق CHANNELS في بث.js حرفياً
-const GROUPS = [
-  {
-    title: "📰 إخبارية",
-    names: [
-      "الجزيرة", "الجزيرة 2", "الجزيرة مباشر", "الجزيرة مباشر 24", "الجزيرة مباشر 2",
-      "العربية للأعمال", "العربية برامج", "الإخبارية السعودية", "الحدث", "العربي",
-      "العربي 2", "الغد", "الجديد", "المصرية", "المغربية", "المسار", "المعارف",
-      "العالم اليوم", "AL24", "النجاح", "القمر"
-    ]
-  },
-  { title: "🇮🇶 عراقية", names: ["العراقية", "العراقية الإخبارية", "العراقية الرياضية"] },
-  { title: "🕌 خليجية", names: ["السعودية", "السعودية الآن", "عجمان", "الحياة"] },
-  { title: "📖 قرآنية", names: ["القرآن الكريم", "إذاعة القرآن"] },
-  { title: "🎬 ترفيه", names: ["أفلام", "أغاني أغاني", "2M"] }
-]
-
 // آخر عنصر = الجودة الأصلية بلا تحديد
 const QUALITIES = ["240p", "360p", "480p", "720p", "1080p", null]
 const QUALITY_LABELS = ["240p", "360p", "480p", "720p", "1080p", "الأصلية"]
 
-const PER_PAGE = 2
+// القنوات تُعرض في قائمة منسدلة قابلة للتمرير — واتساب يسمح بثلاثة
+// أزرار ردّ فقط، فصفحات الأزرار لا تصلح لأقسام فيها 70 قناة.
+// الأسماء هنا تُسجَّل كأوامر، فسقفها يحدّد أكبر فهرس قابل للإشارة.
 const MAX_SECTIONS_PAGES = 12
 const MAX_GROUP_PAGES = 12
-const MAX_CHANNELS = 60
+const MAX_CHANNELS = 400
 const MAX_LIVE = 20
 
 const T = {
   title: "📺 القنوات العربية",
   choose: "اختر طريقة العرض:",
   btnButtons: "🎯 أزرار قابلة للضغط",
-  btnDropdown: "📋 أزرار منسدلة",
   btnLive: "📡 البث المباشر الآن",
   liveTitle: "📡 البثوث الجارية الآن:",
   liveNone: "لا يوجد بثّ جارٍ حالياً.",
   pickSection: "اختر القسم:",
   pickChannel: "اختر قناة:",
   pickQuality: "اختر جودة البث:",
-  more: "➕ المزيد",
   back: "⬅️ رجوع",
   noMore: "❌ لا توجد قنوات إضافية.",
   stale: "❌ انتهت صلاحية هذه القائمة — أرسل *.قنوات* من جديد.",
@@ -159,29 +142,30 @@ export default {
       })
     }
 
-    // صفحة قنوات داخل قسم
+    // قسم واحد: كل قنواته في قائمة منسدلة واحدة قابلة للتمرير.
+    // الأزرار لا تصلح هنا — واتساب يسمح بثلاثة فقط، فقسم بـ69 قناة
+    // كان يحتاج 35 صفحة.
     const groupPage = parseGroupPage(name)
     if (groupPage) {
       const group = groups[groupPage.g]
       if (!group) return ctx.reply({ text: T.stale })
-
-      const total = Math.max(1, Math.ceil(group.items.length / PER_PAGE))
-      const current = Math.min(Math.max(groupPage.p, 0), total - 1)
-      const slice = group.items.slice(current * PER_PAGE, current * PER_PAGE + PER_PAGE)
-      if (!slice.length) return ctx.reply({ text: T.noMore })
-
-      const buttons = slice.map((it) => ({
-        text: it.name,
-        id: `${usedPrefix}${idQuality(it.abs)}`
-      }))
-      if (current < total - 1) {
-        buttons.push({ text: T.more, id: `${usedPrefix}${idGroupPage(groupPage.g, current + 1)}` })
-      } else if (current > 0) {
-        buttons.push({ text: T.back, id: `${usedPrefix}${idGroupPage(groupPage.g, current - 1)}` })
-      }
+      if (!group.items.length) return ctx.reply({ text: T.noMore })
 
       await react("🎯")
-      return send({ text: `${group.title}\n${T.pickChannel}\n${current + 1}/${total}`, buttons })
+      return send({
+        text: `${group.title}\n${T.pickChannel}\n> ${group.items.length} قناة`,
+        selectLabel: T.pickChannel,
+        sections: [
+          {
+            title: group.title,
+            rows: group.items.map((it) => ({
+              title: it.name,
+              description: `بثّ ${it.name}`,
+              id: `${usedPrefix}${idQuality(it.abs)}`
+            }))
+          }
+        ]
+      })
     }
 
     // القائمة المنسدلة: كل الأقسام والقنوات في نافذة واحدة
@@ -200,25 +184,23 @@ export default {
       })
     }
 
-    // اختيار القسم بالأزرار
-    const sectionsPage = parseSections(name)
-    if (sectionsPage !== null) {
-      const total = Math.max(1, Math.ceil(groups.length / PER_PAGE))
-      const current = Math.min(Math.max(sectionsPage, 0), total - 1)
-      const slice = groups.slice(current * PER_PAGE, current * PER_PAGE + PER_PAGE)
-
-      const buttons = slice.map((g) => ({
-        text: g.title,
-        id: `${usedPrefix}${idGroupPage(groups.indexOf(g), 0)}`
-      }))
-      if (current < total - 1) {
-        buttons.push({ text: T.more, id: `${usedPrefix}${idSections(current + 1)}` })
-      } else if (current > 0) {
-        buttons.push({ text: T.back, id: `${usedPrefix}${idSections(current - 1)}` })
-      }
-
+    // الأقسام: قائمة منسدلة واحدة — عددها صغير فلا حاجة لصفحات
+    if (parseSections(name) !== null) {
       await react("📂")
-      return send({ text: `${T.pickSection}\n${current + 1}/${total}`, buttons })
+      return send({
+        text: T.pickSection,
+        selectLabel: T.pickSection,
+        sections: [
+          {
+            title: T.pickSection,
+            rows: groups.map((g, i) => ({
+              title: g.title,
+              description: `${g.items.length} قناة`,
+              id: `${usedPrefix}${idGroupPage(i, 0)}`
+            }))
+          }
+        ]
+      })
     }
 
     // جلب رابط بثّ واحد برسالة مستقلة (صفوف القائمة لا تدعم زرّ نسخ)
@@ -266,15 +248,23 @@ export default {
       })
     }
 
-    // الجذر: ثلاثة أزرار
+    // الجذر: كل القنوات في نافذة واحدة + الأقسام + البثوث الجارية
     await react("📺")
     return send({
-      text: T.choose,
+      text: `${T.choose}\n> ${flat.length} قناة متاحة`,
+      selectLabel: T.pickChannel,
       buttons: [
         { text: T.btnButtons, id: `${usedPrefix}${idSections(0)}` },
-        { text: T.btnDropdown, id: `${usedPrefix}قنوات-قائمه` },
         { text: T.btnLive, id: `${usedPrefix}${idLive()}` }
-      ]
+      ],
+      sections: groups.map((g) => ({
+        title: g.title,
+        rows: g.items.map((it) => ({
+          title: it.name,
+          description: `بثّ ${it.name}`,
+          id: `${usedPrefix}${idQuality(it.abs)}`
+        }))
+      }))
     })
   }
 }

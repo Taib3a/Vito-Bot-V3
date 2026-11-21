@@ -1,11 +1,19 @@
-import { getVoip, addCall, wireCallEvents } from "../../اضافات/محركات.js"
+import { getVoip, addCall, removeCall, wireCallEvents } from "../../اضافات/محركات.js"
 import { missingRequirements, mediaRequirementMessage } from "../../اضافات/محركات.js"
 import { resolveStreamUrl } from "../../Corleone/بث/بث.js"
-import { addLive, removeLive } from "../../Corleone/بث/مباشر.js"
+import { addLive, removeLive, updateLive, getLive } from "../../Corleone/بث/مباشر.js"
 
 // يقبل "240" و"240p" — المستخدم يكتب الجودة بلا حرف p عادةً
 const RESOLUTIONS = /^(240|360|480|720|1080)p?$/i
 const REFRESH_DELAY_MS = 8_000
+
+// الغرفة تُغلق حين يخرج آخر مشارك، فتُعاد بناؤها بدل أن يموت البث.
+// الفاصل يتضاعف مع كل فشل متتالٍ حتى لا ندور في حلقة محمومة.
+const RESTART_BASE_MS = 3_000
+const RESTART_MAX_MS = 60_000
+const MAX_RESTART_FAILS = 8
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 
 // رابط المكالمة لا يكون جاهزاً فور createRoom — ننتظره قليلاً
@@ -58,8 +66,12 @@ export default {
       return reply({ text: mediaRequirementMessage(missing) })
     }
 
-    try {
-      const voip = getVoip(sock)
+    const voip = getVoip(sock)
+    const liveId = addLive({ chat: from, source: resolved.channel || target, quality: resolution, call: null })
+    const state = { stopped: false, restarting: false }
+
+    // ينشئ غرفة ويربطها بالسجل. يُستدعى أول مرة وعند كل إعادة تشغيل.
+    const open = async () => {
       // فيديو + صوت: القناة بلا صورة مجرد راديو
       const call = await voip.createRoom(resolved.url, resolution, {
         isVideo: true,
@@ -68,9 +80,7 @@ export default {
         requireApproval: false
       })
       addCall(from, call)
-
-      const liveId = addLive({ chat: from, source: resolved.channel || target, quality: resolution, call })
-      call.once("ended", () => removeLive(liveId))
+      updateLive(liveId, { call })
 
       // requireApproval=false يطفئ الغرفة بعد الاتصال فقط؛ ومن يضغط الرابط
       // قبل ذلك قد يعلق منتظراً — فنُدخله فوراً عند أي تحديث لغرفة الانتظار.
@@ -99,9 +109,8 @@ export default {
 
       // تجديد تلقائي: روابط البث تنتهي صلاحيتها أو تنقطع
       let refreshing = false
-      let stopped = false
       const refresh = async () => {
-        if (refreshing || stopped || call.ended) return
+        if (refreshing || call.ended) return
         refreshing = true
         try {
           const next = await resolveStreamUrl(target)
@@ -115,24 +124,58 @@ export default {
           refreshing = false
         }
       }
-
-      const onStall = () => {
-        if (stopped) return
-        setTimeout(refresh, REFRESH_DELAY_MS)
-      }
-      call.on("reconnecting", onStall)
-      call.on("ended", () => {
-        stopped = true
-        removeLive(liveId)
+      call.on("reconnecting", () => {
+        if (!state.stopped) setTimeout(refresh, REFRESH_DELAY_MS)
       })
 
       // رسالة الرابط منفصلة تماماً عن رسالة الحالة: wireCallEvents يعدّل
       // رسالة الحالة عند الاتصال، فلو حملت الرابط لمحته.
       const link = await waitForLink(call)
       if (link) await sock.sendMessage(from, { text: link })
+
+      // كل غرفة تُربط هنا، وإلا توقّفت إعادة التشغيل بعد الدورة الأولى
+      call.once("ended", () => {
+        removeCall(from, call)
+        restart().catch(() => {})
+      })
+      return call
+    }
+
+    // الغرفة تنتهي حين يخرج آخر مشارك. حذف السجل هناك هو ما كان يجعل
+    // البث يختفي من القائمة ويصير رابطه ميتاً؛ فبدله نعيد بناء الغرفة.
+    const restart = async () => {
+      if (state.stopped || state.restarting) return
+      state.restarting = true
+      for (let fails = 0; fails < MAX_RESTART_FAILS && !state.stopped; fails++) {
+        await sleep(Math.min(RESTART_BASE_MS * 2 ** fails, RESTART_MAX_MS))
+        if (state.stopped) break
+        try {
+          resolved = await resolveStreamUrl(target)
+          await open()
+          state.restarting = false
+          return
+        } catch {
+          // نُعيد المحاولة بفاصل أطول
+        }
+      }
+      state.restarting = false
+      if (state.stopped) return
+      removeLive(liveId)
+      await sock
+        .sendMessage(from, { text: "📴 *توقّف البث بعد تعذّر إعادة تشغيله.*\n> أرسل *.مكالمة2* من جديد." })
+        .catch(() => {})
+    }
+
+    try {
+      await open()
     } catch (e) {
+      removeLive(liveId)
       await react("❌")
       return reply({ text: `❌ فشل بث القناة: ${e?.message || e}` })
     }
+
+    // .مكالمة-اغلاق ينادي stop() قبل الإنهاء، فلا يُعاد بناء الغرفة
+    const record = getLive(liveId)
+    if (record) record.stop = () => { state.stopped = true }
   }
 }
