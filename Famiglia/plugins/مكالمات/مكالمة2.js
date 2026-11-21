@@ -1,6 +1,7 @@
 import { getVoip, addCall, wireCallEvents } from "../../اضافات/محركات.js"
 import { missingRequirements, mediaRequirementMessage } from "../../اضافات/محركات.js"
 import { resolveStreamUrl } from "../../Corleone/بث/بث.js"
+import { addLive, removeLive } from "../../Corleone/بث/مباشر.js"
 
 // يقبل "240" و"240p" — المستخدم يكتب الجودة بلا حرف p عادةً
 const RESOLUTIONS = /^(240|360|480|720|1080)p?$/i
@@ -68,6 +69,25 @@ export default {
       })
       addCall(from, call)
 
+      const liveId = addLive({ chat: from, source: resolved.channel || target, quality: resolution, call })
+      call.once("ended", () => removeLive(liveId))
+
+      // requireApproval=false يطفئ الغرفة بعد الاتصال فقط؛ ومن يضغط الرابط
+      // قبل ذلك قد يعلق منتظراً — فنُدخله فوراً عند أي تحديث لغرفة الانتظار.
+      const admitAll = () => {
+        const room = call.waitingRoom
+        if (!room?.users?.length) return
+        for (const user of room.users) {
+          if (!user.jid) continue
+          Promise.resolve(call.admit(user.jid)).catch(() => {})
+        }
+      }
+      call.on("waiting_room", admitAll)
+      call.once("connected", () => {
+        Promise.resolve(call.setApprovalRequired(false)).catch(() => {})
+        admitAll()
+      })
+
       wireCallEvents({
         sock,
         from,
@@ -103,6 +123,7 @@ export default {
       call.on("reconnecting", onStall)
       call.on("ended", () => {
         stopped = true
+        removeLive(liveId)
       })
 
       // رسالة الرابط منفصلة تماماً عن رسالة الحالة: wireCallEvents يعدّل

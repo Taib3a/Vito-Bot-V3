@@ -1,5 +1,6 @@
 import { channelNames } from "../../Corleone/بث/بث.js"
 import streamChannel from "./مكالمة2.js"
+import { listLive } from "../../Corleone/بث/مباشر.js"
 
 // صورة المصدر الذي جاءت منه القنوات (iptv-org) — ترويسة كل رسالة
 const SOURCE_IMAGE = "https://avatars.githubusercontent.com/iptv-org"
@@ -29,12 +30,16 @@ const PER_PAGE = 2
 const MAX_SECTIONS_PAGES = 12
 const MAX_GROUP_PAGES = 12
 const MAX_CHANNELS = 60
+const MAX_LIVE = 20
 
 const T = {
   title: "📺 القنوات العربية",
   choose: "اختر طريقة العرض:",
   btnButtons: "🎯 أزرار قابلة للضغط",
   btnDropdown: "📋 أزرار منسدلة",
+  btnLive: "📡 البث المباشر الآن",
+  liveTitle: "📡 البثوث الجارية الآن:",
+  liveNone: "لا يوجد بثّ جارٍ حالياً.",
   pickSection: "اختر القسم:",
   pickChannel: "اختر قناة:",
   pickQuality: "اختر جودة البث:",
@@ -50,6 +55,9 @@ const idSections = (p) => `قنوات_اقسام_${p}`
 const idGroupPage = (g, p) => `قنوات_ازرار_${g}_${p}`
 const idQuality = (abs) => `قنوات_جوده_${abs}`
 const idPlay = (abs, r) => `قنوات_بث_${abs}_${r}`
+const idLive = () => "قنوات_مباشر"
+const idLiveLink = (i) => `قنوات_رابط_${i}`
+const parseLiveLink = (n) => { const m = /^قنوات_رابط_(\d+)$/.exec(n); return m ? +m[1] : null }
 
 const parseSections = (n) => { const m = /^قنوات_اقسام_(\d+)$/.exec(n); return m ? +m[1] : null }
 const parseGroupPage = (n) => { const m = /^قنوات_ازرار_(\d+)_(\d+)$/.exec(n); return m ? { g: +m[1], p: +m[2] } : null }
@@ -79,6 +87,8 @@ export default {
     "قنوات",
     "القنوات",
     "قنوات-قائمه",
+    idLive(),
+    ...Array.from({ length: MAX_LIVE }, (_, i) => idLiveLink(i)),
     ...Array.from({ length: MAX_SECTIONS_PAGES }, (_, p) => idSections(p)),
     ...Array.from({ length: MAX_SECTIONS_PAGES }, (_, g) =>
       Array.from({ length: MAX_GROUP_PAGES }, (_, p) => idGroupPage(g, p))
@@ -211,13 +221,59 @@ export default {
       return send({ text: `${T.pickSection}\n${current + 1}/${total}`, buttons })
     }
 
-    // الجذر: زرّان مثل .انطق
+    // جلب رابط بثّ واحد برسالة مستقلة (صفوف القائمة لا تدعم زرّ نسخ)
+    const liveLink = parseLiveLink(name)
+    if (liveLink !== null) {
+      const it = listLive()[liveLink]
+      const link = (() => { try { return it?.call?.link } catch { return null } })()
+      if (!link) return ctx.reply({ text: "❌ *انتهى هذا البثّ أو لم يُجهَّز رابطه بعد.*" })
+      return ctx.reply({ text: link })
+    }
+
+    // البثوث الجارية الآن
+    if (name === idLive()) {
+      const items = listLive().slice(0, MAX_LIVE)
+      await react("📡")
+
+      if (!items.length) {
+        return send({ text: T.liveNone, buttons: [{ text: T.back, id: `${usedPrefix}قنوات` }] })
+      }
+
+      // الروابط في النص أيضاً — تُضغط مباشرة للانضمام
+      const lines = items
+        .map((it) => {
+          const link = (() => { try { return it.call?.link } catch { return null } })()
+          return `> ${String(it.source || "بثّ").slice(0, 40)}${it.quality ? ` (${it.quality})` : ""}\n> ${link || "—"}`
+        })
+        .join("\n")
+
+      return send({
+        text: `${T.liveTitle}\n${lines}`,
+        selectLabel: T.liveTitle,
+        sections: [
+          {
+            title: T.liveTitle,
+            rows: items.map((it, i) => {
+              const link = (() => { try { return it.call?.link } catch { return null } })()
+              return {
+                title: `${String(it.source || "بثّ").slice(0, 32)}${it.quality ? ` · ${it.quality}` : ""}`,
+                description: link ? "أرسل الرابط وحده" : "الرابط لم يُجهَّز بعد",
+                id: `${usedPrefix}${idLiveLink(i)}`
+              }
+            })
+          }
+        ]
+      })
+    }
+
+    // الجذر: ثلاثة أزرار
     await react("📺")
     return send({
       text: T.choose,
       buttons: [
         { text: T.btnButtons, id: `${usedPrefix}${idSections(0)}` },
-        { text: T.btnDropdown, id: `${usedPrefix}قنوات-قائمه` }
+        { text: T.btnDropdown, id: `${usedPrefix}قنوات-قائمه` },
+        { text: T.btnLive, id: `${usedPrefix}${idLive()}` }
       ]
     })
   }
