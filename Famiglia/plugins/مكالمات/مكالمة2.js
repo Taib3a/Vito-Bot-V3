@@ -128,10 +128,10 @@ export default {
         if (!state.stopped) setTimeout(refresh, REFRESH_DELAY_MS)
       })
 
-      // رسالة الرابط منفصلة تماماً عن رسالة الحالة: wireCallEvents يعدّل
-      // رسالة الحالة عند الاتصال، فلو حملت الرابط لمحته.
+      // الرابط لا يُرسل تلقائياً: كان يُرسل عند كل إعادة تشغيل فتتحوّل
+      // المحادثة إلى سيل روابط. صار يُحفظ في السجل ويُطلب من زر البث.
       const link = await waitForLink(call)
-      if (link) await sock.sendMessage(from, { text: link })
+      if (link) updateLive(liveId, { link })
 
       // كل غرفة تُربط هنا، وإلا توقّفت إعادة التشغيل بعد الدورة الأولى
       call.once("ended", () => {

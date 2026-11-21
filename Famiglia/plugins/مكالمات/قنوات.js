@@ -1,5 +1,6 @@
 import streamChannel from "./مكالمة2.js"
-import { listLive } from "../../Corleone/بث/مباشر.js"
+import { removeCall } from "../../اضافات/محركات.js"
+import { listLive, removeLive } from "../../Corleone/بث/مباشر.js"
 import { COUNTRIES_TREE, channelNames } from "../../Corleone/بث/بث.js"
 
 const SOURCE_IMAGE = "https://avatars.githubusercontent.com/iptv-org"
@@ -8,14 +9,21 @@ const QUALITIES = ["240p", "360p", "480p", "720p", "1080p", null]
 const QUALITY_LABELS = ["240p", "360p", "480p", "720p", "1080p", "الأصلية"]
 
 // معرّف الزر يعود للبوت كنص أمر، فلا بد أن يكون اسماً مسجّلاً سلفاً.
-// لذلك لا نُسجّل اسمأ لكل قناة (6824 قناة = عشرات آلاف الأسماء)، بل
+// لذلك لا نُسجّل اسماً لكل قناة (6824 قناة = عشرات آلاف الأسماء)، بل
 // «خانات» مرقّمة ثابتة (0..8) ودور كل خانة محفوظ في حالة المحادثة.
 const SLOTS = 9
+const SLOTS_BTN = 2
 const MAX_LIVE = 20
 const FLOW_TTL = 10 * 60_000
 
 const T = {
   title: "📺 القنوات",
+  mode: "🎛️ اختر طريقة العرض:",
+  btnList: "📋 قائمة منسدلة",
+  btnButtons: "🎯 أزرار قابلة للضغط",
+  group: "🗂️ اختر التجميع:",
+  byCountry: "🌍 حسب الدولة",
+  byCategory: "📂 حسب التصنيف",
   country: "🌍 اختر الدولة:",
   category: "📂 اختر التصنيف:",
   channel: "📺 اختر القناة:",
@@ -23,7 +31,11 @@ const T = {
   btnLive: "📡 البث المباشر الآن",
   liveTitle: "📡 البثوث الجارية الآن:",
   liveNone: "لا يوجد بثّ جارٍ حالياً.",
-  back: "⬅️ القائمة",
+  livePick: "📡 اختر البثّ:",
+  liveActions: "ماذا تريد أن تفعل بهذا البثّ؟",
+  liveSend: "🔗 إرسال الرابط",
+  liveStop: "⏹ إيقاف البث",
+  back: "⬅️ رجوع",
   stale: "❌ انتهت صلاحية القائمة — أرسل *.قنوات* من جديد.",
   empty: "❌ لا يوجد المزيد.",
   footer: "المصدر: iptv-org"
@@ -51,6 +63,7 @@ setInterval(() => {
   for (const [k, f] of flows) if (f.exp < now) flows.delete(k)
 }, 60_000).unref?.()
 
+// المستويات: و=طريقة العرض، مج=التجميع، د=الدول، ص=التصنيفات، ق=القنوات
 const LEVELS = ["د", "ص", "ق"]
 const PREV = "س"
 const NEXT = "ت"
@@ -59,8 +72,15 @@ const idRow = (lv, i) => `قنوات_${lv}_${i}`
 const idPrev = (lv) => `قنوات_${lv}_${PREV}`
 const idNext = (lv) => `قنوات_${lv}_${NEXT}`
 const idQuality = (i) => `قنوات_ج_${i}`
+const idQPrev = () => "قنوات_جس"
+const idQNext = () => "قنوات_جت"
+const idMode = (m) => `قنوات_و_${m}`
+const idGroup = (g) => `قنوات_مج_${g}`
 const idLive = () => "قنوات_مباشر"
+const idLivePick = (i) => `قنوات_بث_${i}`
 const idLiveLink = (i) => `قنوات_رابط_${i}`
+const idLiveStop = (i) => `قنوات_ايقاف_${i}`
+const idBack = () => "قنوات_رجوع"
 
 // يطابق اسم الأمر: خانة رقم أو سهم تنقّل
 function parseLevel(name) {
@@ -81,6 +101,16 @@ const parseLiveLink = (name) => {
   return m ? +m[1] : null
 }
 
+const parseLiveStop = (name) => {
+  const m = /^قنوات_ايقاف_(\d+)$/.exec(name)
+  return m ? +m[1] : null
+}
+
+const parseLivePick = (name) => {
+  const m = /^قنوات_بث_(\d+)$/.exec(name)
+  return m ? +m[1] : null
+}
+
 const stripIcon = (s) => String(s).replace(/^[\p{Emoji}\uFE0F\s]+/u, "").trim()
 const clip = (s, n) => {
   const v = String(s)
@@ -94,39 +124,83 @@ function paginate(items, p) {
   return { slice: items.slice(cur * SLOTS, cur * SLOTS + SLOTS), cur, pages }
 }
 
+// كل قنوات تصنيف واحد عبر جميع الدول — لتصفّح التصنيف بلا تحديد دولة
+function channelsOfCategory(title) {
+  const out = []
+  for (const c of COUNTRIES_TREE) {
+    for (const k of c.categories) {
+      if (k.title !== title) continue
+      for (const ch of k.channels) out.push({ ...ch, country: c.title })
+    }
+  }
+  return out
+}
+
+// تصنيفات العالم الفريدة مرتّبة بحسب عدد القنوات
+function globalCategories() {
+  const acc = new Map()
+  for (const c of COUNTRIES_TREE) {
+    for (const k of c.categories) {
+      const e = acc.get(k.title) || { title: k.title, channels: 0 }
+      e.channels += k.channels.length
+      acc.set(k.title, e)
+    }
+  }
+  return [...acc.values()].sort((a, b) => b.channels - a.channels)
+}
+
+const totalChannels = () =>
+  COUNTRIES_TREE.reduce((n, c) => n + c.categories.reduce((m, k) => m + k.channels.length, 0), 0)
+
 export default {
   name: [
     "قنوات",
     "القنوات",
+    idBack(),
+    idMode("ز"),
+    idMode("ق"),
+    idGroup("د"),
+    idGroup("ص"),
     idLive(),
+    ...Array.from({ length: MAX_LIVE }, (_, i) => idLivePick(i)),
     ...Array.from({ length: MAX_LIVE }, (_, i) => idLiveLink(i)),
+    ...Array.from({ length: MAX_LIVE }, (_, i) => idLiveStop(i)),
     ...LEVELS.flatMap((lv) => [
       ...Array.from({ length: SLOTS }, (_, i) => idRow(lv, i)),
       idPrev(lv),
       idNext(lv)
     ]),
+    idQPrev(),
+    idQNext(),
     ...Array.from({ length: QUALITIES.length }, (_, i) => idQuality(i))
   ],
-  description: "قنوات العالم بأربعة مستويات: دولة ← تصنيف ← قناة ← جودة",
+  description: "قنوات العالم: طريقة عرض ← تجميع (دولة/تصنيف) ← قناة ← جودة",
   category: "مكالمات",
   ownerOnly: true,
 
   async run(ctx) {
     const { sock, from, msg, cmdName, react, usedPrefix = ".", text } = ctx
     const name = String(cmdName || "").trim()
-    const reply = (t) => ctx.reply({ text: t })
+    const reply = (t) => ctx.reply(typeof t === "string" ? { text: t } : t)
 
-    const send = (payload) =>
-      typeof sock?.sendButtonMessage === "function"
-        ? sock.sendButtonMessage(from, payload.text, payload.buttons || [], {
-            title: T.title,
-            footer: T.footer,
-            quoted: msg?.message ? msg : null,
-            image: SOURCE_IMAGE,
-            selectLabel: payload.selectLabel || T.channel,
-            sections: payload.sections || []
-          })
-        : ctx.reply({ text: payload.text })
+    const send = async (payload) => {
+      if (typeof sock?.sendButtonMessage !== "function") return ctx.reply({ text: payload.text })
+      try {
+        return await sock.sendButtonMessage(from, payload.text, payload.buttons || [], {
+          title: T.title,
+          footer: T.footer,
+          quoted: msg?.message ? msg : null,
+          image: SOURCE_IMAGE,
+          selectLabel: payload.selectLabel || T.channel,
+          sections: payload.sections || []
+        })
+      } catch {
+        // الأزرار قد تفشل على بعض الحسابات — لا نترك المستخدم بلا رد
+        return ctx.reply({ text: payload.text })
+      }
+    }
+
+    const draw = (f) => render({ f, send, reply, usedPrefix })
 
     // ═══ المستوى 4: الجودة ═══
     const q = parseQuality(name)
@@ -144,6 +218,30 @@ export default {
       })
     }
 
+    // ═══ طريقة العرض ═══
+    if (name === idMode("ز") || name === idMode("ق")) {
+      const mode = name === idMode("ز") ? "ز" : "ق"
+      return draw(setFlow(from, { level: "مج", mode, page: 0 }))
+    }
+
+    // ═══ التجميع: دولة أو تصنيف ═══
+    if (name === idGroup("د")) {
+      return draw(setFlow(from, { level: "د", scope: "د", mode: getFlow(from)?.mode || "ق", page: 0 }))
+    }
+    if (name === idGroup("ص")) {
+      return draw(setFlow(from, { level: "ص", scope: "ص", mode: getFlow(from)?.mode || "ق", page: 0 }))
+    }
+
+    // ═══ الرجوع خطوة ═══
+    if (name === idBack()) {
+      const f = getFlow(from)
+      if (!f) return reply(T.stale)
+      if (f.level === "ق") return draw(setFlow(from, { ...f, level: "ص", page: 0 }))
+      if (f.level === "ص") return draw(setFlow(from, { ...f, level: f.scope === "د" ? "د" : "مج", page: 0 }))
+      if (f.level === "د") return draw(setFlow(from, { ...f, level: "مج", page: 0 }))
+      return draw(setFlow(from, { ...f, level: "و", page: 0 }))
+    }
+
     // ═══ المستويات 1-3 ═══
     const hit = parseLevel(name)
     if (hit) {
@@ -152,9 +250,7 @@ export default {
 
       // سهم التنقّل: نفس المستوى بصفحة مجاورة
       if (hit.arg === PREV || hit.arg === NEXT) {
-        const next = { ...f, page: (f.page || 0) + (hit.arg === NEXT ? 1 : -1) }
-        setFlow(from, next)
-        return render(ctx, send, reply, usedPrefix, next)
+        return draw(setFlow(from, { ...f, page: (f.page || 0) + (hit.arg === NEXT ? 1 : -1) }))
       }
 
       const i = +hit.arg
@@ -162,13 +258,20 @@ export default {
       if (hit.lv === "د") {
         const c = paginate(COUNTRIES_TREE, f.page || 0).slice[i]
         if (!c) return reply(T.empty)
-        return render(ctx, send, reply, usedPrefix, setFlow(from, { level: "ص", page: 0, country: c }))
+        return draw(setFlow(from, { ...f, level: "ص", scope: "د", page: 0, country: c }))
       }
 
       if (hit.lv === "ص") {
-        const c = f.country?.categories[paginate(f.country.categories, f.page || 0).cur * SLOTS + i]
+        if (f.scope === "ص") {
+          const c = paginate(globalCategories(), f.page || 0).slice[i]
+          if (!c) return reply(T.empty)
+          const channels = channelsOfCategory(c.title)
+          if (!channels.length) return reply(T.empty)
+          return draw(setFlow(from, { ...f, level: "ق", page: 0, country: null, category: { title: c.title, channels } }))
+        }
+        const c = paginate(f.country?.categories || [], f.page || 0).slice[i]
         if (!c) return reply(T.empty)
-        return render(ctx, send, reply, usedPrefix, setFlow(from, { level: "ق", page: 0, country: f.country, category: c }))
+        return draw(setFlow(from, { ...f, level: "ق", page: 0, category: c }))
       }
 
       // المستوى 3: اختيار قناة → اعرض الجودة
@@ -176,49 +279,88 @@ export default {
       if (!ch) return reply(T.empty)
 
       await react("🎚️")
+      return showQuality({ send, usedPrefix, channel: ch, qPage: 0, mode: f.mode }).then(() =>
+        setFlow(from, { ...f, channel: ch, qPage: 0 })
+      )
+    }
+
+    // ═══ تنقّل صفحات الجودة (وضع الأزرار) ═══
+    if (name === idQPrev() || name === idQNext()) {
+      const f = getFlow(from)
+      if (!f?.channel) return reply(T.stale)
+      const qPage = Math.max(0, (f.qPage || 0) + (name === idQNext() ? 1 : -1))
+      await showQuality({ send, usedPrefix, channel: f.channel, qPage, mode: f.mode })
+      return setFlow(from, { ...f, qPage })
+    }
+
+    // ═══ إيقاف بثّ جارٍ ═══
+    const stopIdx = parseLiveStop(name)
+    if (stopIdx !== null) {
+      const rec = listLive()[stopIdx]
+      if (!rec) return reply("❌ *هذا البثّ لم يعد جارياً.*")
+
+      const call = rec.call || null
+      await react("⏹")
+      try {
+        if (typeof rec.stop === "function") rec.stop()
+        if (call && typeof call.hangup === "function") await call.hangup()
+      } catch (e) {
+        removeLive(rec.id)
+        if (call) removeCall(from, call)
+        return reply(`⚠️ *أُوقف البثّ مع خطأ:* ${e?.message || e}`)
+      }
+      removeLive(rec.id)
+      if (call) removeCall(from, call)
+      return reply("⏹ *أُوقف البثّ بنجاح.*")
+    }
+
+    // ═══ إرسال رابط بثّ جارٍ ═══
+    const linkIdx = parseLiveLink(name)
+    if (linkIdx !== null) {
+      const rec = listLive()[linkIdx]
+      if (!rec) return reply("❌ *هذا البثّ لم يعد جارياً.*")
+      const link = rec.link || (() => { try { return rec.call?.link } catch { return null } })()
+      if (!link) return reply("❌ *لم يُجهَّز رابط هذا البثّ بعد.*\n> انتظر ثوانٍ ثم أعد المحاولة.")
+      await react("🔗")
+      return reply(`🔗 *رابط البثّ:*\n${link}`)
+    }
+
+    // ═══ اختيار بثّ: إرسال الرابط أم إيقافه ═══
+    const pickIdx = parseLivePick(name)
+    if (pickIdx !== null) {
+      const rec = listLive()[pickIdx]
+      if (!rec) return reply("❌ *هذا البثّ لم يعد جارياً.*")
+
+      await react("📡")
       return send({
-        text: `📺 *${ch.name}*\n${ch.quality ? `> الجودة الأصلية: ${ch.quality}\n` : ""}${T.quality}`,
-        selectLabel: T.quality,
-        sections: [
-          {
-            title: T.quality,
-            rows: QUALITY_LABELS.map((label, r) => ({
-              title: label,
-              description: r === QUALITIES.length - 1 ? "بدون تحديد — أعلى جودة متاحة" : `بثّ بجودة ${label}`,
-              id: `${usedPrefix}${idQuality(r)}`
-            }))
-          }
+        text: `📡 *${stripIcon(rec.source || "بثّ")}*${rec.quality ? ` · ${rec.quality}` : ""}\n\n${T.liveActions}`,
+        buttons: [
+          { text: T.liveSend, id: `${usedPrefix}${idLiveLink(pickIdx)}` },
+          { text: T.liveStop, id: `${usedPrefix}${idLiveStop(pickIdx)}` },
+          { text: T.back, id: `${usedPrefix}${idLive()}` }
         ]
-      }).then(() => setFlow(from, { ...f, channel: ch }))
+      })
     }
 
-    // ═══ البثوث الجارية ═══
-    const liveLink = parseLiveLink(name)
-    if (liveLink !== null) {
-      const it = listLive()[liveLink]
-      const link = (() => { try { return it?.call?.link } catch { return null } })()
-      if (!link) return reply("❌ *انتهى هذا البثّ أو لم يُجهَّز رابطه بعد.*")
-      return reply(link)
-    }
-
+    // ═══ قائمة البثوث الجارية ═══
     if (name === idLive()) {
       const items = listLive().slice(0, MAX_LIVE)
       await react("📡")
-      if (!items.length) return send({ text: T.liveNone, buttons: [{ text: T.back, id: `${usedPrefix}قنوات` }] })
+      if (!items.length) {
+        return send({ text: T.liveNone, buttons: [{ text: T.back, id: `${usedPrefix}قنوات` }] })
+      }
+
+      const rows = items.map((it, i) => ({
+        title: clip(`${stripIcon(it.source || "بثّ")}${it.quality ? ` · ${it.quality}` : ""}`, 60),
+        description: "اختر لإرسال الرابط أو إيقافه",
+        id: `${usedPrefix}${idLivePick(i)}`
+      }))
 
       return send({
-        text: T.liveTitle,
-        selectLabel: T.liveTitle,
-        sections: [
-          {
-            title: T.liveTitle,
-            rows: items.map((it, i) => ({
-              title: clip(`${it.source || "بثّ"}${it.quality ? ` · ${it.quality}` : ""}`, 60),
-              description: "أرسل الرابط وحده",
-              id: `${usedPrefix}${idLiveLink(i)}`
-            }))
-          }
-        ]
+        text: `${T.liveTitle}\n> ${items.length} بثّ جارٍ`,
+        selectLabel: T.livePick,
+        buttons: rows.slice(0, 2).map((r) => ({ text: clip(r.title, 20), id: r.id })),
+        sections: [{ title: T.livePick, rows }]
       })
     }
 
@@ -230,10 +372,18 @@ export default {
 
       await react("🔍")
       const chans = hits.map((n) => ({ name: n, url: null, quality: null }))
-      setFlow(from, { level: "ق", page: 0, search: query, category: { title: `🔍 ${query}`, channels: chans } })
+      setFlow(from, {
+        level: "ق",
+        mode: "ق",
+        scope: "ص",
+        page: 0,
+        search: query,
+        category: { title: `🔍 ${query}`, channels: chans }
+      })
       return send({
         text: `🔍 نتائج «${query}»`,
         selectLabel: T.channel,
+        buttons: chans.slice(0, 3).map((ch, i) => ({ text: clip(ch.name, 20), id: `${usedPrefix}${idRow("ق", i)}` })),
         sections: [
           {
             title: T.channel,
@@ -247,90 +397,141 @@ export default {
       })
     }
 
-    // ═══ الجذر: الدول ═══
-    await react("🌍")
-    return render(ctx, send, reply, usedPrefix, setFlow(from, { level: "د", page: 0 }))
+    // ═══ الجذر: طريقة العرض ═══
+    await react("📺")
+    return draw(setFlow(from, { level: "و", mode: "ق", page: 0 }))
   }
 }
 
+// يعرض الجودات: منسدلة كاملة، أو أزرار صفحتين (3+3) لأن واتساب يسمح بثلاثة
+function showQuality({ send, usedPrefix, channel, qPage, mode }) {
+  const QPAGE = 3
+  const pages = Math.ceil(QUALITY_LABELS.length / QPAGE)
+  const cur = Math.min(Math.max(0, qPage | 0), pages - 1)
+  const head = `📺 *${channel.name}*\n${channel.quality ? `> الجودة الأصلية: ${channel.quality}\n` : ""}${T.quality}`
+
+  const rows = QUALITY_LABELS.map((label, r) => ({
+    title: label,
+    description: r === QUALITIES.length - 1 ? "بدون تحديد — أعلى جودة متاحة" : `بثّ بجودة ${label}`,
+    id: `${usedPrefix}${idQuality(r)}`
+  }))
+
+  // الأزرار: ثلاثة في الصفحة + سهم تنقّل واحد إن لزم
+  const start = cur * QPAGE
+  const buttons = QUALITY_LABELS.slice(start, start + QPAGE).map((label, k) => ({
+    text: label,
+    id: `${usedPrefix}${idQuality(start + k)}`
+  }))
+  if (cur < pages - 1) buttons.push({ text: "المزيد ➡️", id: `${usedPrefix}${idQNext()}` })
+  else if (cur > 0) buttons.push({ text: "⬅️ السابق", id: `${usedPrefix}${idQPrev()}` })
+
+  return send({
+    text: `${head}${pages > 1 ? `\n> صفحة ${cur + 1}/${pages}` : ""}`,
+    selectLabel: T.quality,
+    buttons: buttons.slice(0, 3),
+    sections: mode === "ز" ? [] : [{ title: T.quality, rows }]
+  })
+}
+
 // يرسم المستوى النشِط من حالة التدفّق
-async function render(ctx, send, reply, usedPrefix, f) {
+async function render({ f, send, reply, usedPrefix }) {
+  const P = (id) => `${usedPrefix}${id}`
+
+  if (f.level === "و") {
+    return send({
+      text: `${T.title}\n\n${T.mode}\n> ${totalChannels()} قناة · ${COUNTRIES_TREE.length} دولة`,
+      buttons: [
+        { text: T.btnList, id: P(idMode("ق")) },
+        { text: T.btnButtons, id: P(idMode("ز")) },
+        { text: T.btnLive, id: P(idLive()) }
+      ]
+    })
+  }
+
+  if (f.level === "مج") {
+    return send({
+      text: `${T.title}\n\n${T.group}`,
+      buttons: [
+        { text: T.byCountry, id: P(idGroup("د")) },
+        { text: T.byCategory, id: P(idGroup("ص")) }
+      ]
+    })
+  }
+
   if (f.level === "د") {
     const { slice, cur, pages } = paginate(COUNTRIES_TREE, f.page || 0)
-    const total = COUNTRIES_TREE.reduce(
-      (n, c) => n + c.categories.reduce((m, k) => m + k.channels.length, 0),
-      0
-    )
-
-    return send({
-      text: `${T.country}\n> ${total} قناة في ${COUNTRIES_TREE.length} دولة · صفحة ${cur + 1}/${pages}`,
-      selectLabel: T.country,
-      buttons: nav(usedPrefix, "د", cur, pages),
-      sections: [
-        {
-          title: T.country,
-          rows: slice.map((c, i) => {
-            const n = c.categories.reduce((m, x) => m + x.channels.length, 0)
-            return {
-              title: clip(c.title, 60),
-              description: `${n} قناة · ${c.categories.length} تصنيف`,
-              id: `${usedPrefix}${idRow("د", i)}`
-            }
-          })
-        }
-      ]
+    const rows = slice.map((c, i) => {
+      const n = c.categories.reduce((m, x) => m + x.channels.length, 0)
+      return {
+        title: clip(c.title, 60),
+        description: `${n} قناة · ${c.categories.length} تصنيف`,
+        id: P(idRow("د", i))
+      }
+    })
+    return page({
+      f, send, rows, cur, pages, P,
+      text: `${T.country}\n> ${totalChannels()} قناة في ${COUNTRIES_TREE.length} دولة`,
+      selectLabel: T.country
     })
   }
 
   if (f.level === "ص") {
-    const cats = f.country?.categories || []
-    const { slice, cur, pages } = paginate(cats, f.page || 0)
+    const source = f.scope === "ص" ? globalCategories() : (f.country?.categories || [])
+    const { slice, cur, pages } = paginate(source, f.page || 0)
     if (!slice.length) return reply(T.empty)
 
-    return send({
-      text: `${f.country.title}\n${T.category}\n> صفحة ${cur + 1}/${pages}`,
-      selectLabel: T.category,
-      buttons: nav(usedPrefix, "ص", cur, pages),
-      sections: [
-        {
-          title: T.category,
-          rows: slice.map((c, i) => ({
-            title: clip(stripIcon(c.title), 60),
-            description: `${c.channels.length} قناة`,
-            id: `${usedPrefix}${idRow("ص", i)}`
-          }))
-        }
-      ]
-    })
+    const rows = slice.map((c, i) => ({
+      title: clip(stripIcon(c.title), 60),
+      description: `${c.channels.length} قناة`,
+      id: P(idRow("ص", i))
+    }))
+
+    const head = f.scope === "ص" ? T.category : `${f.country?.title || ""}\n${T.category}`
+    return page({ f, send, rows, cur, pages, P, text: head, selectLabel: T.category })
   }
 
-  // المستوى 3: القنوات
   const chans = f.category?.channels || []
   const { slice, cur, pages } = paginate(chans, f.page || 0)
   if (!slice.length) return reply(T.empty)
 
-  return send({
-    text: `${f.country?.title ? `${f.country.title}\n` : ""}*${stripIcon(f.category.title)}*\n${T.channel}\n> ${chans.length} قناة · صفحة ${cur + 1}/${pages}`,
-    selectLabel: T.channel,
-    buttons: nav(usedPrefix, "ق", cur, pages),
-    sections: [
-      {
-        title: T.channel,
-        rows: slice.map((ch, i) => ({
-          title: clip(ch.name, 60),
-          description: ch.quality ? `جودة ${ch.quality}` : "بثّ مباشر",
-          id: `${usedPrefix}${idRow("ق", i)}`
-        }))
-      }
-    ]
-  })
+  const rows = slice.map((ch, i) => ({
+    title: clip(ch.name, 60),
+    description: ch.country
+      ? `🌍 ${stripIcon(ch.country)}${ch.quality ? ` · ${ch.quality}` : ""}`
+      : (ch.quality ? `جودة ${ch.quality}` : "بثّ مباشر"),
+    id: P(idRow("ق", i))
+  }))
+
+  const head = [f.country?.title, `*${stripIcon(f.category.title)}*`, T.channel, `> ${chans.length} قناة`]
+    .filter(Boolean)
+    .join("\n")
+
+  return page({ f, send, rows, cur, pages, P, text: head, selectLabel: T.channel })
 }
 
-// أزرار التنقّل: واتساب يسمح بثلاثة، فنُظهر ما يلزم فقط
-function nav(usedPrefix, lv, cur, pages) {
-  const out = []
-  if (cur > 0) out.push({ text: "⬅️ السابق", id: `${usedPrefix}${idPrev(lv)}` })
-  if (cur < pages - 1) out.push({ text: "التالي ➡️", id: `${usedPrefix}${idNext(lv)}` })
-  if (lv === "د") out.push({ text: T.btnLive, id: `${usedPrefix}${idLive()}` })
-  return out.slice(0, 3)
+// يرسم صفحة: أزرار عند الوضع «ز» وقائمة منسدلة عند الوضع «ق»
+async function page({ f, send, rows, cur, pages, text, selectLabel, P }) {
+  const canPrev = cur > 0
+  const canNext = cur < pages - 1
+
+  if (f.mode === "ز") {
+    const buttons = rows.slice(0, SLOTS_BTN).map((r) => ({ text: clip(r.title, 20), id: r.id }))
+    if (canNext) buttons.push({ text: "المزيد ➡️", id: P(idNext(f.level)) })
+    else if (canPrev) buttons.push({ text: "⬅️ السابق", id: P(idPrev(f.level)) })
+    else buttons.push({ text: T.back, id: P(idBack()) })
+
+    return send({ text: `${text}\n> صفحة ${cur + 1}/${pages}`, buttons: buttons.slice(0, 3) })
+  }
+
+  const buttons = []
+  if (canPrev) buttons.push({ text: "⬅️ السابق", id: P(idPrev(f.level)) })
+  if (canNext) buttons.push({ text: "التالي ➡️", id: P(idNext(f.level)) })
+  buttons.push({ text: T.back, id: P(idBack()) })
+
+  return send({
+    text: `${text}\n> صفحة ${cur + 1}/${pages}`,
+    selectLabel,
+    buttons: buttons.slice(0, 3),
+    sections: [{ title: selectLabel, rows }]
+  })
 }
