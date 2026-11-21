@@ -207,8 +207,6 @@ export default {
 
     const readyText =
       `✅ *البث جاهز.*\n` +
-      `> القناة: *${resolved.channel || target}*\n` +
-      `> الجودة: *${resolution || "تلقائية"}*\n` +
       `> عد إلى: *📡 البث المباشر الآن* ← *البثوث الجارية الآن*`
     log.info(`[بث] جاهز live=${liveId}`, "مكالمة2")
 
