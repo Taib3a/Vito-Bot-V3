@@ -1,15 +1,25 @@
-import { downloadMediaMessage } from "@whiskeysockets/baileys";
+import { downloadMediaMessage, extractMessageContent } from "@whiskeysockets/baileys";
 
-/** يستخرج مفتاح الوسيط وجسمه من الرسالة المقتبسة. */
+const MEDIA = {
+  imageMessage: { field: "image", mime: "image/jpeg" },
+  videoMessage: { field: "video", mime: "video/mp4" },
+  ptvMessage: { field: "video", mime: "video/mp4" },
+  audioMessage: { field: "audio", mime: "audio/mp4" },
+};
+
+const WRAPPERS = ["viewOnceMessage", "viewOnceMessageV2", "viewOnceMessageV2Extension"];
+
+/**
+ * يستخرج نوع الوسيط وبياناته من الرسالة المقتبسة.
+ * وجود غلاف «العرض مرة واحدة» كافٍ: العلم الداخلي يُسقط في بعض المسارات.
+ * ويُفتح أيضاً غلافا المحادثة المختفية والملف بتعليق.
+ */
 function extractMedia(quoted) {
-  const message =
-    quoted.viewOnceMessageV2?.message ||
-    quoted.viewOnceMessage?.message ||
-    quoted.viewOnceMessageV2Extension?.message ||
-    quoted;
-
-  const key = ["imageMessage", "videoMessage", "audioMessage"].find((k) => message?.[k]?.viewOnce);
-  return key ? { key, media: message[key] } : null;
+  const wrapped = WRAPPERS.some((w) => quoted?.[w]);
+  const message = extractMessageContent(quoted);
+  const key = Object.keys(MEDIA).find((k) => message?.[k]);
+  if (!key) return null;
+  return wrapped || message[key].viewOnce ? { key, media: message[key] } : null;
 }
 
 export default {
@@ -44,7 +54,7 @@ export default {
       await react("👁️");
 
       // downloadMediaMessage يتطلّب رسالة كاملة بمفتاح، فنعيد بناء الغلاف.
-      const type = found.key === "imageMessage" ? "image" : found.key === "videoMessage" ? "video" : "audio";
+      const meta = MEDIA[found.key];
       const stub = { key: contextInfo.stanzaId ? { id: contextInfo.stanzaId, remoteJid: from } : undefined, message: quoted };
       const buffer = await downloadMediaMessage(stub, "buffer", {}, { logger: console, reuploadRequest: sock.updateMediaMessage });
       if (!buffer?.length) {
@@ -54,9 +64,9 @@ export default {
 
       const media = found.media;
       const outMessage =
-        type === "audio"
-          ? { audio: buffer, mimetype: media.mimetype || "audio/mp4", ptt: false }
-          : { [type]: buffer, caption: media.caption || "👁️ مكشوفة" };
+        meta.field === "audio"
+          ? { audio: buffer, mimetype: media.mimetype || meta.mime, ptt: false }
+          : { [meta.field]: buffer, caption: media.caption || "👁️ مكشوفة" };
 
       await sock.sendMessage(from, outMessage, { quoted: msg });
       await react("✅");

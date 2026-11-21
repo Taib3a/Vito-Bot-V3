@@ -76,6 +76,9 @@ async function runMods(filterFn, { sock, msg, from, sender, body, isBotAdmin, is
   for (const mod of modules) {
     if (!mod.check || !filterFn(mod)) continue;
     if (mod.flag && !(mod.global ? botSettings[mod.flag] : groupData?.[mod.flag])) continue;
+    // مضادات الحماية لا تُشغَّل على المشرفين، إلا ما أعلن أنه ليس عقاباً
+    // بل خدمة تُفيد الجميع (كشف العرض مرة واحدة).
+    if ((isAdmin || isMod) && !mod.includeAdmins) continue;
 
     try {
       const handled = await mod.check({ sock, msg, from, sender, body, isBotAdmin, isAdmin, isOwner, isMod, botLabel, isCmd });

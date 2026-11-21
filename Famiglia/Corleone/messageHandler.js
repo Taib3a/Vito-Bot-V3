@@ -281,7 +281,8 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
 
       // المضادات تعمل على النص والوسائط معاً: مضاد العرض مرة واحدة يحتاج
       // رسالة بلا نص، فلا يُشترط `body`.
-      if (!isAdmin && !isMod && !isCmd) {
+      // استثناء المشرفين صار داخل كل مضاد، فبعضها خدمة لا عقاب.
+      if (!isCmd) {
         const handled = await runAntifeatures({ sock, msg, from, sender, body, isBotAdmin, isAdmin, isOwner, isMod, botLabel, isCmd });
         if (handled) return;
       }
