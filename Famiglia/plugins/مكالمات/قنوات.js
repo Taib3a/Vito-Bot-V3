@@ -188,12 +188,19 @@ export default {
   ],
   description: "قنوات العالم: طريقة عرض ← تجميع (دولة/تصنيف) ← قناة ← جودة",
   category: "مكالمات",
-  ownerOnly: true,
+  // متاح للجميع: التصفّح والبث في محادثتهم. إدارة بثوث الآخرين تبقى للمالك.
+  ownerOnly: false,
 
   async run(ctx) {
-    const { sock, from, msg, cmdName, react, usedPrefix = ".", text } = ctx
+    const { sock, from, msg, cmdName, react, usedPrefix = ".", text, isOwner } = ctx
     const name = String(cmdName || "").trim()
     const reply = (t) => ctx.reply(typeof t === "string" ? { text: t } : t)
+
+    // غير المالك يرى بثوث محادثته فقط، فلا يطّلع على بثوث الآخرين ولا يوقفها.
+    const liveFor = () => {
+      const all = listLive()
+      return isOwner ? all : all.filter((rec) => rec.chat === from)
+    }
 
     const send = async (payload) => {
       if (typeof sock?.sendButtonMessage !== "function") return ctx.reply({ text: payload.text })
@@ -313,7 +320,7 @@ export default {
     // ═══ إيقاف بثّ جارٍ ═══
     const stopIdx = parseLiveStop(name)
     if (stopIdx !== null) {
-      const rec = listLive()[stopIdx]
+      const rec = liveFor()[stopIdx]
       if (!rec) return reply("❌ *هذا البثّ لم يعد جارياً.*")
 
       const call = rec.call || null
@@ -323,18 +330,18 @@ export default {
         if (call && typeof call.hangup === "function") await call.hangup()
       } catch (e) {
         removeLive(rec.id)
-        if (call) removeCall(from, call)
+        if (call) removeCall(rec.chat || from, call)
         return reply(`⚠️ *أُوقف البثّ مع خطأ:* ${e?.message || e}`)
       }
       removeLive(rec.id)
-      if (call) removeCall(from, call)
+      if (call) removeCall(rec.chat || from, call)
       return reply("⏹ *أُوقف البثّ بنجاح.*")
     }
 
     // ═══ إرسال رابط بثّ جارٍ ═══
     const linkIdx = parseLiveLink(name)
     if (linkIdx !== null) {
-      const rec = listLive()[linkIdx]
+      const rec = liveFor()[linkIdx]
       if (!rec) return reply("❌ *هذا البثّ لم يعد جارياً.*")
       const link = rec.link || (() => { try { return rec.call?.link } catch { return null } })()
       if (!link) return reply("❌ *لم يُجهَّز رابط هذا البثّ بعد.*\n> انتظر ثوانٍ ثم أعد المحاولة.")
@@ -345,7 +352,7 @@ export default {
     // ═══ اختيار بثّ: إرسال الرابط أم إيقافه ═══
     const pickIdx = parseLivePick(name)
     if (pickIdx !== null) {
-      const rec = listLive()[pickIdx]
+      const rec = liveFor()[pickIdx]
       if (!rec) return reply("❌ *هذا البثّ لم يعد جارياً.*")
 
       await react("📡")
@@ -361,7 +368,7 @@ export default {
 
     // ═══ قائمة البثوث الجارية ═══
     if (name === idLive()) {
-      const items = listLive().slice(0, MAX_LIVE)
+      const items = liveFor().slice(0, MAX_LIVE)
       await react("📡")
       if (!items.length) {
         return send({ text: T.liveNone, buttons: [{ text: T.back, id: `${usedPrefix}قنوات` }] })
