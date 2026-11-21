@@ -2,7 +2,7 @@ import config from "./settings.js";
 import { log } from "./logger.js";
 import { getPlugins } from "./pluginLoader.js";
 import { db } from "../database/db.js";
-import { runAntifeatures, runAllUsersAntifeatures } from "./مضاد/index.js";
+import { runAntifeatures, runAllUsersAntifeatures, runServiceAntifeatures } from "./مضاد/index.js";
 import { handleCommandXp } from "./xp.js";
 import { announceLevelUp } from "./levelCard.js";
 import { claimOnce, getLiveSock } from "./subbotManager.js";
@@ -168,7 +168,13 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
     const isCmd = !!usedPrefix;
     const fromMe = !!msg.key?.fromMe;
 
-    if (fromMe && !isCmd) return;
+    if (fromMe && !isCmd) {
+      // رسائل «مني» تُسقط عادةً، لكن كشف العرض مرة واحدة خدمة لا عقاب،
+      // فلا بد أن يعمل ولو أرسل المستخدم الصورة من رقم البوت نفسه.
+      // isOwner/isMod لم تُحسب بعد هنا، فنُمرّر ما يكفي الخدمات فقط.
+      await runServiceAntifeatures({ sock, msg, from, sender, body, isBotAdmin: false, isAdmin: false, isOwner: false, isMod: false, botLabel, isCmd });
+      return;
+    }
 
     const afterPrefix = isCmd ? body.slice(usedPrefix.length).trimStart() : "";
     const rawCmdName = isCmd ? afterPrefix.split(/\s+/)[0].toLowerCase() : "";
@@ -275,6 +281,13 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
       // البوت متوقف عن هذه المجموعة من هذا الرقم: يتجاهل كل شيء.
       // الإعداد لكل (رقم + مجموعة)، ورقم البوت نفسه وحده يعيد التشغيل.
       if (!db.getBotGroup(botNum, from).botOn && !fromMe) return;
+
+      // خدمات المجموعة (كشف العرض مرة واحدة) لا تعاقب أحداً، فتعمل حتى
+      // في الوضع الخاص/المشرفين: حجبها هناك يجعلها معطّلة في أغلب المجموعات.
+      if (!isCmd) {
+        const served = await runServiceAntifeatures({ sock, msg, from, sender, body, isBotAdmin, isAdmin, isOwner, isMod, botLabel, isCmd });
+        if (served) return;
+      }
 
       if (groupData?.selfMode && !isOwner && !isCoOwner && !fromMe) return;
       if (groupData?.adminMode && !isAdmin && !isMod) return;

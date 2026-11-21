@@ -93,12 +93,21 @@ async function runMods(filterFn, { sock, msg, from, sender, body, isBotAdmin, is
 
 /** مضادات الحماية: تستهدف المخالفين، فلا تُشغَّل للمشرفين. */
 export async function runAntifeatures(ctx) {
-  return runMods((m) => !m.allUsers, ctx);
+  return runMods((m) => !m.allUsers && !m.service, ctx);
 }
 
 /** مضادات تعمل لكل الأعضاء بلا استثناء (رفع المستوى التلقائي). */
 export async function runAllUsersAntifeatures(ctx) {
   return runMods((m) => !!m.allUsers, ctx);
+}
+
+/**
+ * مضادات «خدمة»: لا تعاقب أحداً، بل تفيد المجموعة (كشف العرض مرة واحدة).
+ * تعمل قبل بوابات الوضع الخاص/المشرفين فقط، وعلى رسائل البوت نفسه أيضاً —
+ * وإلا لظلّت معطّلة لمن يرسل من رقم البوت أو في مجموعة مقفلة على المشرفين.
+ */
+export async function runServiceAntifeatures(ctx) {
+  return runMods((m) => !!m.service, ctx);
 }
 
 /**

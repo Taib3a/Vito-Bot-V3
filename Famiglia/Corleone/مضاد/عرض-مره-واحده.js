@@ -36,6 +36,9 @@ export default {
   flag: "viewonce",
   // كشف الوسائط خدمة لكل من في المجموعة، لا عقاب للمخالف.
   includeAdmins: true,
+  // خدمة لا عقاب: تعمل قبل بوابات الوضع الخاص/المشرفين، وعلى رسائل
+  // البوت نفسه — وإلا ظلّت معطّلة لمن يرسل من رقم البوت.
+  service: true,
 
   async check({ sock, msg, from, sender, botLabel }) {
     const found = viewOnceContent(msg?.message);
