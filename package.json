@@ -7,7 +7,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "check": "find index.js Famiglia -name '*.js' -print0 | xargs -0 -n1 node --check"
+    "check": "find index.js Famiglia -name '*.js' -print0 | xargs -0 -n1 node --check",
+    "obfuscate:channels": "node scripts/obfuscate-channels.mjs"
   },
   "engines": {
     "node": ">=22"
@@ -24,5 +25,8 @@
     "qrcode-terminal": "^0.12.0",
     "tough-cookie": "^6.0.2",
     "yt-search": "^2.13.1"
+  },
+  "devDependencies": {
+    "javascript-obfuscator": "^5.10.1"
   }
 }
