@@ -169,21 +169,10 @@ export default {
   category: "المجموعات",
   groupOnly: true,
 
-  async run({ sock, from, msg, sender, botJid, args, cmdName, isAdmin, isMod, isOwner, fromMe, botMentioned, reply, react }) {
+  async run({ sock, from, msg, sender, botJid, args, cmdName, isAdmin, isMod, isOwner, fromMe, reply, react }) {
     const botNum = numOf(botJid);
     // رقم البوت الذي نفّذ الأمر بنفسه: لوحته خاصة به (مضادات الستوري فقط).
     const isBotSelf = !!fromMe;
-
-    // منشن البوت: أي عضو يعرض لوحة إعدادات البوت بلا صلاحيات إشراف.
-    if (botMentioned && !isBotSelf) {
-      await react("🛡️");
-      return await sendStoreMessage(sock, from, msg, sender, {
-        text: buildBotStatusPanel(botNum, from).text,
-        image: Array.isArray(global.botImages) && global.botImages.length
-          ? global.botImages[Math.floor(Math.random() * global.botImages.length)]
-          : null,
-      });
-    }
 
     if (!isBotSelf && !isAdmin && !isMod && !isOwner) return await reply({ text: T.deny });
 

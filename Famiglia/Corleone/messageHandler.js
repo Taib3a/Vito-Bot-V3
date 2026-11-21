@@ -125,31 +125,6 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
       extractButtonId(msg.message) ||
       "";
 
-    // منشن البوت في مجموعة = طلب لوحة إعدادات البوت (يُعامل كأمر «تفعيل»).
-    const mentionedJid =
-      msg.message?.extendedTextMessage?.contextInfo?.mentionedJid ||
-      msg.message?.imageMessage?.contextInfo?.mentionedJid ||
-      msg.message?.videoMessage?.contextInfo?.mentionedJid ||
-      [];
-    const botLidJid = cleanJid(sock.user?.lid || "");
-    const botMentioned =
-      isGroup &&
-      mentionedJid.some((j) => {
-        const c = cleanJid(j);
-        return c === botJid || (!!botLidJid && c === botLidJid);
-      });
-    // منشن البوت **وحده** (بلا أي كلام) = طلب لوحة إعدادات البوت.
-    // لا يكفي وجود منشن للبوت في الرسالة: رسائل النظام وإشعارات البوتات
-    // الأخرى (مثل «ترقية إشراف») تمنشن البوت أيضاً، وكانت تفتح اللوحة بلا
-    // أمر. نُنظّف المنشنات من النص، فإن لم يبقَ شيء كان منشناً صافياً.
-    const withoutMentions = body
-      .replace(/@\u2068[^\u2069]*\u2069/g, "") // منشن باسم المستخدم @⁨~اسم⁩
-      .replace(/@\d+/g, "") // منشن بالرقم @123
-      .replace(/[\s\u200b\u200e\u200f\u2066\u2069]/g, "");
-    if (botMentioned && withoutMentions === "" && !prefixes.some((p) => body.startsWith(p))) {
-      body = `${prefixes[0]}تفعيل`;
-    }
-
     const msgType = msg.message ? Object.keys(msg.message)[0] ?? "unknown" : "unknown";
 
     const msgTypeLabel =
@@ -339,7 +314,7 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
     const ctx = {
       sock, msg, from, sender, senderNum, botJid, botLabel, mainBotNum, activeBotsLive,
       isGroup, groupName, groupMeta, body, isCmd, cmdName, args, text, usedPrefix,
-      isOwner, isCoOwner, isMod, isPremium, isAdmin, isBotAdmin, fromMe, botMentioned,
+      isOwner, isCoOwner, isMod, isPremium, isAdmin, isBotAdmin, fromMe,
       resolveLid: (lidJid) => resolveLid(lidJid, groupMeta, sock),
       clearGroupCache: () => groupCache.delete(from),
       reply: async (content) => {
