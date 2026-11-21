@@ -6,6 +6,18 @@ import { resolveStreamUrl } from "../../Corleone/بث/بث.js"
 const RESOLUTIONS = /^(240|360|480|720|1080)p?$/i
 const REFRESH_DELAY_MS = 8_000
 
+
+// رابط المكالمة لا يكون جاهزاً فور createRoom — ننتظره قليلاً
+async function waitForLink(call, timeoutMs = 10_000) {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    const link = call?.link
+    if (link) return link
+    await new Promise((r) => setTimeout(r, 400))
+  }
+  return null
+}
+
 export default {
   name: ["مكالمة2", "بث-قناة"],
   description: "يبثّ قناة عربية أو رابط بث مباشر بالصوت والفيديو داخل غرفة مكالمة برابط دائم",
@@ -56,7 +68,7 @@ export default {
       })
       addCall(from, call)
 
-      const { edit } = wireCallEvents({
+      wireCallEvents({
         sock,
         from,
         call,
@@ -93,16 +105,10 @@ export default {
         stopped = true
       })
 
-      const label = resolved.channel || resolved.url
-      const link = call.link
-      edit(
-        `📡 *البث المباشر جاهز*\n` +
-          (link ? `> الرابط: ${link}\n` : "") +
-          `> المصدر: ${String(label).slice(0, 60)}\n` +
-          `> الجودة: ${resolution || "الأصلية"}\n` +
-          `> 🔁 يُجدّد الرابط تلقائياً عند الانقطاع\n` +
-          `> *.مكالمة-اغلاق ${link || "<الرابط>"}* لإيقافه`
-      )
+      // رسالة الرابط منفصلة تماماً عن رسالة الحالة: wireCallEvents يعدّل
+      // رسالة الحالة عند الاتصال، فلو حملت الرابط لمحته.
+      const link = await waitForLink(call)
+      if (link) await sock.sendMessage(from, { text: link })
     } catch (e) {
       await react("❌")
       return reply({ text: `❌ فشل بث القناة: ${e?.message || e}` })
