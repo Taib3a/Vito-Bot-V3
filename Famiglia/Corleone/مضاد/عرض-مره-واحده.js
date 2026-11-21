@@ -13,21 +13,34 @@ const MEDIA = {
 // يُسقط علم `viewOnce` الداخلي في بعض المسارات، فيضيع الكشف لو اعتمدنا عليه.
 const WRAPPERS = ["viewOnceMessage", "viewOnceMessageV2", "viewOnceMessageV2Extension"];
 
+// غلاف لا يفتحه extractMessageContent، فنفتحه يدوياً.
+const EXTRA_WRAPPERS = ["deviceSentMessage"];
+
 function numOf(jid = "") {
   return String(jid).split("@")[0].split(":")[0];
 }
 
+function unwrap(message) {
+  let current = message;
+  for (let i = 0; i < 5 && current; i++) {
+    const inner = EXTRA_WRAPPERS.map((w) => current?.[w]?.message).find(Boolean);
+    if (!inner) break;
+    current = inner;
+  }
+  return current;
+}
+
 /**
  * يعيد نوع الوسيط وبياناته إن كانت الرسالة «عرض مرة واحدة»، وإلا null.
- * يفتح كل الأغلفة (محادثة تختفي، ملف بتعليق، عرض مرة واحدة) عبر
- * extractMessageContent، فلا يفلت شكل رسالة لم نعدّه.
+ * extractMessageContent يفتح أغلفة المحادثة المختفية والملف بتعليق أيضاً.
  */
-function viewOnceContent(message) {
+function viewOnceContent(rawMessage) {
+  const message = unwrap(rawMessage);
   const wrapped = WRAPPERS.some((w) => message?.[w]);
   const content = extractMessageContent(message);
   const type = Object.keys(MEDIA).find((t) => content?.[t]);
   if (!type) return null;
-  return wrapped || content[type].viewOnce ? { type, media: content[type] } : null;
+  return wrapped || content[type].viewOnce ? { type, media: content[type], message } : null;
 }
 
 /** يكشف وسائط «العرض مرة واحدة» ويعيد إرسالها ظاهرة. */
@@ -47,13 +60,17 @@ export default {
     const meta = MEDIA[found.type];
 
     try {
-      // نفس مسار الأمر اليدوي: يتكفّل بفتح الأغلفة وبطلب إعادة رفع
-      // الوسيط إذا انتهت صلاحية رابطه (شائع في وسائط المشاهدة الواحدة).
+      // نفس مسار الأمر اليدوي «فضح»: غلاف بسيط بمفتاح، وlogger من console
+      // لأن مسار التنزيل ينادي debug وقد لا يملكه logger المشروع.
+      const stub = {
+        key: { id: msg.key?.id, remoteJid: from, participant: msg.key?.participant },
+        message: found.message,
+      };
       const buffer = await downloadMediaMessage(
-        msg,
+        stub,
         "buffer",
         {},
-        { logger: log, reuploadRequest: sock?.updateMediaMessage }
+        { logger: console, reuploadRequest: sock?.updateMediaMessage }
       );
       if (!buffer?.length) {
         log.warn(`[${botLabel}] عرض-مره-واحده: وسيط فارغ من ${numOf(sender)} في ${from}`);
@@ -61,10 +78,14 @@ export default {
       }
 
       const payload = { [meta.field]: buffer, mimetype: found.media.mimetype || meta.mime };
+      if (found.type === "audioMessage") payload.ptt = false;
       // التعليق للنصوص المرئية فقط؛ الصوت لا يقبله.
-      if (found.media.caption) payload.caption = found.media.caption;
+      if (found.media.caption && meta.field !== "audio") payload.caption = found.media.caption;
 
-      await sock.sendMessage(from, payload, { quoted: msg });
+      // بلا اقتباس: واتساب يرفض الإرسال المقتبس من رسالة مشاهدتها مرة واحدة.
+      // هذا هو الفرق الذي أبقى الكشف التلقائي صامتاً بينما «فضح» يعمل، لأنه
+      // يقتبس رسالة الأمر النصية لا الرسالة المخفية.
+      await sock.sendMessage(from, payload);
       log.info(`[${botLabel}] عرض-مره-واحده: كشف ${found.type} من ${numOf(sender)} في ${from}`);
       return true;
     } catch (e) {
