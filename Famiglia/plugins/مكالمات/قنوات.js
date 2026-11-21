@@ -205,14 +205,17 @@ export default {
     const send = async (payload) => {
       if (typeof sock?.sendButtonMessage !== "function") return ctx.reply({ text: payload.text })
       try {
-        return await sock.sendButtonMessage(from, payload.text, payload.buttons || [], {
+        const extra = {
           title: T.title,
           footer: T.footer,
           quoted: msg?.message ? msg : null,
-          image: SOURCE_IMAGE,
-          selectLabel: payload.selectLabel || T.channel,
-          sections: payload.sections || []
-        })
+          image: SOURCE_IMAGE
+        }
+        if (payload.sections?.length) {
+          extra.selectLabel = payload.selectLabel || T.channel
+          extra.sections = payload.sections
+        }
+        return await sock.sendButtonMessage(from, payload.text, payload.buttons || [], extra)
       } catch {
         // الأزرار قد تفشل على بعض الحسابات — لا نترك المستخدم بلا رد
         return ctx.reply({ text: payload.text })
@@ -356,22 +359,36 @@ export default {
       if (!rec) return reply("❌ *هذا البثّ لم يعد جارياً.*")
 
       await react("📡")
+      const text = `📡 *${stripIcon(rec.source || "بثّ")}*${rec.quality ? ` · ${rec.quality}` : ""}\n\n${T.liveActions}`
+      const actions = [
+        { title: T.liveSend, id: `${usedPrefix}${idLiveLink(pickIdx)}` },
+        { title: T.liveStop, id: `${usedPrefix}${idLiveStop(pickIdx)}` },
+        { title: T.back, id: `${usedPrefix}${idLive()}` }
+      ]
+      if ((getFlow(from)?.mode || "ق") === "ز") {
+        return send({ text, buttons: actions.map((a) => ({ text: a.title, id: a.id })) })
+      }
       return send({
-        text: `📡 *${stripIcon(rec.source || "بثّ")}*${rec.quality ? ` · ${rec.quality}` : ""}\n\n${T.liveActions}`,
-        buttons: [
-          { text: T.liveSend, id: `${usedPrefix}${idLiveLink(pickIdx)}` },
-          { text: T.liveStop, id: `${usedPrefix}${idLiveStop(pickIdx)}` },
-          { text: T.back, id: `${usedPrefix}${idLive()}` }
-        ]
+        text,
+        selectLabel: T.liveActions,
+        sections: [{ title: T.liveActions, rows: actions }]
       })
     }
 
     // ═══ قائمة البثوث الجارية ═══
     if (name === idLive()) {
       const items = liveFor().slice(0, MAX_LIVE)
+      const mode = getFlow(from)?.mode || "ق"
       await react("📡")
       if (!items.length) {
-        return send({ text: T.liveNone, buttons: [{ text: T.back, id: `${usedPrefix}قنوات` }] })
+        if (mode === "ز") {
+          return send({ text: T.liveNone, buttons: [{ text: T.back, id: `${usedPrefix}${idBack()}` }] })
+        }
+        return send({
+          text: T.liveNone,
+          selectLabel: T.liveActions,
+          sections: [{ title: T.liveActions, rows: [{ title: T.back, description: "العودة للخطوة السابقة", id: `${usedPrefix}${idBack()}` }] }]
+        })
       }
 
       const rows = items.map((it, i) => ({
@@ -380,11 +397,19 @@ export default {
         id: `${usedPrefix}${idLivePick(i)}`
       }))
 
+      const text = `${T.liveTitle}\n> ${items.length} بثّ جارٍ`
+      if (mode === "ز") {
+        const buttons = rows.slice(0, 2).map((r) => ({ text: clip(r.title, 20), id: r.id }))
+        buttons.push({ text: T.back, id: `${usedPrefix}${idBack()}` })
+        return send({ text, buttons: buttons.slice(0, 3) })
+      }
       return send({
-        text: `${T.liveTitle}\n> ${items.length} بثّ جارٍ`,
+        text,
         selectLabel: T.livePick,
-        buttons: rows.slice(0, 2).map((r) => ({ text: clip(r.title, 20), id: r.id })),
-        sections: [{ title: T.livePick, rows }]
+        sections: [{
+          title: T.livePick,
+          rows: [...rows, { title: T.back, description: "العودة للخطوة السابقة", id: `${usedPrefix}${idBack()}` }]
+        }]
       })
     }
 
@@ -396,28 +421,25 @@ export default {
 
       await react("🔍")
       const chans = hits.map((n) => ({ name: n, url: null, quality: null }))
-      setFlow(from, {
+      const f = setFlow(from, {
         level: "ق",
-        mode: "ق",
+        mode: getFlow(from)?.mode || "ق",
         scope: "ص",
         page: 0,
         search: query,
         category: { title: `🔍 ${query}`, channels: chans }
       })
-      return send({
+      const rows = chans.map((ch, i) => ({
+        title: clip(ch.name, 60),
+        description: "اضغط لعرض الجودات",
+        id: `${usedPrefix}${idRow("ق", i)}`
+      }))
+      return page({
+        f, send, rows, cur: 0,
+        pages: Math.max(1, Math.ceil(chans.length / pageSize(f.mode))),
+        P: (id) => `${usedPrefix}${id}`,
         text: `🔍 نتائج «${query}»`,
-        selectLabel: T.channel,
-        buttons: chans.slice(0, 3).map((ch, i) => ({ text: clip(ch.name, 20), id: `${usedPrefix}${idRow("ق", i)}` })),
-        sections: [
-          {
-            title: T.channel,
-            rows: chans.map((ch, i) => ({
-              title: clip(ch.name, 60),
-              description: "اضغط لعرض الجودات",
-              id: `${usedPrefix}${idRow("ق", i)}`
-            }))
-          }
-        ]
+        selectLabel: T.channel
       })
     }
 
@@ -479,14 +501,23 @@ async function render({ f, send, reply, usedPrefix }) {
   }
 
   if (f.level === "مج") {
-    return send({
-      text: `${T.title}\n\n${T.group}\n> ${totalChannels()} قناة · ${COUNTRIES_TREE.length} دولة`,
-      buttons: [
-        { text: T.byCountry, id: P(idGroup("د")) },
-        { text: T.byCategory, id: P(idGroup("ص")) },
-        { text: T.btnLive, id: P(idLive()) }
-      ]
-    })
+    const text = `${T.title}\n\n${T.group}\n> ${totalChannels()} قناة · ${COUNTRIES_TREE.length} دولة`
+    if (f.mode === "ز") {
+      return send({
+        text,
+        buttons: [
+          { text: T.byCountry, id: P(idGroup("د")) },
+          { text: T.byCategory, id: P(idGroup("ص")) },
+          { text: T.btnLive, id: P(idLive()) }
+        ]
+      })
+    }
+    const rows = [
+      { title: T.byCountry, description: "تصفّح القنوات حسب الدولة", id: P(idGroup("د")) },
+      { title: T.byCategory, description: "تصفّح القنوات حسب التصنيف", id: P(idGroup("ص")) },
+      { title: T.btnLive, description: "البثوث الجارية الآن", id: P(idLive()) }
+    ]
+    return page({ f, send, rows, cur: 0, pages: 1, P, text, selectLabel: T.group })
   }
 
   if (f.level === "د") {
