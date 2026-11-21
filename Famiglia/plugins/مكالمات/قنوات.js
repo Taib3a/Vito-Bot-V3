@@ -140,17 +140,18 @@ function channelsOfCategory(title) {
   return out
 }
 
-// تصنيفات العالم الفريدة مرتّبة بحسب عدد القنوات
+// تصنيفات العالم الفريدة مرتّبة بحسب عدد القنوات. `count` رقم للعرض،
+// و`channels` مصفوفة فارغة كي يعمل الرسم الموحّد بلا معالجة خاصة.
 function globalCategories() {
   const acc = new Map()
   for (const c of COUNTRIES_TREE) {
     for (const k of c.categories) {
-      const e = acc.get(k.title) || { title: k.title, channels: 0 }
-      e.channels += k.channels.length
+      const e = acc.get(k.title) || { title: k.title, count: 0, channels: [] }
+      e.count += k.channels.length
       acc.set(k.title, e)
     }
   }
-  return [...acc.values()].sort((a, b) => b.channels - a.channels)
+  return [...acc.values()].sort((a, b) => b.count - a.count)
 }
 
 const totalChannels = () =>
@@ -505,7 +506,7 @@ async function render({ f, send, reply, usedPrefix }) {
 
     const rows = slice.map((c, i) => ({
       title: clip(stripIcon(c.title), 60),
-      description: `${c.channels.length} قناة`,
+      description: `${c.count ?? c.channels?.length ?? 0} قناة`,
       id: P(idRow("ص", i))
     }))
 
@@ -553,12 +554,15 @@ async function page({ f, send, rows, cur, pages, text, selectLabel, P }) {
   const buttons = []
   if (canPrev) buttons.push({ text: "⬅️ السابق", id: P(idPrev(f.level)) })
   if (canNext) buttons.push({ text: "التالي ➡️", id: P(idNext(f.level)) })
-  buttons.push({ text: T.back, id: P(idBack()) })
+
+  // الرجوع صفٌّ داخل القائمة نفسها، فلا يحتاج المستخدم زراً خارجها.
+  // القائمة تتحمّل عشرة صفوف: تسعة عناصر (حجم الصفحة) + الرجوع.
+  const listRows = [...rows, { title: T.back, description: "العودة للخطوة السابقة", id: P(idBack()) }]
 
   return send({
     text: `${text}\n> صفحة ${cur + 1}/${pages}`,
     selectLabel,
-    buttons: buttons.slice(0, 3),
-    sections: [{ title: selectLabel, rows }]
+    buttons: buttons.slice(0, 2),
+    sections: [{ title: selectLabel, rows: listRows }]
   })
 }
