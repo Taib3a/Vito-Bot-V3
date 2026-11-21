@@ -18,8 +18,8 @@ const FLOW_TTL = 10 * 60_000
 
 const T = {
   title: "📺 القنوات",
-  mode: "🎛️ اختر طريقة العرض:",
-  btnList: "📋 قائمة منسدلة",
+  mode: "اختر طريقة عرض القنوات:",
+  btnList: "📋 أزرار منسدلة",
   btnButtons: "🎯 أزرار قابلة للضغط",
   group: "🗂️ اختر التجميع:",
   byCountry: "🌍 حسب الدولة",
@@ -152,6 +152,13 @@ function globalCategories() {
 const totalChannels = () =>
   COUNTRIES_TREE.reduce((n, c) => n + c.categories.reduce((m, k) => m + k.channels.length, 0), 0)
 
+// عناصر المستوى النشِط — لحساب عدد الصفحات عند التنقّل
+function levelItems(f) {
+  if (f.level === "د") return COUNTRIES_TREE
+  if (f.level === "ص") return f.scope === "ص" ? globalCategories() : (f.country?.categories || [])
+  return f.category?.channels || []
+}
+
 export default {
   name: [
     "قنوات",
@@ -248,9 +255,14 @@ export default {
       const f = getFlow(from)
       if (!f) return reply(T.stale)
 
-      // سهم التنقّل: نفس المستوى بصفحة مجاورة
+      // سهم التنقّل: نفس المستوى بصفحة مجاورة. الالتفاف يمنع أن يعلق
+      // المستخدم في آخر صفحة بلا زر رجوع (واتساب يسمح بثلاثة أزرار فقط).
       if (hit.arg === PREV || hit.arg === NEXT) {
-        return draw(setFlow(from, { ...f, page: (f.page || 0) + (hit.arg === NEXT ? 1 : -1) }))
+        const total = levelItems(f).length
+        const pages = Math.max(1, Math.ceil(total / SLOTS))
+        const raw = (f.page || 0) + (hit.arg === NEXT ? 1 : -1)
+        const page = raw < 0 ? pages - 1 : raw >= pages ? 0 : raw
+        return draw(setFlow(from, { ...f, page }))
       }
 
       const i = +hit.arg
@@ -416,7 +428,16 @@ function showQuality({ send, usedPrefix, channel, qPage, mode }) {
     id: `${usedPrefix}${idQuality(r)}`
   }))
 
-  // الأزرار: ثلاثة في الصفحة + سهم تنقّل واحد إن لزم
+  // القائمة المنسدلة تحمل الستة كاملة، فلا حاجة لصفحات
+  if (mode !== "ز") {
+    return send({
+      text: head,
+      selectLabel: T.quality,
+      sections: [{ title: T.quality, rows }]
+    })
+  }
+
+  // الأزرار: ثلاثة فقط، والباقي في صفحة ثانية
   const start = cur * QPAGE
   const buttons = QUALITY_LABELS.slice(start, start + QPAGE).map((label, k) => ({
     text: label,
@@ -426,10 +447,8 @@ function showQuality({ send, usedPrefix, channel, qPage, mode }) {
   else if (cur > 0) buttons.push({ text: "⬅️ السابق", id: `${usedPrefix}${idQPrev()}` })
 
   return send({
-    text: `${head}${pages > 1 ? `\n> صفحة ${cur + 1}/${pages}` : ""}`,
-    selectLabel: T.quality,
-    buttons: buttons.slice(0, 3),
-    sections: mode === "ز" ? [] : [{ title: T.quality, rows }]
+    text: `${head}\n> صفحة ${cur + 1}/${pages}`,
+    buttons: buttons.slice(0, 3)
   })
 }
 
@@ -439,21 +458,21 @@ async function render({ f, send, reply, usedPrefix }) {
 
   if (f.level === "و") {
     return send({
-      text: `${T.title}\n\n${T.mode}\n> ${totalChannels()} قناة · ${COUNTRIES_TREE.length} دولة`,
+      text: `${T.title}\n\n${T.mode}`,
       buttons: [
-        { text: T.btnList, id: P(idMode("ق")) },
         { text: T.btnButtons, id: P(idMode("ز")) },
-        { text: T.btnLive, id: P(idLive()) }
+        { text: T.btnList, id: P(idMode("ق")) }
       ]
     })
   }
 
   if (f.level === "مج") {
     return send({
-      text: `${T.title}\n\n${T.group}`,
+      text: `${T.title}\n\n${T.group}\n> ${totalChannels()} قناة · ${COUNTRIES_TREE.length} دولة`,
       buttons: [
         { text: T.byCountry, id: P(idGroup("د")) },
-        { text: T.byCategory, id: P(idGroup("ص")) }
+        { text: T.byCategory, id: P(idGroup("ص")) },
+        { text: T.btnLive, id: P(idLive()) }
       ]
     })
   }
@@ -515,10 +534,14 @@ async function page({ f, send, rows, cur, pages, text, selectLabel, P }) {
   const canNext = cur < pages - 1
 
   if (f.mode === "ز") {
+    // واتساب يسمح بثلاثة أزرار: عنصران + «المزيد». الزر يلتفّ إلى البداية
+    // بعد آخر صفحة، فتبقى الدورة مكتملة بلا أن يعلق المستخدم.
     const buttons = rows.slice(0, SLOTS_BTN).map((r) => ({ text: clip(r.title, 20), id: r.id }))
-    if (canNext) buttons.push({ text: "المزيد ➡️", id: P(idNext(f.level)) })
-    else if (canPrev) buttons.push({ text: "⬅️ السابق", id: P(idPrev(f.level)) })
-    else buttons.push({ text: T.back, id: P(idBack()) })
+    buttons.push(
+      pages > 1
+        ? { text: "المزيد ➡️", id: P(idNext(f.level)) }
+        : { text: T.back, id: P(idBack()) }
+    )
 
     return send({ text: `${text}\n> صفحة ${cur + 1}/${pages}`, buttons: buttons.slice(0, 3) })
   }
