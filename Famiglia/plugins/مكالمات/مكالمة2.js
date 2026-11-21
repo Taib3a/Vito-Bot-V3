@@ -205,20 +205,17 @@ export default {
     const record = getLive(liveId)
     if (record) record.stop = () => { state.stopped = true }
 
-    const link = record?.link || null
     const readyText =
       `✅ *البث جاهز.*\n` +
       `> القناة: *${resolved.channel || target}*\n` +
       `> الجودة: *${resolution || "تلقائية"}*\n` +
-      (link ? `> الرابط: ${link}\n` : "") +
-      `> تجده في: *📡 البث المباشر الآن* ← *البثوث الجارية الآن*`
-    log.info(`[بث] جاهز live=${liveId}${link ? ` link=${link}` : ""}`, "مكالمة2")
+      `> عد إلى: *📡 البث المباشر الآن* ← *البثوث الجارية الآن*`
+    log.info(`[بث] جاهز live=${liveId}`, "مكالمة2")
 
-    if (typeof sock?.sendButtonMessage === "function") {
+    // نعدّل رسالة «جارٍ تجهيز البث...» نفسها بدل إرسال رسالة جديدة بزر.
+    if (sent?.key) {
       await sock
-        .sendButtonMessage(from, readyText, [{ text: "📡 البث المباشر الآن", id: ".قنوات_مباشر" }], {
-          footer: "𝙱𝙾𝚃 𝚅𝙸𝚃𝙾 𝚅𝟹"
-        })
+        .sendMessage(from, { text: readyText, edit: sent.key })
         .catch(() => reply({ text: readyText }))
     } else {
       await reply({ text: readyText })
