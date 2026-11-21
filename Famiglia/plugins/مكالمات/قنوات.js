@@ -10,8 +10,9 @@ const QUALITY_LABELS = ["240p", "360p", "480p", "720p", "1080p", "الأصلية
 
 // معرّف الزر يعود للبوت كنص أمر، فلا بد أن يكون اسماً مسجّلاً سلفاً.
 // لذلك لا نُسجّل اسماً لكل قناة (6824 قناة = عشرات آلاف الأسماء)، بل
-// «خانات» مرقّمة ثابتة (0..8) ودور كل خانة محفوظ في حالة المحادثة.
-const SLOTS = 9
+// «خانات» مرقّمة ثابتة (0..6) ودور كل خانة محفوظ في حالة المحادثة.
+// القائمة المنسدلة تتحمّل عشرة صفوف: سبعة عناصر + السابق/التالي + الرجوع.
+const SLOTS = 7
 const SLOTS_BTN = 2
 const MAX_LIVE = 20
 const FLOW_TTL = 10 * 60_000
@@ -38,7 +39,7 @@ const T = {
   back: "⬅️ رجوع",
   stale: "❌ انتهت صلاحية القائمة — أرسل *.قنوات* من جديد.",
   empty: "❌ لا يوجد المزيد.",
-  footer: "المصدر: iptv-org"
+  footer: "𝙱𝙾𝚃 𝚅𝙸𝚃𝙾 𝚅𝟹"
 }
 
 // حالة التدفّق لكل محادثة: مستوى واحد نشِط وصفحته واختياراته.
@@ -377,8 +378,8 @@ export default {
 
     // ═══ قائمة البثوث الجارية ═══
     if (name === idLive()) {
-      const items = liveFor().slice(0, MAX_LIVE)
       const mode = getFlow(from)?.mode || "ق"
+      const items = liveFor().slice(0, mode === "ز" ? MAX_LIVE : SLOTS)
       await react("📡")
       if (!items.length) {
         if (mode === "ز") {
@@ -589,18 +590,15 @@ async function page({ f, send, rows, cur, pages, text, selectLabel, P }) {
     return send({ text: `${text}\n> صفحة ${cur + 1}/${pages}`, buttons: buttons.slice(0, 3) })
   }
 
-  const buttons = []
-  if (canPrev) buttons.push({ text: "⬅️ السابق", id: P(idPrev(f.level)) })
-  if (canNext) buttons.push({ text: "التالي ➡️", id: P(idNext(f.level)) })
-
-  // الرجوع صفٌّ داخل القائمة نفسها، فلا يحتاج المستخدم زراً خارجها.
-  // القائمة تتحمّل عشرة صفوف: تسعة عناصر (حجم الصفحة) + الرجوع.
-  const listRows = [...rows, { title: T.back, description: "العودة للخطوة السابقة", id: P(idBack()) }]
+  // في الوضع المنسدل يبقى التنقّل والرجوع صفوفاً داخل القائمة، لا أزراراً خارجها.
+  const listRows = [...rows]
+  if (canPrev) listRows.push({ title: "⬅️ السابق", description: `الصفحة ${cur}/${pages}`, id: P(idPrev(f.level)) })
+  if (canNext) listRows.push({ title: "التالي ➡️", description: `الصفحة ${cur + 2}/${pages}`, id: P(idNext(f.level)) })
+  listRows.push({ title: T.back, description: "العودة للخطوة السابقة", id: P(idBack()) })
 
   return send({
     text: `${text}\n> صفحة ${cur + 1}/${pages}`,
     selectLabel,
-    buttons: buttons.slice(0, 2),
     sections: [{ title: selectLabel, rows: listRows }]
   })
 }
