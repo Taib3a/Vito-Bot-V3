@@ -2,6 +2,7 @@ import { getVoip, addCall, removeCall, wireCallEvents } from "../../اضافات
 import { missingRequirements, mediaRequirementMessage } from "../../اضافات/محركات.js"
 import { resolveStreamUrl } from "../../Corleone/بث/بث.js"
 import { addLive, removeLive, updateLive, getLive } from "../../Corleone/بث/مباشر.js"
+import { log } from "../../Corleone/logger.js"
 
 // يقبل "240" و"240p" — المستخدم يكتب الجودة بلا حرف p عادةً
 const RESOLUTIONS = /^(240|360|480|720|1080)p?$/i
@@ -53,21 +54,36 @@ export default {
     await react("📡")
     const sent = await reply({ text: "📡 *جارٍ تجهيز البث...*" })
 
+    // نسجّل البث فوراً بحالة "تجهيز" ليظهر في «البث المباشر الآن» حتى قبل
+    // اكتمال فتح الغرفة، ثم نحدّث حالته بعد كل خطوة.
+    const liveId = addLive({
+      chat: from,
+      source: target,
+      quality: resolution,
+      call: null,
+      status: "preparing"
+    })
+
     let resolved
     try {
       resolved = await resolveStreamUrl(target)
+      updateLive(liveId, { source: resolved.channel || target, status: "opening" })
+      log.info(`[بث] الرابط: ${resolved.url} (${resolved.via})`, "مكالمة2")
     } catch (e) {
+      removeLive(liveId)
+      log.error(`[بث] فشل تجهيز الرابط: ${e?.message || e}`, "مكالمة2")
       await react("❌")
       return reply({ text: `❌ ${e?.message || e}` })
     }
 
     const missing = await missingRequirements({ media: true })
     if (missing.length) {
+      removeLive(liveId)
+      log.error(`[بث] متطلبات ناقصة: ${missing.join(", ")}`, "مكالمة2")
       return reply({ text: mediaRequirementMessage(missing) })
     }
 
     const voip = getVoip(sock)
-    const liveId = addLive({ chat: from, source: resolved.channel || target, quality: resolution, call: null })
     const state = { stopped: false, restarting: false }
 
     // ينشئ غرفة ويربطها بالسجل. يُستدعى أول مرة وعند كل إعادة تشغيل.
@@ -81,6 +97,7 @@ export default {
       })
       addCall(from, call)
       updateLive(liveId, { call })
+      log.info(`[بث] غرفة أُنشئت: ${call.callId || "?"}`, "مكالمة2")
 
       // requireApproval=false يطفئ الغرفة بعد الاتصال فقط؛ ومن يضغط الرابط
       // قبل ذلك قد يعلق منتظراً — فنُدخله فوراً عند أي تحديث لغرفة الانتظار.
@@ -131,7 +148,12 @@ export default {
       // الرابط لا يُرسل تلقائياً: كان يُرسل عند كل إعادة تشغيل فتتحوّل
       // المحادثة إلى سيل روابط. صار يُحفظ في السجل ويُطلب من زر البث.
       const link = await waitForLink(call)
-      if (link) updateLive(liveId, { link })
+      if (link) {
+        updateLive(liveId, { link })
+        log.info(`[بث] رابط الغرفة جاهز: ${link}`, "مكالمة2")
+      } else {
+        log.warn("[بث] لم يظهر رابط الغرفة بعد 10 ثوانٍ", "مكالمة2")
+      }
 
       // كل غرفة تُربط هنا، وإلا توقّفت إعادة التشغيل بعد الدورة الأولى
       call.once("ended", () => {
@@ -151,11 +173,14 @@ export default {
         if (state.stopped) break
         try {
           resolved = await resolveStreamUrl(target)
+          updateLive(liveId, { status: "opening" })
           await open()
+          updateLive(liveId, { status: "live" })
+          log.info(`[بث] أُعيد تشغيل الغرفة live=${liveId}`, "مكالمة2")
           state.restarting = false
           return
-        } catch {
-          // نُعيد المحاولة بفاصل أطول
+        } catch (e) {
+          log.warn(`[بث] فشل إعادة التشغيل (${fails + 1}/${MAX_RESTART_FAILS}): ${e?.message || e}`, "مكالمة2")
         }
       }
       state.restarting = false
@@ -170,12 +195,33 @@ export default {
       await open()
     } catch (e) {
       removeLive(liveId)
+      log.error(`[بث] فشل فتح الغرفة: ${e?.message || e}`, "مكالمة2", e?.stack)
       await react("❌")
       return reply({ text: `❌ فشل بث القناة: ${e?.message || e}` })
     }
 
     // .مكالمة-اغلاق ينادي stop() قبل الإنهاء، فلا يُعاد بناء الغرفة
+    updateLive(liveId, { status: "live" })
     const record = getLive(liveId)
     if (record) record.stop = () => { state.stopped = true }
+
+    const link = record?.link || null
+    const readyText =
+      `✅ *البث جاهز.*\n` +
+      `> القناة: *${resolved.channel || target}*\n` +
+      `> الجودة: *${resolution || "تلقائية"}*\n` +
+      (link ? `> الرابط: ${link}\n` : "") +
+      `> تجده في: *📡 البث المباشر الآن* ← *البثوث الجارية الآن*`
+    log.info(`[بث] جاهز live=${liveId}${link ? ` link=${link}` : ""}`, "مكالمة2")
+
+    if (typeof sock?.sendButtonMessage === "function") {
+      await sock
+        .sendButtonMessage(from, readyText, [{ text: "📡 البث المباشر الآن", id: ".قنوات_مباشر" }], {
+          footer: "𝙱𝙾𝚃 𝚅𝙸𝚃𝙾 𝚅𝟹"
+        })
+        .catch(() => reply({ text: readyText }))
+    } else {
+      await reply({ text: readyText })
+    }
   }
 }

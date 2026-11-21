@@ -392,11 +392,19 @@ export default {
         })
       }
 
-      const rows = items.map((it, i) => ({
-        title: clip(`${stripIcon(it.source || "بثّ")}${it.quality ? ` · ${it.quality}` : ""}`, 60),
-        description: "اختر لإرسال الرابط أو إيقافه",
-        id: `${usedPrefix}${idLivePick(i)}`
-      }))
+      const rows = items.map((it, i) => {
+        const state =
+          it.status === "preparing"
+            ? "⏳ جارٍ التجهيز..."
+            : it.status === "opening"
+              ? "⏳ جارٍ فتح الغرفة..."
+              : "🟢 يعمل الآن"
+        return {
+          title: clip(`${stripIcon(it.source || "بثّ")}${it.quality ? ` · ${it.quality}` : ""}`, 60),
+          description: `${state} — اضغط للرابط أو الإيقاف`,
+          id: `${usedPrefix}${idLivePick(i)}`
+        }
+      })
 
       const text = `${T.liveTitle}\n> ${items.length} بثّ جارٍ`
       if (mode === "ز") {
