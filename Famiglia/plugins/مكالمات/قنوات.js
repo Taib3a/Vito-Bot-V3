@@ -223,7 +223,7 @@ export default {
       }
     }
 
-    const draw = (f) => render({ f, send, reply, usedPrefix })
+    const draw = (f) => render({ f, send, reply, usedPrefix, hasLive: liveFor().length > 0 })
 
     // ═══ المستوى 4: الجودة ═══
     const q = parseQuality(name)
@@ -382,14 +382,7 @@ export default {
       const items = liveFor().slice(0, mode === "ز" ? MAX_LIVE : SLOTS)
       await react("📡")
       if (!items.length) {
-        if (mode === "ز") {
-          return send({ text: T.liveNone, buttons: [{ text: T.back, id: `${usedPrefix}${idBack()}` }] })
-        }
-        return send({
-          text: T.liveNone,
-          selectLabel: T.liveActions,
-          sections: [{ title: T.liveActions, rows: [{ title: T.back, description: "العودة للخطوة السابقة", id: `${usedPrefix}${idBack()}` }] }]
-        })
+        return reply(`${T.liveNone}\n> أرسل *.قنوات* للعودة.`)
       }
 
       const rows = items.map((it, i) => {
@@ -496,7 +489,7 @@ function showQuality({ send, usedPrefix, channel, qPage, mode }) {
 }
 
 // يرسم المستوى النشِط من حالة التدفّق
-async function render({ f, send, reply, usedPrefix }) {
+async function render({ f, send, reply, usedPrefix, hasLive }) {
   const P = (id) => `${usedPrefix}${id}`
 
   if (f.level === "و") {
@@ -511,22 +504,20 @@ async function render({ f, send, reply, usedPrefix }) {
 
   if (f.level === "مج") {
     const text = `${T.title}\n\n${T.group}\n> ${totalChannels()} قناة · ${COUNTRIES_TREE.length} دولة`
+    const options = [
+      { title: T.byCountry, description: "تصفّح القنوات حسب الدولة", id: P(idGroup("د")) },
+      { title: T.byCategory, description: "تصفّح القنوات حسب التصنيف", id: P(idGroup("ص")) }
+    ]
+    // لا نعرض خيار البث إن لم يكن هناك بثّ جارٍ في هذه المحادثة.
+    if (hasLive) options.push({ title: T.btnLive, description: "البثوث الجارية الآن", id: P(idLive()) })
+
     if (f.mode === "ز") {
       return send({
         text,
-        buttons: [
-          { text: T.byCountry, id: P(idGroup("د")) },
-          { text: T.byCategory, id: P(idGroup("ص")) },
-          { text: T.btnLive, id: P(idLive()) }
-        ]
+        buttons: options.map((o) => ({ text: o.title, id: o.id }))
       })
     }
-    const rows = [
-      { title: T.byCountry, description: "تصفّح القنوات حسب الدولة", id: P(idGroup("د")) },
-      { title: T.byCategory, description: "تصفّح القنوات حسب التصنيف", id: P(idGroup("ص")) },
-      { title: T.btnLive, description: "البثوث الجارية الآن", id: P(idLive()) }
-    ]
-    return page({ f, send, rows, cur: 0, pages: 1, P, text, selectLabel: T.group })
+    return page({ f, send, rows: options, cur: 0, pages: 1, P, text, selectLabel: T.group })
   }
 
   if (f.level === "د") {
