@@ -383,41 +383,31 @@ export default {
           );
         };
 
-        const sendCommandPage = async (catName, page = 0) => {
+        const sendCategoryText = async (catName) => {
           const cat = findCat(catName);
           if (!cat) {
-            return await sendPanel(lang === "ar" ? "❌ القسم غير موجود." : "❌ Categoría no encontrada.");
+            return await sock.sendMessage(
+              from,
+              { text: lang === "ar" ? "❌ القسم غير موجود." : "❌ Categoría no encontrada." },
+              { quoted: msg }
+            );
           }
           const cmds = [...categories[cat]];
-          const total = Math.ceil(cmds.length / PAGE_SIZE);
-          const safePage = Math.max(0, Math.min(page, Math.max(total - 1, 0)));
-          const pageCmds = cmds.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
-          const btns = pageCmds.map((c) => ({
-            text: `${usedPrefix}${c}`,
-            id: `${usedPrefix}${c}`,
-          }));
-          if (safePage + 1 < total) {
-            btns.push({
-              text: lang === "ar" ? "➕ المزيد" : "➕ Más",
-              id: `${cmd} ازرار-قسم_${safePage + 1}_${encodeURIComponent(cat)}`,
-            });
+          let text = lang === "ar" ? `القسم: ${cat}\n\n` : `Categoría: ${cat}\n\n`;
+          for (const c of cmds) text += `• ${usedPrefix}${c}\n`;
+          text += lang === "ar" ? `\nعدد الأوامر: ${cmds.length}` : `\nComandos: ${cmds.length}`;
+
+          if (image && text.length <= 1024) {
+            try {
+              const payload =
+                typeof image === "string"
+                  ? { image: { url: image }, caption: text }
+                  : { image, caption: text };
+              await sock.sendMessage(from, payload, { quoted: msg });
+              return;
+            } catch {}
           }
-          if (safePage > 0) {
-            btns.push({
-              text: lang === "ar" ? "↩️ السابق" : "↩️ Anterior",
-              id: `${cmd} ازرار-قسم_${safePage - 1}_${encodeURIComponent(cat)}`,
-            });
-          }
-          btns.push({
-            text: lang === "ar" ? "↩️ الأقسام" : "↩️ Categorías",
-            id: `${cmd} ازرار`,
-          });
-          return await sendPanel(
-            lang === "ar"
-              ? `أوامر قسم ${cat} (${safePage + 1}/${total}):`
-              : `Comandos de ${cat} (${safePage + 1}/${total}):`,
-            btns
-          );
+          await sock.sendMessage(from, { text }, { quoted: msg });
         };
 
         if (mode === "ازرار" || mode === "أزرار" || mode === "buttons" || mode === "button") {
@@ -429,13 +419,12 @@ export default {
         }
         if (mode.startsWith("ازرار-قسم_")) {
           const rest = modeRaw.slice("ازرار-قسم_".length);
-          const [pageStr, ...catParts] = rest.split("_");
-          const page = parseInt(pageStr, 10) || 0;
+          const [, ...catParts] = rest.split("_");
           const cat = decodeURIComponent(catParts.join("_"));
-          return await sendCommandPage(cat, page);
+          return await sendCategoryText(cat);
         }
         if (catArg) {
-          return await sendCommandPage(catArg, 0);
+          return await sendCategoryText(catArg);
         }
         return await sendCategoryPage(0);
       }
