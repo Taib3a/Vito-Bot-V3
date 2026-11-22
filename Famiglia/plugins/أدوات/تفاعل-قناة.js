@@ -47,9 +47,6 @@ const EXTERNAL_PROVIDERS = [
   { id: "omegatech", name: "Omegatech", call: callOmegatech },
 ];
 
-const PROVIDER_COOLDOWN_MS = 5 * 60 * 1000;
-const providerCooldown = new Map();
-
 function decode(value) {
   try {
     return decodeURIComponent(value || "");
@@ -408,19 +405,10 @@ async function callExternalProviders(link, emoji, count) {
   const errors = [];
 
   for (const provider of EXTERNAL_PROVIDERS) {
-    const cooldownUntil = providerCooldown.get(provider.id) || 0;
-    if (cooldownUntil > Date.now()) {
-      const minutes = Math.ceil((cooldownUntil - Date.now()) / 60000);
-      errors.push(`${provider.name}: معطّل مؤقتاً (${minutes} د)`);
-      continue;
-    }
-
     try {
       const data = await provider.call(link, emoji, count);
-      providerCooldown.delete(provider.id);
       return { provider, data };
     } catch (error) {
-      providerCooldown.set(provider.id, Date.now() + PROVIDER_COOLDOWN_MS);
       errors.push(`${provider.name}: ${error?.message || error}`);
     }
   }
@@ -509,37 +497,17 @@ async function runExternal(ctx, link, count, emoji, prefix) {
     });
   } catch (error) {
     await react("⚠️");
-
-    try {
-      const local = await localReaction(ctx.sock, link, emoji, Number(count));
-      const available = local.available ?? local.total;
-      await react("✅");
-      return ctx.reply({
-        text:
-          `⚠️ *تعذّرت الخدمات الخارجية*\n\n` +
-          `${String(error?.message || error).slice(0, 700)}\n\n` +
-          `🖥️ *تم التفاعل محلياً*\n` +
-          `✅ *الناجح:* ${local.ok}/${count}\n` +
-          (available < Number(count) ? `🤖 *البوتات المتاحة:* ${available}\n` : "") +
-          `😊 *التفاعل:* ${emoji}`,
-      });
-    } catch (localError) {
-      console.error("[تفاعل-قناة] local fallback:", localError?.message || localError);
-      await react("❌");
-      return sendPanel(
-        ctx,
-        `❌ *تعذّر الخارجي والمحلي*\n\n` +
-          `${String(error?.message || error).slice(0, 600)}\n\n` +
-          `🖥️ ${localError?.message || "فشل المحلي"}`,
-        [
-          { text: "🔁 إعادة المحاولة", id: buttonId(prefix, "send", encode(link), count, emoji, "external") },
-          { text: "🖥️ إعادة المحلية", id: buttonId(prefix, "local", encode(link), count, emoji) },
-        ],
-        [],
-        "",
-        { title: "تعذّر التفاعل", footer: "أعد المحاولة" }
-      );
-    }
+    return sendPanel(
+      ctx,
+      `❌ *تعذّر الاتصال بالخدمات الخارجية*\n\n${String(error?.message || error).slice(0, 700)}`,
+      [
+        { text: "🔁 إعادة المحاولة", id: buttonId(prefix, "send", encode(link), count, emoji, "external") },
+        { text: "🖥️ استخدام المحلية", id: buttonId(prefix, "local", encode(link), count, emoji) },
+      ],
+      [],
+      "",
+      { title: "الخدمات الخارجية", footer: "اختر بديلاً" }
+    );
   }
 }
 
