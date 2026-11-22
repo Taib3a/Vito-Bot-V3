@@ -13,6 +13,12 @@ const OWSREACT_API =
   process.env.OWSREACT_API_URL ||
   "https://owens.my.id/reactch/api.php";
 const OWSREACT_COOKIE = process.env.OWSREACT_COOKIE || "";
+const ASITHA_API =
+  process.env.ASITHA_API_URL || "https://back.asitha.top/api";
+const ASITHA_CAPTCHA_API =
+  process.env.ASITHA_CAPTCHA_URL ||
+  "https://omegatech-api.dixonomega.tech/api/tools/recaptcha-v3";
+const ASITHA_JWT = process.env.ASITHA_JWT || "";
 const CHANNEL_LINK_RE = /whatsapp\.com\/channel\/([0-9A-Za-z_-]+)\/(\d+)/i;
 const COUNTS = ["50", "100"];
 const REACTIONS = [
@@ -42,6 +48,9 @@ const SERVICE_NAMES = {
 };
 
 const EXTERNAL_PROVIDERS = [
+  ...(ASITHA_JWT
+    ? [{ id: "asitha", name: "Asitha (GitHub)", call: callAsitha }]
+    : []),
   { id: "owsreact", name: "OwsReactCH", note: "5k+", call: callOwsReact },
   { id: "makluxnxx", name: "Makluxnxx", call: callMakluxnxx },
   { id: "omegatech", name: "Omegatech", call: callOmegatech },
@@ -399,6 +408,59 @@ async function callOmegatech(link, emoji, count) {
   }
 
   return data.data || data.result || data;
+}
+
+async function callAsitha(link, emoji) {
+  if (!ASITHA_JWT) {
+    throw new Error("ASITHA_JWT غير مضبوط");
+  }
+
+  const headers = {
+    Authorization: `Bearer ${ASITHA_JWT}`,
+    Accept: "application/json",
+    "Content-Type": "application/json",
+    Origin: "https://asitha.top",
+    Referer: "https://asitha.top/",
+    "User-Agent": "Mozilla/5.0",
+  };
+
+  const captcha = await axios.get(ASITHA_CAPTCHA_API, {
+    params: { url: ASITHA_API, use_enterprise: "false" },
+    headers,
+    timeout: 30000,
+  });
+
+  const recaptchaToken = captcha.data?.token;
+  if (!captcha.data?.success || !recaptchaToken) {
+    throw new Error(captcha.data?.message || "تعذّر الحصول على رمز reCAPTCHA");
+  }
+
+  const temp = await axios.post(
+    `${ASITHA_API}/user/get-temp-token`,
+    { recaptcha_token: recaptchaToken },
+    { headers, timeout: 30000 }
+  );
+
+  const apiKey = temp.data?.token;
+  if (!apiKey) {
+    throw new Error(temp.data?.message || "تعذّر الحصول على مفتاح مؤقت");
+  }
+
+  const { data } = await axios.post(
+    `${ASITHA_API}/channel/react-to-post`,
+    { post_link: link, reacts: [emoji] },
+    { params: { apiKey }, headers, timeout: 60000 }
+  );
+
+  if (!data?.success) {
+    throw new Error(data?.message || "فشل التفاعل");
+  }
+
+  return {
+    status: "queued",
+    message: data?.message || "تم استلام طلب التفاعل",
+    ...(data?.data || {}),
+  };
 }
 
 async function callExternalProviders(link, emoji, count) {
