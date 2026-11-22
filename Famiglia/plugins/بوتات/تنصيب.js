@@ -137,14 +137,15 @@ export default {
 
     try {
       const code = await requestSubbotCode(id, phone, sock, from, lang);
-      const codeText =
-        lang === "ar"
-          ? `🔑 *كود التنصيب:*\n\n*${code}*\n\n> أدخل الكود في واتساب خلال 60 ثانية.`
-          : `🔑 *Código de instalación:*\n\n*${code}*\n\n> Ingresa el código en WhatsApp dentro de 60 segundos.`;
+      const codeText = `🔑 *${code}*`;
       const codeButtons = [
         { text: lang === "ar" ? "📋 نسخ الكود" : "📋 Copiar código", copy: code },
       ];
-      const codeSent = await sendInteractive(codeText, codeButtons);
+      const codeSent = await sendInteractive(codeText, codeButtons, {
+        image: null,
+        title: "",
+        footer: "",
+      });
       if (!codeSent) await sock.sendMessage(from, { text: `${code}` }, { quoted: msg });
       await react("✅");
     } catch (e) {
