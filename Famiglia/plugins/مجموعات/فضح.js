@@ -108,6 +108,17 @@ export default {
       const cached = getCachedMessage(contextInfo?.stanzaId);
       const raw = cached?.message || quoted;
       const found = findMedia(raw);
+      console.log('[فضح] context', JSON.stringify({
+        stanzaId: contextInfo?.stanzaId || null,
+        cached: !!cached,
+        quotedKeys: Object.keys(quoted || {}),
+        rawKeys: Object.keys(raw || {}),
+        type: found?.type || null,
+        url: !!found?.media?.url,
+        directPath: !!found?.media?.directPath,
+        mediaKey: !!found?.media?.mediaKey,
+        viewOnce: !!found?.media?.viewOnce,
+      }));
       if (!found) {
         return await reply({ text: t.fail });
       }
@@ -142,8 +153,10 @@ export default {
       }
 
       await sock.sendMessage(from, payload, { quoted: msg });
+      console.log('[فضح] success', buffer.length);
       await react("✅");
     } catch (e) {
+      console.error('[فضح] error', e.message);
       await react("❌");
       const unavailable = /No valid media URL|directPath/i.test(e.message);
       await reply({ text: unavailable ? t.unavailable : t.error(e.message) });
