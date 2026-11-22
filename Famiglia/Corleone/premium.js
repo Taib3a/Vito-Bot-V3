@@ -30,12 +30,12 @@ export function isPremiumUser({ number, username, jid, includeUsernames = false 
 
   if (num) {
     const user = db.getUser(num);
-    if (isActive(user.premiumUntil)) return true;
+    if (user.premiumPermanent === true || isActive(user.premiumUntil)) return true;
   }
 
   if (includeUsernames && name) {
     return db.getAllUsers().some((user) => {
-      if (!isActive(user.premiumUntil)) return false;
+      if (user.premiumPermanent !== true && !isActive(user.premiumUntil)) return false;
       return (
         normalizeUsername(user.premiumUsername) === name ||
         normalizeUsername(user.premiumDisplayName) === name
@@ -46,24 +46,38 @@ export function isPremiumUser({ number, username, jid, includeUsernames = false 
   return false;
 }
 
-export function addPremium({ number, username = "", displayName = "", days, addedBy = "" }) {
+export function addPremium({
+  number,
+  username = "",
+  displayName = "",
+  days = null,
+  permanent = false,
+  addedBy = "",
+}) {
   const num = normalizeNumber(number);
   if (!num) throw new Error("رقم غير صالح");
 
-  const duration = Number(days);
-  if (!Number.isInteger(duration) || duration < 1) throw new Error("مدة غير صالحة");
+  const isPermanent = permanent === true || days === null || days === undefined;
+  const duration = isPermanent ? null : Number(days);
+
+  if (!isPermanent && (!Number.isInteger(duration) || duration < 1)) {
+    throw new Error("مدة غير صالحة");
+  }
 
   const user = db.getUser(num);
+  const alreadyPermanent = user.premiumPermanent === true;
+  const finalPermanent = alreadyPermanent || isPermanent;
   const currentUntil = Date.parse(user.premiumUntil || "") || 0;
   const base = Math.max(Date.now(), currentUntil);
-  const until = new Date(base + duration * DAY_MS).toISOString();
+  const until = finalPermanent ? null : new Date(base + duration * DAY_MS).toISOString();
 
   db.setUser(num, {
     premiumUntil: until,
+    premiumPermanent: finalPermanent,
     premiumUsername: username ? normalizeUsername(username) : user.premiumUsername || null,
     premiumDisplayName: displayName || user.premiumDisplayName || null,
     premiumAddedBy: addedBy || null,
-    premiumDays: duration,
+    premiumDays: finalPermanent ? null : duration,
   });
 
   return {
@@ -71,6 +85,7 @@ export function addPremium({ number, username = "", displayName = "", days, adde
     username: username ? normalizeUsername(username) : user.premiumUsername || "",
     displayName: displayName || user.premiumDisplayName || "",
     until,
+    permanent: finalPermanent,
     extended: currentUntil > Date.now(),
   };
 }
@@ -80,10 +95,11 @@ export function removePremium(number) {
   if (!num) throw new Error("رقم غير صالح");
 
   const user = db.getUser(num);
-  const wasActive = isActive(user.premiumUntil);
+  const wasActive = user.premiumPermanent === true || isActive(user.premiumUntil);
 
   db.setUser(num, {
     premiumUntil: null,
+    premiumPermanent: false,
     premiumUsername: null,
     premiumDisplayName: null,
     premiumAddedBy: null,
@@ -96,12 +112,17 @@ export function removePremium(number) {
 export function listPremium() {
   return db
     .getAllUsers()
-    .filter((user) => isActive(user.premiumUntil))
+    .filter((user) => user.premiumPermanent === true || isActive(user.premiumUntil))
     .map((user) => ({
       number: user.jid,
       username: user.premiumUsername || "",
       displayName: user.premiumDisplayName || "",
-      until: user.premiumUntil,
+      until: user.premiumPermanent === true ? null : user.premiumUntil,
+      permanent: user.premiumPermanent === true,
     }))
-    .sort((a, b) => Date.parse(a.until) - Date.parse(b.until));
+    .sort((a, b) => {
+      const aTime = a.until ? Date.parse(a.until) : Infinity;
+      const bTime = b.until ? Date.parse(b.until) : Infinity;
+      return aTime - bTime;
+    });
 }

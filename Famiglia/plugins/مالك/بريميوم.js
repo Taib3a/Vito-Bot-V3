@@ -24,16 +24,18 @@ function formatDate(iso) {
 function usage(prefix) {
   return (
     `⭐ *حجز البريميوم*\n\n` +
-    `• بالمنشن: ${prefix}بريميوم 30 @مستخدم\n` +
-    `• بالرد: ${prefix}بريميوم 30 (رد على رسالته)\n` +
-    `• بالرقم: ${prefix}بريميوم 30 201234567890\n\n` +
-    `المدة بالأيام من 1 إلى ${MAX_DAYS}.`
+    `• ${prefix}بريميوم 30 @مستخدم — لمدة 30 يوم\n` +
+    `• ${prefix}بريميوم @مستخدم — بدون حد (دائم)\n` +
+    `• ${prefix}بريميوم 30 (بالرد على رسالته)\n` +
+    `• ${prefix}بريميوم (بالرد) — بدون حد\n` +
+    `• ${prefix}بريميوم 30 201234567890\n\n` +
+    `المدة من 1 إلى ${MAX_DAYS}، أو اكتب الأمر بدون مدة للبريميوم الدائم.`
   );
 }
 
 export default {
-  name: ["بريميوم", "بريميو", "premium", "حجز-بريميوم"],
-  description: "حجز بريميوم لمستخدم بعدد أيام بالمنشن أو بالرد",
+  name: ["بريميوم", "بريمو", "بريميو", "premium", "حجز-بريميوم"],
+  description: "حجز بريميوم بعدد أيام أو بدون حد بالمنشن أو الرد أو الرقم",
   category: "المالك",
   ownerOnly: true,
 
@@ -47,13 +49,18 @@ export default {
     const targetNumberArg = numericArgs.find(
       (arg) => arg !== daysArg && digits(arg).length >= 8
     );
+    const shortNumeric = numericArgs.find((arg) => {
+      const length = digits(arg).length;
+      return length >= 1 && length <= 5 && arg !== targetNumberArg;
+    });
 
-    if (!daysArg) {
+    if (!daysArg && shortNumeric) {
       await react("⚠️");
       return reply({ text: usage(prefix) });
     }
 
-    const days = Number(daysArg);
+    const permanent = !daysArg;
+    const days = daysArg ? Number(daysArg) : null;
     const contextInfo =
       msg.message?.extendedTextMessage?.contextInfo ||
       msg.message?.imageMessage?.contextInfo ||
@@ -103,6 +110,7 @@ export default {
         username,
         displayName,
         days,
+        permanent,
         addedBy: senderNum || "",
       });
 
@@ -117,11 +125,18 @@ export default {
       if (result.username) lines.push(`🏷️ *اسم المستخدم:* @${result.username}`);
       else if (result.displayName) lines.push(`🏷️ *الاسم:* ${result.displayName}`);
 
-      lines.push(
-        `📅 *المدة:* ${days} يوم`,
-        `⏳ *ينتهي:* ${formatDate(result.until)}`,
-        result.extended ? "♻️ *تم تمديد المدة*" : "⭐ *الحالة:* بريميوم"
-      );
+      if (result.permanent) {
+        lines.push(
+          `📅 *المدة:* بدون حد (دائم)`,
+          result.extended ? "♻️ *تم تحويله إلى بريميوم دائم*" : "⭐ *الحالة:* بريميوم دائم"
+        );
+      } else {
+        lines.push(
+          `📅 *المدة:* ${days} يوم`,
+          `⏳ *ينتهي:* ${formatDate(result.until)}`,
+          result.extended ? "♻️ *تم تمديد المدة*" : "⭐ *الحالة:* بريميوم"
+        );
+      }
 
       return reply({ text: lines.join("\n"), mentions: [targetJid] });
     } catch (error) {
