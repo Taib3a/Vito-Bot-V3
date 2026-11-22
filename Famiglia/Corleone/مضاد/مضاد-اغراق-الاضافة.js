@@ -27,6 +27,18 @@ function ownerNumbers() {
     .map((n) => numOf(String(n)));
 }
 
+/** أرقام كل البوتات النشطة (الرئيسي والفرعي) — لا يُعاقب أي منها. */
+function botNumbers() {
+  const nums = new Set();
+  for (const b of global.activeBots?.values?.() || []) {
+    const n = numOf(b?.jid);
+    if (n) nums.add(n);
+  }
+  const main = String(global.mainBotNum || "");
+  if (main) nums.add(main);
+  return nums;
+}
+
 // واتساب لا يدعم المنشن باسم المستخدم: حقل `mentionedJid` في البروتوكول يقبل
 // JIDs فعلية فقط (PN أو LID). أي نص آخر يُرسَل كما هو ولا يُنتج منشناً.
 const isMentionableJid = (j) => /@(s\.whatsapp\.net|lid)$/.test(String(j || ""));
@@ -118,9 +130,9 @@ export default {
     const attackerNum = numOf(attacker);
     const selfNum = numOf(sock.user?.id || "");
 
-    // استثناء: مالك البوت أو البوت نفسه لا يُعاقبان.
-    if (attackerNum && (attackerNum === selfNum || ownerNumbers().includes(attackerNum))) {
-      log.info(`[${botLabel}] مضاد الإغراق: إضافة من ${attackerNum} (مالك/البوت) — تجاهُل`);
+    // استثناء: مالك البوت أو أي بوت نشط لا يُعاقب.
+    if (attackerNum && (attackerNum === selfNum || botNumbers().has(attackerNum) || ownerNumbers().includes(attackerNum))) {
+      log.info(`[${botLabel}] مضاد الإغراق: إضافة من ${attackerNum} (مالك/بوت) — تجاهُل`);
       return;
     }
 

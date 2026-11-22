@@ -168,7 +168,26 @@ const ADD_GUARD_MAX = 3;
 const ADD_GUARD_COOLDOWN_MS = 60_000;
 const addGuard = new Map();
 
-/** يلفّ groupParticipantsUpdate فيمنع رشقات الإضافة المتتالية. */
+const jidNum = (jid) => String(jid || "").split("@")[0].split(":")[0];
+
+/**
+ * الموافقة على طلب انضمام ليست رشقاً: نتحقق من قائمة الطلبات المعلّقة.
+ * الرشق الحقيقي (مثل إضافة ban) يضيف أرقاماً ليست ضمن الطلبات.
+ */
+async function isPendingJoinRequest(sock, groupJid, participants) {
+  if (!Array.isArray(participants) || !participants.length) return false;
+  if (typeof sock.groupRequestParticipantsList !== "function") return false;
+  try {
+    const pending = await sock.groupRequestParticipantsList(groupJid);
+    if (!Array.isArray(pending) || !pending.length) return false;
+    const pendingNums = new Set(pending.map((p) => jidNum(p?.jid || p?.id || p)).filter(Boolean));
+    return participants.every((p) => pendingNums.has(jidNum(p?.id || p?.jid || p)));
+  } catch {
+    return false;
+  }
+}
+
+/** يلفّ groupParticipantsUpdate فيمنع رشقات الإضافة المتتالية دون إغلاق المجموعة. */
 export function guardGroupAddFlood(sock) {
   if (sock.__addGuard || typeof sock.groupParticipantsUpdate !== "function") return sock;
   sock.__addGuard = true;
@@ -176,6 +195,9 @@ export function guardGroupAddFlood(sock) {
 
   sock.groupParticipantsUpdate = async (jid, participants, action) => {
     if (action !== "add" || !jid?.endsWith("@g.us")) return original(jid, participants, action);
+
+    // الموافقة على طلب انضمام معلّق مسموحة دائماً، ولا تُحسب رشقاً.
+    if (await isPendingJoinRequest(sock, jid, participants)) return original(jid, participants, action);
 
     const now = Date.now();
     const state = addGuard.get(jid) || { times: [], blockedUntil: 0 };
@@ -191,16 +213,12 @@ export function guardGroupAddFlood(sock) {
     addGuard.set(jid, state);
 
     if (state.times.length > ADD_GUARD_MAX) {
+      const attempts = state.times.length;
       state.blockedUntil = now + ADD_GUARD_COOLDOWN_MS;
       state.times = [];
       log.warn(
-        `حماية الإغراق: رُصدت ${state.times.length + ADD_GUARD_MAX} محاولات إضافة سريعة إلى ${jid} — حُجبت ${ADD_GUARD_COOLDOWN_MS / 1000}ث.`,
+        `حماية الإغراق: رُصدت ${attempts} محاولات إضافة سريعة إلى ${jid} — حُجبت ${ADD_GUARD_COOLDOWN_MS / 1000}ث دون إغلاق المجموعة.`,
       );
-      try {
-        await sock.groupSettingUpdate(jid, "announcement");
-      } catch (e) {
-        log.error(`حماية الإغراق: تعذّر إغلاق المجموعة (${e.message})`);
-      }
       return [];
     }
 

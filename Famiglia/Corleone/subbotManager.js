@@ -20,6 +20,8 @@ const SUBBOTS_DIR = "./sessions/subbots";
 if (!fs.existsSync(SUBBOTS_DIR)) fs.mkdirSync(SUBBOTS_DIR, { recursive: true });
 
 export const activeBots = new Map();
+// سجل عام تقرأه المضادات دون استيراد هذه الوحدة (يمنع دورة تحميل).
+global.activeBots = activeBots;
 const sockets = new Map();
 let mainSock = null;
 
