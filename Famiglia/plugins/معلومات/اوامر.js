@@ -268,7 +268,7 @@ export default {
 
 
         for (const cmd of cmds) {
-          textoMenu += `> ⏤͟͟͞͞⊱🌀 *${usedPrefix}${cmd}*\n`;
+          textoMenu += `• ${usedPrefix}${cmd}\n`;
         }
         textoMenu += `\n`;
       }
