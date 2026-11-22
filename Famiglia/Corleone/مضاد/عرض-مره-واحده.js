@@ -1,4 +1,4 @@
-import { downloadMediaMessage, extractMessageContent } from "@whiskeysockets/baileys";
+import { downloadContentFromMessage, downloadMediaMessage, extractMessageContent } from "@whiskeysockets/baileys";
 import { log } from "../logger.js";
 
 // رسائل «العرض مرة واحدة» تصل بلا نص، فلا يعتمد هذا المضاد على `body`.
@@ -43,6 +43,13 @@ function viewOnceContent(rawMessage) {
   return wrapped || content[type].viewOnce ? { type, media: content[type], message } : null;
 }
 
+async function getBuffer(media, type) {
+  const stream = await downloadContentFromMessage(media, type);
+  const chunks = [];
+  for await (const chunk of stream) chunks.push(chunk);
+  return Buffer.concat(chunks);
+}
+
 /** يكشف وسائط «العرض مرة واحدة» ويعيد إرسالها ظاهرة. */
 export default {
   name: "عرض-مره-واحده",
@@ -57,23 +64,33 @@ export default {
     const found = viewOnceContent(msg?.message);
     if (!found) return false;
 
-    log.info(`[${botLabel}] عرض-مره-واحده: اكتشاف ${found.type} من ${numOf(sender)} في ${from}`);
+    log.info(
+      `[${botLabel}] عرض-مره-واحده: اكتشاف ${found.type} من ${numOf(sender)} في ${from} ` +
+        `| url=${!!found.media?.url} directPath=${!!found.media?.directPath} mediaKey=${!!found.media?.mediaKey}`
+    );
 
     const meta = MEDIA[found.type];
 
     try {
-      // نفس مسار الأمر اليدوي «فضح»: غلاف بسيط بمفتاح، وlogger من console
-      // لأن مسار التنزيل ينادي debug وقد لا يملكه logger المشروع.
       const stub = {
         key: { id: msg.key?.id, remoteJid: from, participant: msg.key?.participant },
         message: found.message,
       };
-      const buffer = await downloadMediaMessage(
-        stub,
-        "buffer",
-        {},
-        { logger: console, reuploadRequest: sock?.updateMediaMessage }
-      );
+
+      // نفس مسار «فضح» اليدوي الذي يعمل: تنزيل الوسيط الداخلي مباشرة.
+      let buffer;
+      const mediaType = found.type === "ptvMessage" ? "video" : found.type.replace("Message", "");
+      try {
+        buffer = await getBuffer(found.media, mediaType);
+      } catch (contentError) {
+        buffer = await downloadMediaMessage(
+          stub,
+          "buffer",
+          {},
+          { logger: console, reuploadRequest: sock?.updateMediaMessage }
+        );
+      }
+
       if (!buffer?.length) {
         log.warn(`[${botLabel}] عرض-مره-واحده: وسيط فارغ من ${numOf(sender)} في ${from}`);
         return false;

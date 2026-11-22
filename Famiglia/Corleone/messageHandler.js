@@ -263,13 +263,7 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
       }
     }
 
-    // كشف «العرض مرة واحدة» خدمة لا عقاب، فتعمل في الخاص أيضاً وليس
-    // في المجموعات فقط. كانت الرسائل الخاصة لا تمر على المضادات إطلاقاً.
-    if (!isCmd && !isGroup) {
-      const served = await runServiceAntifeatures({ sock, msg, from, sender, body, isBotAdmin, isAdmin, isOwner, isMod, botLabel, isCmd });
-      if (served) return;
-    }
-
+    // كشف «العرض مرة واحدة» خدمة لا عقاب، فتعمل في المجموعات فقط.
     if (isGroup) {
       const groupData = db.getGroup(from);
 
