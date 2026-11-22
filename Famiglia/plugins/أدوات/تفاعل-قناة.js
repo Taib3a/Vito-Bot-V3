@@ -19,6 +19,9 @@ const ASITHA_CAPTCHA_API =
   process.env.ASITHA_CAPTCHA_URL ||
   "https://omegatech-api.dixonomega.tech/api/tools/recaptcha-v3";
 const ASITHA_JWT = process.env.ASITHA_JWT || "";
+const FAA_API =
+  process.env.FAA_API_URL ||
+  "https://api-faa.my.id/faa/react-channel";
 const CHANNEL_LINK_RE = /whatsapp\.com\/channel\/([0-9A-Za-z_-]+)\/(\d+)/i;
 const COUNTS = ["50", "100"];
 const REACTIONS = [
@@ -51,6 +54,7 @@ const EXTERNAL_PROVIDERS = [
   ...(ASITHA_JWT
     ? [{ id: "asitha", name: "Asitha (GitHub)", call: callAsitha }]
     : []),
+  { id: "faa", name: "FAA (GitHub)", call: callFaa },
   { id: "owsreact", name: "OwsReactCH", note: "5k+", call: callOwsReact },
   { id: "makluxnxx", name: "Makluxnxx", call: callMakluxnxx },
   { id: "omegatech", name: "Omegatech", call: callOmegatech },
@@ -460,6 +464,24 @@ async function callAsitha(link, emoji) {
     status: "queued",
     message: data?.message || "تم استلام طلب التفاعل",
     ...(data?.data || {}),
+  };
+}
+
+async function callFaa(link, emoji) {
+  const { data } = await axios.get(FAA_API, {
+    params: { url: link, react: emoji },
+    timeout: 45000,
+    headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" },
+  });
+
+  if (!data?.status) {
+    throw new Error(data?.message || "فشل الطلب");
+  }
+
+  return {
+    status: "queued",
+    message: "تم إرسال التفاعل",
+    ...(data.info || {}),
   };
 }
 
