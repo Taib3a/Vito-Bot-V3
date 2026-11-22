@@ -1,78 +1,117 @@
-import { downloadMediaMessage, extractMessageContent } from "@whiskeysockets/baileys";
+import { downloadContentFromMessage } from "@whiskeysockets/baileys";
 
-const MEDIA = {
-  imageMessage: { field: "image", mime: "image/jpeg" },
-  videoMessage: { field: "video", mime: "video/mp4" },
-  ptvMessage: { field: "video", mime: "video/mp4" },
-  audioMessage: { field: "audio", mime: "audio/mp4" },
-};
+async function getBuffer(message, type) {
+  const stream = await downloadContentFromMessage(message, type);
+  const chunks = [];
+  for await (const chunk of stream) chunks.push(chunk);
+  return Buffer.concat(chunks);
+}
 
 const WRAPPERS = ["viewOnceMessage", "viewOnceMessageV2", "viewOnceMessageV2Extension"];
 
-/**
- * يستخرج نوع الوسيط وبياناته من الرسالة المقتبسة.
- * وجود غلاف «العرض مرة واحدة» كافٍ: العلم الداخلي يُسقط في بعض المسارات.
- * ويُفتح أيضاً غلافا المحادثة المختفية والملف بتعليق.
- */
-function extractMedia(quoted) {
-  const wrapped = WRAPPERS.some((w) => quoted?.[w]);
-  const message = extractMessageContent(quoted);
-  const key = Object.keys(MEDIA).find((k) => message?.[k]);
-  if (!key) return null;
-  return wrapped || message[key].viewOnce ? { key, media: message[key] } : null;
+/** يفكّ غلاف «المشاهدة مرة واحدة» مع الحفاظ على العلم الداخلي. */
+function unwrapQuoted(quoted) {
+  let q = quoted;
+  for (const w of WRAPPERS) {
+    if (q?.[w]?.message) q = q[w].message;
+  }
+  return q;
 }
 
+const T = {
+  ar: {
+    noQuote: "❌ رد على رسالة (صورة/فيديو/صوت) لمشاهدة مرة واحدة",
+    notViewOnce: "❌ هذه الرسالة ليست من نوع المشاهدة مرة واحدة",
+    fail: "❌ فشل استخراج الوسائط",
+    error: (e) => `❌ خطأ: ${e}`,
+  },
+  es: {
+    noQuote: "❌ Responde a un mensaje (imagen/video/audio) de ver una vez",
+    notViewOnce: "❌ Este mensaje no es de tipo ver una vez",
+    fail: "❌ Error al extraer el medio",
+    error: (e) => `❌ Error: ${e}`,
+  },
+};
+
 export default {
-  name: ["فضح"],
+  name: ["vv", "فضح"],
   description: "كشف الوسائط ذات المشاهدة مرة واحدة",
   category: "المجموعات",
   ownerOnly: false,
 
-  async run({ sock, from, msg, reply, react }) {
-    const T = {
-      noQuote: "❌ ردّ على رسالة (صورة/فيديو/صوت) لمشاهدة مرة واحدة",
-      notViewOnce: "❌ هذه الرسالة ليست من نوع المشاهدة مرة واحدة",
-      fail: "❌ فشل استخراج الوسائط",
-      error: (e) => `❌ خطأ: ${e}`,
-    };
+  async run({ sock, from, msg, reply, react, cmdName }) {
+    const isArabic = /[\u0600-\u06FF]/.test(String(cmdName || ""));
+    const lang = isArabic ? "ar" : "es";
+    const t = T[lang];
 
     try {
-      const contextInfo =
-        msg.message?.extendedTextMessage?.contextInfo ||
-        msg.message?.imageMessage?.contextInfo ||
-        msg.message?.videoMessage?.contextInfo ||
-        msg.message?.documentMessage?.contextInfo ||
-        msg.message?.audioMessage?.contextInfo ||
+      const rawQuoted =
+        msg.quoted?.message ||
+        msg.message?.extendedTextMessage?.contextInfo?.quotedMessage ||
+        msg.message?.imageMessage?.contextInfo?.quotedMessage ||
+        msg.message?.videoMessage?.contextInfo?.quotedMessage ||
+        msg.message?.audioMessage?.contextInfo?.quotedMessage ||
         null;
 
-      const quoted = contextInfo?.quotedMessage || null;
-      if (!quoted) return await reply({ text: T.noQuote });
+      if (!rawQuoted) {
+        return await reply({ text: t.noQuote });
+      }
 
-      const found = extractMedia(quoted);
-      if (!found) return await reply({ text: T.notViewOnce });
+      const wrapped = WRAPPERS.some((w) => rawQuoted?.[w]);
+      const quoted = unwrapQuoted(rawQuoted);
+
+      const isViewOnce =
+        wrapped ||
+        quoted.imageMessage?.viewOnce ||
+        quoted.videoMessage?.viewOnce ||
+        quoted.ptvMessage?.viewOnce ||
+        quoted.audioMessage?.viewOnce;
+
+      if (!isViewOnce) {
+        return await reply({ text: t.notViewOnce });
+      }
 
       await react("👁️");
 
-      // downloadMediaMessage يتطلّب رسالة كاملة بمفتاح، فنعيد بناء الغلاف.
-      const meta = MEDIA[found.key];
-      const stub = { key: contextInfo.stanzaId ? { id: contextInfo.stanzaId, remoteJid: from } : undefined, message: quoted };
-      const buffer = await downloadMediaMessage(stub, "buffer", {}, { logger: console, reuploadRequest: sock.updateMediaMessage });
-      if (!buffer?.length) {
-        await react("❌");
-        return await reply({ text: T.fail });
+      let sendMsg = null;
+
+      if (quoted.imageMessage) {
+        const buffer = await getBuffer(quoted.imageMessage, "image");
+        sendMsg = {
+          image: buffer,
+          caption: quoted.imageMessage.caption || "👁️ Revealed",
+        };
+      } else if (quoted.videoMessage) {
+        const buffer = await getBuffer(quoted.videoMessage, "video");
+        sendMsg = {
+          video: buffer,
+          caption: quoted.videoMessage.caption || "👁️ Revealed",
+        };
+      } else if (quoted.ptvMessage) {
+        const buffer = await getBuffer(quoted.ptvMessage, "video");
+        sendMsg = {
+          video: buffer,
+          caption: quoted.ptvMessage.caption || "👁️ Revealed",
+        };
+      } else if (quoted.audioMessage) {
+        const buffer = await getBuffer(quoted.audioMessage, "audio");
+        sendMsg = {
+          audio: buffer,
+          mimetype: quoted.audioMessage.mimetype || "audio/mp4",
+          ptt: false,
+        };
       }
 
-      const media = found.media;
-      const outMessage =
-        meta.field === "audio"
-          ? { audio: buffer, mimetype: media.mimetype || meta.mime, ptt: false }
-          : { [meta.field]: buffer, caption: media.caption || "👁️ مكشوفة" };
+      if (!sendMsg) {
+        await react("❌");
+        return await reply({ text: t.fail });
+      }
 
-      await sock.sendMessage(from, outMessage, { quoted: msg });
+      await sock.sendMessage(from, sendMsg, { quoted: msg });
       await react("✅");
-    } catch (error) {
+    } catch (e) {
       await react("❌");
-      await reply({ text: T.error(error.message) });
+      await reply({ text: t.error(e.message) });
     }
   },
 };
