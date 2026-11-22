@@ -253,13 +253,14 @@ export default {
       const tipoBot = esVerdaderoMain ? ui.botMain : ui.subbot;
 
 
-      let textoMenu = `${ui.greeting}\n`;
-      textoMenu += `╭━━━━━━━━━━━━━━━━━━\n`;
-      textoMenu += `│ 𖠌 \`${ui.type}::\` ${tipoBot}\n`;
-      textoMenu += `│ 𖠌 \`${ui.system}::\` ${ui.android}\n`;
-      textoMenu += `│ 𖠌 \`${ui.user}::\` @${senderNum}\n`;
-      textoMenu += `│ 𖠌 \`${ui.uptime}::\` ${getUptime()}\n`;
-      textoMenu += `╰━━━━━━━━━━━━━━━━━━\n\n`;
+      let menuHeader = `${ui.greeting}\n`;
+      menuHeader += `╭━━━━━━━━━━━━━━━━━━\n`;
+      menuHeader += `│ 𖠌 \`${ui.type}::\` ${tipoBot}\n`;
+      menuHeader += `│ 𖠌 \`${ui.system}::\` ${ui.android}\n`;
+      menuHeader += `│ 𖠌 \`${ui.user}::\` @${senderNum}\n`;
+      menuHeader += `│ 𖠌 \`${ui.uptime}::\` ${getUptime()}\n`;
+      menuHeader += `╰━━━━━━━━━━━━━━━━━━\n\n`;
+      let textoMenu = menuHeader;
 
 
       // ✅ اعرض الأقسام كما استخرجناها من الملفات
@@ -361,9 +362,12 @@ export default {
               { text: "🔵 Botones pulsables", id: `${cmd} buttons` },
               { text: "📋 Menú desplegable", id: `${cmd} list` },
               { text: "📜 Lista de texto", id: `${cmd} text` },
+              { text: "🧠 Explícame", id: `${cmd} explain` },
             ];
         await sendPanel(
-          lang === "ar" ? "اختر طريقة عرض الأوامر:" : "Elige cómo mostrar los comandos:",
+          lang === "ar"
+            ? `${menuHeader}اختر طريقة عرض الأوامر:`
+            : `${menuHeader}Elige cómo mostrar los comandos:`,
           modeButtons
         );
       };
