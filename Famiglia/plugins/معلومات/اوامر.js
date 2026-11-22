@@ -98,7 +98,7 @@ function getUptime() {
 
 export default {
   name: ["اوامر"],
-  description: "Muestra el menú del sistema.",
+  description: "يعرض قائمة الأوامر مع طرق العرض والشرح.",
   category: "المعلومات",
   ownerOnly: false,
 
@@ -165,6 +165,7 @@ export default {
 
       // ✅ سنبني الأقسام ديناميكيًا بناءً على category في الملفات
       const categories = {}; // { categoryName: Set(commands) }
+      const commandInfo = new Map(); // commandName -> { description }
 
 
       for (const [, plugin] of plugins) {
@@ -204,13 +205,12 @@ export default {
         if (!categories[catDisplay]) categories[catDisplay] = new Set();
 
 
-        if (lang === "ar") {
-          if (arabicNames.length === 0) continue;
-          categories[catDisplay].add(arabicNames[0]);
-        } else {
-          if (nonArabicNames.length === 0) continue;
-          categories[catDisplay].add(nonArabicNames[0]);
-        }
+        const displayName = lang === "ar" ? arabicNames[0] : nonArabicNames[0];
+        if (!displayName) continue;
+        categories[catDisplay].add(displayName);
+        commandInfo.set(displayName, {
+          description: String(plugin.description || plugin.desc || "").trim(),
+        });
       }
 
 
@@ -315,6 +315,27 @@ export default {
         }
       };
 
+      const sendImageCaption = async (caption) => {
+        const sources = [
+          ...new Set(
+            [image, ...(Array.isArray(global.botImages) ? global.botImages : [])].filter(Boolean)
+          ),
+        ];
+        for (const src of sources) {
+          try {
+            await sock.sendMessage(
+              from,
+              typeof src === "string"
+                ? { image: { url: src }, caption }
+                : { image: src, caption },
+              { quoted: msg }
+            );
+            return true;
+          } catch {}
+        }
+        return false;
+      };
+
       const cmd = `${usedPrefix}اوامر`;
       const modeRaw = String(args?.[0] || "");
       const mode = modeRaw.toLowerCase();
@@ -325,6 +346,8 @@ export default {
         mode.startsWith("buttons-");
       const isList = ["قائمة", "قائمه", "list", "dropdown"].includes(mode);
       const isText = ["نص", "نصي", "text"].includes(mode);
+      const isExplain =
+        ["اشرح", "شرح", "explain"].includes(mode) || mode.startsWith("اشرح-");
 
       const modePrompt = async () => {
         const modeButtons = lang === "ar"
@@ -332,6 +355,7 @@ export default {
               { text: "🔵 أزرار قابلة للضغط", id: `${cmd} ازرار` },
               { text: "📋 أزرار منسدلة", id: `${cmd} قائمة` },
               { text: "📜 القائمة النصية", id: `${cmd} نص` },
+              { text: "🧠 اشرح لي", id: `${cmd} اشرح` },
             ]
           : [
               { text: "🔵 Botones pulsables", id: `${cmd} buttons` },
@@ -400,29 +424,8 @@ export default {
           const footer = `\n\n${nombreBot}`;
           const text = `${header}${cmds.map((c) => `• ${usedPrefix}${c}`).join("\n")}${footer}`;
 
-          const sendWithImage = async (caption) => {
-            const sources = [
-              ...new Set(
-                [image, ...(Array.isArray(global.botImages) ? global.botImages : [])].filter(Boolean)
-              ),
-            ];
-            for (const src of sources) {
-              try {
-                await sock.sendMessage(
-                  from,
-                  typeof src === "string"
-                    ? { image: { url: src }, caption }
-                    : { image: src, caption },
-                  { quoted: msg }
-                );
-                return true;
-              } catch {}
-            }
-            return false;
-          };
-
           if (text.length <= 1024) {
-            if (await sendWithImage(text)) return;
+            if (await sendImageCaption(text)) return;
             return await sock.sendMessage(from, { text }, { quoted: msg });
           }
 
@@ -430,7 +433,7 @@ export default {
             lang === "ar"
               ? `القسم: ${cat}\nعدد الأوامر: ${cmds.length}\n\n${nombreBot}`
               : `Categoría: ${cat}\nComandos: ${cmds.length}\n\n${nombreBot}`;
-          await sendWithImage(shortCaption);
+          await sendImageCaption(shortCaption);
           await sock.sendMessage(from, { text }, { quoted: msg });
         };
 
@@ -451,6 +454,95 @@ export default {
           return await sendCategoryText(catArg);
         }
         return await sendCategoryPage(0);
+      }
+
+      if (isExplain) {
+        const cats = Object.keys(categories);
+        const PAGE_SIZE = 2;
+        const findCat = (value) =>
+          cats.find((c) => c === value) ||
+          cats.find((c) => c.toLowerCase() === String(value).toLowerCase());
+
+        const sendExplainCategories = async (page = 0) => {
+          const total = Math.ceil(cats.length / PAGE_SIZE);
+          const safePage = Math.max(0, Math.min(page, Math.max(total - 1, 0)));
+          const pageCats = cats.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+          const btns = pageCats.map((cat) => ({
+            text: `${cat} (${categories[cat].size})`,
+            id: `${cmd} اشرح-قسم_0_${encodeURIComponent(cat)}`,
+          }));
+          if (safePage + 1 < total) {
+            btns.push({
+              text: lang === "ar" ? "➕ المزيد" : "➕ Más",
+              id: `${cmd} اشرح-المزيد_${safePage + 1}`,
+            });
+          }
+          if (safePage > 0) {
+            btns.push({
+              text: lang === "ar" ? "↩️ السابق" : "↩️ Anterior",
+              id: `${cmd} اشرح-المزيد_${safePage - 1}`,
+            });
+          }
+          return await sendPanel(
+            lang === "ar"
+              ? `اختر القسم لشرح أوامره (${safePage + 1}/${total}):`
+              : `Elige una categoría para explicar (${safePage + 1}/${total}):`,
+            btns
+          );
+        };
+
+        const sendExplainCategory = async (catName) => {
+          const cat = findCat(catName);
+          if (!cat) {
+            return await sock.sendMessage(
+              from,
+              { text: lang === "ar" ? "❌ القسم غير موجود." : "❌ Categoría no encontrada." },
+              { quoted: msg }
+            );
+          }
+          const cmds = [...categories[cat]];
+          const lines = cmds.map((name) => {
+            const desc = commandInfo.get(name)?.description;
+            const fallback = lang === "ar" ? "لا يوجد وصف." : "Sin descripción.";
+            return `• ${usedPrefix}${name}\n  ${desc || fallback}`;
+          });
+          const header =
+            lang === "ar"
+              ? `شرح أوامر قسم ${cat}\nعدد الأوامر: ${cmds.length}\n\n`
+              : `Explicación de ${cat}\nComandos: ${cmds.length}\n\n`;
+          const footer = `\n\n${nombreBot}`;
+          const text = `${header}${lines.join("\n")}${footer}`;
+
+          if (text.length <= 1024) {
+            if (await sendImageCaption(text)) return;
+            return await sock.sendMessage(from, { text }, { quoted: msg });
+          }
+
+          const shortCaption =
+            lang === "ar"
+              ? `شرح أوامر قسم ${cat}\nعدد الأوامر: ${cmds.length}\n\n${nombreBot}`
+              : `Explicación de ${cat}\nComandos: ${cmds.length}\n\n${nombreBot}`;
+          await sendImageCaption(shortCaption);
+          await sock.sendMessage(from, { text }, { quoted: msg });
+        };
+
+        if (mode === "اشرح" || mode === "شرح" || mode === "explain") {
+          return await sendExplainCategories(0);
+        }
+        if (mode.startsWith("اشرح-المزيد_")) {
+          const page = parseInt(modeRaw.slice("اشرح-المزيد_".length), 10) || 0;
+          return await sendExplainCategories(page);
+        }
+        if (mode.startsWith("اشرح-قسم_")) {
+          const rest = modeRaw.slice("اشرح-قسم_".length);
+          const [, ...catParts] = rest.split("_");
+          const cat = decodeURIComponent(catParts.join("_"));
+          return await sendExplainCategory(cat);
+        }
+        if (catArg) {
+          return await sendExplainCategory(catArg);
+        }
+        return await sendExplainCategories(0);
       }
 
       if (isList) {
