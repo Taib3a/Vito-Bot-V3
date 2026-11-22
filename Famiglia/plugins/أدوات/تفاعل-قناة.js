@@ -22,6 +22,7 @@ const ASITHA_JWT = process.env.ASITHA_JWT || "";
 const FAA_API =
   process.env.FAA_API_URL ||
   "https://api-faa.my.id/faa/react-channel";
+const LOCAL_ONLY = process.env.REACTION_LOCAL_ONLY !== "false";
 const CHANNEL_LINK_RE = /whatsapp\.com\/channel\/([0-9A-Za-z_-]+)\/(\d+)/i;
 const COUNTS = ["50", "100"];
 const REACTIONS = [
@@ -201,6 +202,10 @@ async function showServices(ctx, link, mode, prefix) {
 
   const displayMode = mode === "buttons" ? "buttons" : "list";
 
+  if (LOCAL_ONLY) {
+    return showCounts(ctx, link, displayMode, "local", prefix);
+  }
+
   await sendPanel(
     ctx,
     `🌐 *اختر مصدر التفاعل*\n\n` +
@@ -223,7 +228,7 @@ async function showCounts(ctx, link, mode, service, prefix) {
   }
 
   const displayMode = mode === "buttons" ? "buttons" : "list";
-  const source = service === "local" ? "local" : "external";
+  const source = LOCAL_ONLY ? "local" : service === "local" ? "local" : "external";
 
   await sendPanel(
     ctx,
@@ -248,7 +253,7 @@ async function showReactionsList(ctx, link, count, service, prefix) {
     return ctx.reply({ text: "❌ اختر 50 أو 100." });
   }
 
-  const source = service === "local" ? "local" : "external";
+  const source = LOCAL_ONLY ? "local" : service === "local" ? "local" : "external";
   const rows = REACTIONS.map((reaction) => ({
     title: reaction.label,
     description: `${count} تفاعل`,
@@ -275,7 +280,7 @@ async function showReactionsButtons(ctx, link, count, mode, service, page, prefi
     return ctx.reply({ text: "❌ اختر 50 أو 100." });
   }
 
-  const source = service === "local" ? "local" : "external";
+  const source = LOCAL_ONLY ? "local" : service === "local" ? "local" : "external";
   const pageNumber = Math.max(0, parseInt(page, 10) || 0);
   const perPage = 2;
   const remaining = REACTIONS.slice(pageNumber * perPage);
@@ -595,7 +600,7 @@ async function runExternal(ctx, link, count, emoji, prefix) {
   }
 }
 
-async function runSend(ctx, link, count, emoji, service = "external", prefix = ".") {
+async function runSend(ctx, link, count, emoji, service = "local", prefix = ".") {
   const { reply } = ctx;
 
   if (!parseLink(link)) {
@@ -608,7 +613,7 @@ async function runSend(ctx, link, count, emoji, service = "external", prefix = "
     return reply({ text: "❌ اختر نوع التفاعل." });
   }
 
-  if (service === "local") {
+  if (LOCAL_ONLY || service === "local") {
     return runLocal(ctx, link, count, emoji);
   }
 
@@ -617,7 +622,7 @@ async function runSend(ctx, link, count, emoji, service = "external", prefix = "
 
 export default {
   name: ["تفاعل-قناة"],
-  description: "تفاعل مع رسالة قناة واتساب مع اختيار الخدمة والعدد والنوع",
+  description: "تفاعل مع رسالة قناة واتساب (محلي) مع اختيار العدد والنوع",
   category: "أدوات",
   ownerOnly: false,
 
@@ -631,7 +636,9 @@ export default {
         text:
           "⚠️ *استخدم:*\n" +
           "`.تفاعل-قناة https://whatsapp.com/channel/XXXX/123`\n\n" +
-          "ثم اختر طريقة العرض ومصدر التفاعل والعدد والنوع.",
+          (LOCAL_ONLY
+            ? "ثم اختر طريقة العرض والعدد والنوع."
+            : "ثم اختر طريقة العرض ومصدر التفاعل والعدد والنوع."),
       });
     }
 
@@ -640,7 +647,13 @@ export default {
     }
 
     if (action === "service") {
-      return showCounts(ctx, decode(rest[0]), rest[1] || "list", rest[2] || "external", prefix);
+      return showCounts(
+        ctx,
+        decode(rest[0]),
+        rest[1] || "list",
+        LOCAL_ONLY ? "local" : rest[2] || "external",
+        prefix
+      );
     }
 
     if (action === "result") {
@@ -648,19 +661,33 @@ export default {
     }
 
     if (action === "count") {
-      return showReactions(ctx, decode(rest[0]), rest[1], rest[2] || "list", rest[3] || "external", prefix);
+      return showReactions(
+        ctx,
+        decode(rest[0]),
+        rest[1],
+        rest[2] || "list",
+        LOCAL_ONLY ? "local" : rest[3] || "external",
+        prefix
+      );
     }
 
     if (action === "page") {
       const serviceOrPage = rest[3];
       const hasService = ["external", "local"].includes(serviceOrPage);
-      const service = hasService ? serviceOrPage : "external";
+      const service = LOCAL_ONLY ? "local" : hasService ? serviceOrPage : "external";
       const page = hasService ? rest[4] : serviceOrPage;
       return showReactionsButtons(ctx, decode(rest[0]), rest[1], rest[2] || "buttons", service, page, prefix);
     }
 
     if (action === "send") {
-      return runSend(ctx, decode(rest[0]), rest[1], rest[2], rest[3] || "external", prefix);
+      return runSend(
+        ctx,
+        decode(rest[0]),
+        rest[1],
+        rest[2],
+        LOCAL_ONLY ? "local" : rest[3] || "external",
+        prefix
+      );
     }
 
     if (action === "local") {
