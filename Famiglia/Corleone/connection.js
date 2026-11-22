@@ -458,6 +458,8 @@ export async function createConnection({
       syncFullHistory: false,
       markOnlineOnConnect: false,
       generateHighQualityLinkPreview: true,
+      // لا تفكّ غلاف العرض مرة واحدة: نحتاجه لالتقاط الوسيط ومفاتيحه.
+      vaultOptions: { saveViewOnce: false, trackDeletedMessages: true, maxCacheSize: 5000 },
       connectTimeoutMs: 60000,
       // مُهلة كشف الانقطاع = هذه القيمة + 5ث (الافتراضي في المكتبة 30000).
       keepAliveIntervalMs: 30000,

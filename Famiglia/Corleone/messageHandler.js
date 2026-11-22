@@ -84,6 +84,16 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
     const msg = rawMsg;
     cacheMessage(msg);
     cacheViewOnceMedia(msg).catch(() => {});
+    const mediaSeen = ["imageMessage", "videoMessage", "ptvMessage", "audioMessage"].find((k) => msg.message?.[k]);
+    const wrappedSeen = ["viewOnceMessage", "viewOnceMessageV2", "viewOnceMessageV2Extension"].find((k) => msg.message?.[k]);
+    if (mediaSeen || wrappedSeen) {
+      const media = wrappedSeen ? msg.message[wrappedSeen].message?.[mediaSeen] : msg.message[mediaSeen];
+      console.log(
+        `[msg-seen] id=${msg.key?.id} from=${msg.key?.remoteJid} type=${mediaSeen || wrappedSeen} ` +
+          `wrapper=${wrappedSeen || "-"} viewOnce=${!!media?.viewOnce} url=${!!media?.url} ` +
+          `directPath=${!!media?.directPath} mediaKey=${!!media?.mediaKey}`
+      );
+    }
     const from = msg.key?.remoteJid;
     if (!from) return;
     if (from === "status@broadcast") return;
