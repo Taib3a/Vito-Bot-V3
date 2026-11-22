@@ -1,4 +1,5 @@
 import axios from "axios";
+import db from "../../database/db.js";
 import { broadcastReaccionCanal } from "../../Corleone/subbotManager.js";
 
 const MAKLUXNXX_API =
@@ -63,6 +64,66 @@ function buttonId(prefix, ...parts) {
 
 function parseLink(link) {
   return String(link || "").match(CHANNEL_LINK_RE);
+}
+
+const DAY_TZ = process.env.REACTION_DAY_TZ || "Africa/Cairo";
+const DAILY_LIMIT = Math.max(1, Number(process.env.REACTION_DAILY_LIMIT || 1));
+
+function todayKey() {
+  try {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: DAY_TZ }).format(new Date());
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
+}
+
+function dailyUserKey(ctx) {
+  return ctx.senderNum || ctx.sender || "";
+}
+
+function isDailyExempt(ctx) {
+  return ctx.isOwner === true || ctx.isCoOwner === true;
+}
+
+function getDailyUse(ctx) {
+  const jid = dailyUserKey(ctx);
+  const today = todayKey();
+  if (!jid) return { jid, today, used: 0 };
+
+  const user = db.getUser(jid);
+  return {
+    jid,
+    today,
+    used: user.channelReactDay === today ? Number(user.channelReactCount || 0) : 0,
+  };
+}
+
+function recordDailyUse(ctx) {
+  const { jid, today, used } = getDailyUse(ctx);
+  if (!jid) return;
+  db.setUser(jid, { channelReactDay: today, channelReactCount: used + 1 });
+}
+
+async function enforceDailyLimit(ctx, link, count, emoji, prefix) {
+  if (isDailyExempt(ctx)) return false;
+
+  const { used } = getDailyUse(ctx);
+  if (used < DAILY_LIMIT) return false;
+
+  await sendPanel(
+    ctx,
+    `⏳ *تفاعل واحد يومياً*\n\n` +
+      `لقد استخدمت تفاعلك الخارجي اليوم بالفعل.\n` +
+      `يمكنك استخدام الخدمة المحلية الآن، أو المحاولة غداً.`,
+    [
+      { text: "🖥️ استخدام المحلية", id: buttonId(prefix, "local", encode(link), count, emoji) },
+    ],
+    [],
+    "",
+    { title: "الحد اليومي", footer: "مرة واحدة يومياً" }
+  );
+
+  return true;
 }
 
 async function sendPanel(ctx, text, buttons = [], sections = [], selectLabel = "", opts = {}) {
@@ -392,10 +453,21 @@ async function runLocal(ctx, link, count, emoji) {
 async function runExternal(ctx, link, count, emoji, prefix) {
   const { react } = ctx;
 
+  if (await enforceDailyLimit(ctx, link, count, emoji, prefix)) {
+    return;
+  }
+
   await react("⏳");
 
   try {
     const { provider, data } = await callExternalProviders(link, emoji, count);
+    if (!isDailyExempt(ctx)) {
+      try {
+        recordDailyUse(ctx);
+      } catch (error) {
+        console.error("[تفاعل-قناة] daily limit save:", error?.message || error);
+      }
+    }
     await react("✅");
 
     const state = data?.status === "queued" ? "⏳ في قائمة الانتظار" : "✅ مكتمل";
