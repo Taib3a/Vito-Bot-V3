@@ -402,13 +402,15 @@ export function launchSubbot(id) {
   });
 }
 
-export async function requestSubbotCode(id, phoneNumber, sock, from) {
+export async function requestSubbotCode(id, phoneNumber, sock, from, lang = "ar") {
   const sessionDir = path.resolve(`${SUBBOTS_DIR}/${id}`);
   if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir, { recursive: true });
   if (sockets.has(id)) removeSubbot(id);
 
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("انتهت مهلة انتظار الرمز")), 15000);
+    const timeoutMessage =
+      lang === "es" ? "Se agotó el tiempo de espera del código" : "انتهت مهلة انتظار الرمز";
+    const timeout = setTimeout(() => reject(new Error(timeoutMessage)), 15000);
 
     const cleanupTimeout = setTimeout(() => {
       const bot = activeBots.get(id);
@@ -434,9 +436,13 @@ export async function requestSubbotCode(id, phoneNumber, sock, from) {
         clearTimeout(cleanupTimeout);
         const userNum = id.replace("sub_", "");
         const userJid = bot.jid || `${userNum}@s.whatsapp.net`;
+        const successText =
+          lang === "es"
+            ? `📍 *@${userNum} vinculó un subbot correctamente*\n> • Puedes usar *.حذف-بوت* para desvincularlo cuando quieras.`
+            : `📍 *@${userNum} ربط بوتاً فرعياً بنجاح*\n> • يمكنك استخدام *.حذف-بوت* لفصله متى شئت.`;
         sock
           .sendMessage(from, {
-            text: `📍 *@${userNum} ربط بوتاً فرعياً بنجاح*\n> • يمكنك استخدام *.حذف-بوت* لفصله متى شئت.`,
+            text: successText,
             mentions: [userJid],
           })
           .catch((e) => log.error(`[MANAGER] تعذّر إرسال رسالة النجاح: ${e.message}`));
