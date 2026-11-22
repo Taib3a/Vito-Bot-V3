@@ -63,13 +63,6 @@ const fetchData = async url => {
 const cleanFileName = name =>
   String(name).replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim().slice(0, 100) || 'audio'
 
-const formatNum = n => {
-  if (!n && n !== 0) return 'غير معروف'
-  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M'
-  if (n >= 1000) return (n / 1000).toFixed(1) + 'K'
-  return String(n)
-}
-
 export default {
   name: ["صو", "صوت", "اغنيه"],
   description: 'ينزّل صوت من يوتيوب - نسخة سريعة',
@@ -107,27 +100,19 @@ export default {
 
       const mediaUrl = data.url
       const title = data.title || info?.title || 'audio'
-      const channel = info?.author?.name || 'غير معروف'
-      const views = info?.views ? info.views.toLocaleString('en-US') + ' مشاهدة' : 'غير معروف'
-      const likes = formatNum(info?.likes)
-      const duration = info?.timestamp || 'غير معروف'
-      const uploaded = info?.ago || 'غير معروف'
+      const channel = info?.author?.name || 'YouTube'
+      const views = info?.views ? info.views.toLocaleString('en-US') : ''
+      const duration = info?.timestamp || 'غير معروفة'
       const thumb = info?.thumbnail || info?.image
 
       const infoText =
-`╭─── 🎵 *معلومات الاغنية* ───╮
-│
-│ 📌 *العنوان:*
-│ ${title}
-│
-│ 👤 *القناة:* ${channel}
-│ 👀 *المشاهدات:* ${views}
-│ ❤️ *اللايكات:* ${likes}
-│ ⏱️ *المدة:* ${duration}
-│ 📅 *اتنشرت:* ${uploaded}
-│ 🔗 *الرابط:* ${videoUrl}
-│
-╰──────────────────╯`
+`【 🕴🏻 】 _تحميل الصوت_ ───── *${title}*_
+
+> _📢 القناة ── ${channel}_
+> _⏱️ المدة ── ${duration}_
+${views ? `> _👁️ المشاهدات ── ${views}_\n` : ''}> _📦 الصيغة ── MP3_
+
+> _── جاري إرسال الصوت، يرجى الانتظار..._`
 
       // ⚡ السرعة هنا: ابعت الصورة والصوت مع بعض مش ورا بعض
       // لو الفيديو اكتر من 20 دقيقة ابعته مستند
