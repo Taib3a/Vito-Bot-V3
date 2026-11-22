@@ -6,7 +6,7 @@ export default {
   category: "أدوات",
   ownerOnly: false,
 
-  async run({ sock, args, text, reply, react }) {
+  async run({ sock, from, msg, sender, args, text, reply, react }) {
     const inputs = splitChannelInputs(text || args.join(" "));
 
     if (!inputs.length) {
@@ -21,30 +21,64 @@ export default {
 
     await react("⏳");
 
-    const lines = [];
+    const channels = [];
+    const errors = [];
     let ok = 0;
     let fail = 0;
 
     for (const input of inputs) {
       try {
         const channel = await fetchChannel(sock, input);
-        lines.push(
-          `📢 *معلومات القناة*\n\n` +
-            `🆔 *المعرّف:* ${channel.id}\n` +
-            `📛 *الاسم:* ${channel.name}\n` +
-            `👥 *المشتركون:* ${channel.subscribers}\n` +
-            `${channel.verification}\n` +
-            `📝 *الوصف:* ${channel.description}`
-        );
+        channels.push(channel);
         ok++;
       } catch (error) {
         console.error("[Channel Info]", input, error?.message || error);
-        lines.push(`❌ *${input}:* تعذّر جلب المعلومات`);
+        errors.push(`❌ *${input}:* تعذّر جلب المعلومات`);
         fail++;
       }
     }
 
     await react(ok ? (fail ? "⚠️" : "✅") : "❌");
-    return await reply({ text: lines.join("\n\n") });
+
+    if (!channels.length) {
+      return await reply({ text: errors.join("\n") });
+    }
+
+    const body = [
+      ...channels.map(
+        (channel) =>
+          `📢 *معلومات القناة*\n\n` +
+          `📛 *الاسم:* ${channel.name}\n` +
+          `👥 *المشتركون:* ${channel.subscribers}\n` +
+          `${channel.verification}\n` +
+          `📝 *الوصف:* ${channel.description}`
+      ),
+      ...errors,
+    ].join("\n\n");
+
+    const buttons = channels.map((channel) => ({
+      text: `🆔 ${channel.id}`,
+      copy: channel.id,
+    }));
+
+    if (typeof sock.sendButtonMessage === "function") {
+      try {
+        await sock.sendButtonMessage(from, body, buttons, {
+          title: "🆔 معلومات القناة",
+          footer: "اضغط على الزر لنسخ المعرّف",
+          quoted: msg,
+          mentions: sender ? [sender] : [],
+        });
+        return;
+      } catch (error) {
+        console.error("[Channel Info] button send failed:", error?.message || error);
+      }
+    }
+
+    return await reply({
+      text:
+        `${body}\n\n` +
+        channels.map((channel) => `🆔 *المعرّف:* ${channel.id}`).join("\n"),
+    });
   },
 };
