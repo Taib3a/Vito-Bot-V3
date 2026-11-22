@@ -7,6 +7,10 @@ const MAKLUXNXX_API =
 const OMEGATECH_API =
   process.env.OMEGATECH_API_URL ||
   "https://api.omegatech.app/api/Fun/Rch";
+const OWSREACT_API =
+  process.env.OWSREACT_API_URL ||
+  "https://owens.my.id/reactch/api.php";
+const OWSREACT_COOKIE = process.env.OWSREACT_COOKIE || "";
 const CHANNEL_LINK_RE = /whatsapp\.com\/channel\/([0-9A-Za-z_-]+)\/(\d+)/i;
 const COUNTS = ["50", "100"];
 const REACTIONS = [
@@ -36,6 +40,7 @@ const SERVICE_NAMES = {
 };
 
 const EXTERNAL_PROVIDERS = [
+  { id: "owsreact", name: "OwsReactCH", note: "5k+", call: callOwsReact },
   { id: "makluxnxx", name: "Makluxnxx", call: callMakluxnxx },
   { id: "omegatech", name: "Omegatech", call: callOmegatech },
 ];
@@ -115,7 +120,7 @@ async function showServices(ctx, link, mode, prefix) {
     ctx,
     `🌐 *اختر مصدر التفاعل*\n\n` +
       `🎨 *العرض:* ${MODE_LABELS[displayMode]}\n` +
-      `🌐 *الخارجي:* Makluxnxx / Omegatech\n` +
+      `🌐 *الخارجي:* OwsReactCH (5k+) / Makluxnxx / Omegatech\n` +
       `🖥️ *المحلي:* بوتاتك المتصلة`,
     [
       { text: SERVICE_LABELS.external, id: buttonId(prefix, "service", encode(link), displayMode, "external") },
@@ -235,6 +240,67 @@ async function showReactions(ctx, link, count, mode, service, prefix) {
   return showReactionsList(ctx, link, count, service, prefix);
 }
 
+async function callOwsReact(link, emoji) {
+  if (!OWSREACT_COOKIE) {
+    throw new Error("كوكي OwsReactCH غير مضبوط");
+  }
+
+  const headers = {
+    Cookie: `owsreact=${OWSREACT_COOKIE}`,
+    "X-Requested-With": "XMLHttpRequest",
+    Origin: "https://owens.my.id",
+    Referer: "https://owens.my.id/reactch/",
+    "User-Agent": "Mozilla/5.0",
+    Accept: "application/json",
+  };
+
+  const me = await axios.get(OWSREACT_API, {
+    params: { action: "me" },
+    headers,
+    timeout: 30000,
+  });
+
+  const csrf = me.data?.csrf;
+  if (!csrf) {
+    throw new Error("تعذّر الحصول على رمز الحماية");
+  }
+
+  const user = me.data?.user || {};
+  const remainingBefore =
+    Number(user.free_left || 0) +
+    Number(user.vip_balance || 0) +
+    Number(user.redeem_balance || 0);
+
+  if (remainingBefore <= 0) {
+    throw new Error("انتهت حصة OwsReactCH");
+  }
+
+  const { data } = await axios.post(
+    OWSREACT_API,
+    { link, emojis: [emoji] },
+    {
+      params: { action: "react" },
+      headers: {
+        ...headers,
+        "X-CSRF-Token": csrf,
+        "Content-Type": "application/json",
+      },
+      timeout: 75000,
+    }
+  );
+
+  if (!data?.ok) {
+    throw new Error(data?.message || "فشل الطلب");
+  }
+
+  return {
+    status: "queued",
+    message: data.message || "تم استلام الطلب",
+    job: data.job,
+    remaining: Math.max(0, remainingBefore - 1),
+  };
+}
+
 async function callMakluxnxx(link, emoji, count) {
   const { data } = await axios.get(MAKLUXNXX_API, {
     params: { link, emoji, count },
@@ -333,13 +399,17 @@ async function runExternal(ctx, link, count, emoji, prefix) {
     await react("✅");
 
     const state = data?.status === "queued" ? "⏳ في قائمة الانتظار" : "✅ مكتمل";
+    const countLine = provider.note
+      ? `📊 *العدد المطلوب:* ${count}\n⚡ *ملاحظة:* الخدمة ترسل ${provider.note} تفاعل`
+      : `📊 *العدد:* ${count}`;
     return ctx.reply({
       text:
         `✅ *تم إرسال التفاعلات*\n\n` +
-        `🌐 *الخدمة:* ${provider.name}\n` +
+        `🌐 *الخدمة:* ${provider.name}${provider.note ? ` (${provider.note})` : ""}\n` +
         `😊 *التفاعل:* ${emoji}\n` +
-        `📊 *العدد:* ${count}\n` +
+        `${countLine}\n` +
         `📝 *الحالة:* ${state}` +
+        (data?.remaining !== undefined ? `\n🎫 *المتبقي المجاني:* ${data.remaining}` : "") +
         (data?.message ? `\n📄 ${data.message}` : ""),
     });
   } catch (error) {
