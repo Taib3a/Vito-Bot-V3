@@ -1,7 +1,11 @@
 import { requestSubbotCode, activeBots } from "../../Corleone/subbotManager.js";
+import config from "../../Corleone/settings.js";
 import { jidNormalizedUser } from "@whiskeysockets/baileys";
 
 const cooldowns = new Map();
+
+const pickRandom = (arr, fallback = null) =>
+  Array.isArray(arr) && arr.length ? arr[Math.floor(Math.random() * arr.length)] : fallback;
 
 const T = {
   ar: {
@@ -92,11 +96,66 @@ export default {
 
     cooldowns.set(phone, Date.now());
 
-    await reply({ text: t.instructions });
+    const linkCanal = "https://whatsapp.com/channel/0029Vb8hDbBDuMRXBFk3u02L";
+    const canalJid = "120363429662971001@newsletter";
+    const names = Array.isArray(global.botNames) && global.botNames.length
+      ? global.botNames
+      : [config.botName || "Bot"];
+    const title = pickRandom(names, config.botName || "Bot");
+    const footer = pickRandom(names, config.botName || "Bot");
+    const image = pickRandom(global.botImages, null);
+    const buttons = lang === "ar"
+      ? [
+          { text: "📢 القناة", url: linkCanal },
+          { text: "📋 نسخ الرابط", copy: linkCanal },
+        ]
+      : [
+          { text: "📢 Canal", url: linkCanal },
+          { text: "📋 Copiar enlace", copy: linkCanal },
+        ];
+
+    const sendInteractive = async (text, btns, extra = {}) => {
+      if (typeof sock.sendButtonMessage !== "function") return false;
+      try {
+        await sock.sendButtonMessage(from, text, btns, {
+          title,
+          footer,
+          quoted: msg,
+          image,
+          mentions: [sender],
+          ...extra,
+        });
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    const instructionsSent = await sendInteractive(t.instructions, buttons, {
+      contextInfo: {
+        mentionedJid: [sender],
+        isForwarded: true,
+        forwardingScore: 1,
+        forwardedNewsletterMessageInfo: {
+          newsletterJid: canalJid,
+          newsletterName: footer,
+          serverMessageId: -1,
+        },
+      },
+    });
+    if (!instructionsSent) await reply({ text: t.instructions });
 
     try {
       const code = await requestSubbotCode(id, phone, sock, from, lang);
-      await sock.sendMessage(from, { text: `${code}` }, { quoted: msg });
+      const codeText =
+        lang === "ar"
+          ? `🔑 *كود التنصيب:*\n\n*${code}*\n\n> أدخل الكود في واتساب خلال 60 ثانية.`
+          : `🔑 *Código de instalación:*\n\n*${code}*\n\n> Ingresa el código en WhatsApp dentro de 60 segundos.`;
+      const codeButtons = [
+        { text: lang === "ar" ? "📋 نسخ الكود" : "📋 Copiar código", copy: code },
+      ];
+      const codeSent = await sendInteractive(codeText, codeButtons);
+      if (!codeSent) await sock.sendMessage(from, { text: `${code}` }, { quoted: msg });
       await react("✅");
     } catch (e) {
       cooldowns.delete(phone);
