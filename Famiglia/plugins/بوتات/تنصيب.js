@@ -96,23 +96,12 @@ export default {
 
     cooldowns.set(phone, Date.now());
 
-    const linkCanal = "https://whatsapp.com/channel/0029Vb8hDbBDuMRXBFk3u02L";
-    const canalJid = "120363429662971001@newsletter";
     const names = Array.isArray(global.botNames) && global.botNames.length
       ? global.botNames
       : [config.botName || "Bot"];
     const title = pickRandom(names, config.botName || "Bot");
     const footer = pickRandom(names, config.botName || "Bot");
     const image = pickRandom(global.botImages, null);
-    const buttons = lang === "ar"
-      ? [
-          { text: "📢 القناة", url: linkCanal },
-          { text: "📋 نسخ الرابط", copy: linkCanal },
-        ]
-      : [
-          { text: "📢 Canal", url: linkCanal },
-          { text: "📋 Copiar enlace", copy: linkCanal },
-        ];
 
     const sendInteractive = async (text, btns, extra = {}) => {
       if (typeof sock.sendButtonMessage !== "function") return false;
@@ -131,19 +120,20 @@ export default {
       }
     };
 
-    const instructionsSent = await sendInteractive(t.instructions, buttons, {
-      contextInfo: {
-        mentionedJid: [sender],
-        isForwarded: true,
-        forwardingScore: 1,
-        forwardedNewsletterMessageInfo: {
-          newsletterJid: canalJid,
-          newsletterName: footer,
-          serverMessageId: -1,
-        },
-      },
-    });
-    if (!instructionsSent) await reply({ text: t.instructions });
+    const instructionsText = `${title}\n\n${t.instructions}`;
+    if (image) {
+      try {
+        await sock.sendMessage(
+          from,
+          { image: { url: image }, caption: instructionsText },
+          { quoted: msg }
+        );
+      } catch {
+        await reply({ text: instructionsText });
+      }
+    } else {
+      await reply({ text: instructionsText });
+    }
 
     try {
       const code = await requestSubbotCode(id, phone, sock, from, lang);
