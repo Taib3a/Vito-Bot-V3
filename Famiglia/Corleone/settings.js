@@ -28,7 +28,6 @@ global.botNames = [
 // ═══════════════════════════════════════════════
 global.botImages = [
   'https://cdn.dix.lat/me/1og9_20261118-r2x1-nerw-82b8.jpg',
-  'https://cdn.dix.lat/me/tmp/8365f1f7-f4f1-4a64-ae17-922f12d46e44.jpg',
   'https://cdn.dix.lat/me/qmt1_20261118-r2x1-ex89-6b1b.jpg',
   'https://cdn.dix.lat/me/s57m_20261118-r2x1-66p0-47bd.jpg',
   'https://cdn.dix.lat/me/t7jd_20261118-r2x1-m062-0817.jpg',
