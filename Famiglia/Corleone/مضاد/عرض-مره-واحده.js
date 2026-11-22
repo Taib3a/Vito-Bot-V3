@@ -57,6 +57,8 @@ export default {
     const found = viewOnceContent(msg?.message);
     if (!found) return false;
 
+    log.info(`[${botLabel}] عرض-مره-واحده: اكتشاف ${found.type} من ${numOf(sender)} في ${from}`);
+
     const meta = MEDIA[found.type];
 
     try {
