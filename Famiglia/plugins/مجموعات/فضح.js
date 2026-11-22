@@ -1,5 +1,5 @@
 import { downloadContentFromMessage } from "@whiskeysockets/baileys";
-import { getCachedMessage } from "../../Corleone/messageCache.js";
+import { getCachedMessage, getCachedMedia } from "../../Corleone/messageCache.js";
 
 const WRAPPERS = [
   "viewOnceMessage",
@@ -54,10 +54,15 @@ async function downloadMedia(found, { sock, cached, contextInfo, from }) {
     };
     if (!sock?.updateMediaMessage || !key?.id) throw error;
 
-    const fresh = await sock.updateMediaMessage({
-      key,
-      message: cached?.message || found.message,
-    });
+    let fresh;
+    try {
+      fresh = await sock.updateMediaMessage({
+        key,
+        message: cached?.message || found.message,
+      });
+    } catch {
+      throw error;
+    }
     const retry = findMedia(fresh?.message);
     if (!retry) throw error;
     return getBuffer(retry.media, retry.type);
@@ -111,6 +116,7 @@ export default {
       console.log('[فضح] context', JSON.stringify({
         stanzaId: contextInfo?.stanzaId || null,
         cached: !!cached,
+        media: !!getCachedMedia(contextInfo?.stanzaId),
         quotedKeys: Object.keys(quoted || {}),
         rawKeys: Object.keys(raw || {}),
         type: found?.type || null,
@@ -131,12 +137,15 @@ export default {
 
       await react("👁️");
 
-      const buffer = await downloadMedia(found, {
-        sock,
-        cached,
-        contextInfo,
-        from,
-      });
+      const cachedMedia = getCachedMedia(contextInfo?.stanzaId);
+      const buffer =
+        cachedMedia ||
+        (await downloadMedia(found, {
+          sock,
+          cached,
+          contextInfo,
+          from,
+        }));
 
       if (!buffer?.length) {
         await react("❌");

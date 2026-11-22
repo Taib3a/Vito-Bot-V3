@@ -10,6 +10,7 @@ import { pickGroupResponder } from "./groupResponder.js";
 import { extractButtonId } from "./buttons.js";
 import { isPremiumUser } from "./premium.js";
 import { cacheMessage } from "./messageCache.js";
+import { cacheViewOnceMedia } from "./viewOnceMedia.js";
 
 const GROUP_TTL = 10 * 60 * 1000;
 const groupCache = new Map();
@@ -82,6 +83,7 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
     sock = getLiveSock(sock);
     const msg = rawMsg;
     cacheMessage(msg);
+    cacheViewOnceMedia(msg).catch(() => {});
     const from = msg.key?.remoteJid;
     if (!from) return;
     if (from === "status@broadcast") return;

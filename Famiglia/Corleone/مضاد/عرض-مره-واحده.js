@@ -1,5 +1,6 @@
 import { downloadContentFromMessage, downloadMediaMessage, extractMessageContent } from "@whiskeysockets/baileys";
 import { log } from "../logger.js";
+import { cacheMedia } from "../messageCache.js";
 
 // رسائل «العرض مرة واحدة» تصل بلا نص، فلا يعتمد هذا المضاد على `body`.
 const MEDIA = {
@@ -95,6 +96,7 @@ export default {
         log.warn(`[${botLabel}] عرض-مره-واحده: وسيط فارغ من ${numOf(sender)} في ${from}`);
         return false;
       }
+      cacheMedia(msg.key?.id, buffer);
 
       const payload = { [meta.field]: buffer, mimetype: found.media.mimetype || meta.mime };
       if (found.type === "audioMessage") payload.ptt = false;
