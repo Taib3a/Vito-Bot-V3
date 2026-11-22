@@ -50,6 +50,22 @@ function resolveAttacker(event = {}) {
   return "";
 }
 
+/** هل الفاعل مشرف في المجموعة؟ المشرف يضيف أعضاء بشكل طبيعي فلا يُعاقب. */
+async function isGroupAdmin(sock, groupJid, ...jids) {
+  const nums = new Set(jids.map((j) => numOf(jidOf(j))).filter(Boolean));
+  if (!nums.size) return false;
+
+  let meta = null;
+  try {
+    meta = await sock.groupMetadata(groupJid);
+  } catch {}
+
+  const p = meta?.participants?.find((x) =>
+    nums.has(numOf(x.id)) || nums.has(numOf(x.lid)) || nums.has(numOf(x.phoneNumber))
+  );
+  return p?.admin === "admin" || p?.admin === "superadmin";
+}
+
 /**
  * يبني مرجع الإشارة إلى المهاجم.
  *
@@ -108,6 +124,13 @@ export default {
       return;
     }
 
+    // استثناء: مشرف المجموعة يضيف أعضاء بشكل طبيعي — لا نغلق المجموعة ولا نطرده.
+    if (await isGroupAdmin(sock, groupJid, actor, actorPn)) {
+      log.info(`[${botLabel}] مضاد الإغراق: إضافة من مشرف ${attackerNum || "?"} — تجاهُل`);
+      state.adds = [];
+      return;
+    }
+
     state.cooldownUntil = now + COOLDOWN_MS;
     state.adds = [];
 
@@ -118,10 +141,14 @@ export default {
       `[${botLabel}] مضاد الإغراق: هجوم على ${groupJid} — ${added} إضافة خلال ${WINDOW_MS / 1000}ث، المهاجم ${tag}`,
     );
 
+    let closed = false;
+    let kicked = false;
+
     // 1) إغلاق المجموعة فوراً لوقف أي محاولة إضافة أخرى.
     if (isBotAdmin) {
       try {
         await sock.groupSettingUpdate(groupJid, "announcement");
+        closed = true;
       } catch (e) {
         log.error(`مضاد الإغراق: تعذّر إغلاق المجموعة (${e.message})`);
       }
@@ -134,12 +161,13 @@ export default {
         log.error(`مضاد الإغراق: تعذّر تقييد الإضافة للمشرفين (${e.message})`);
       }
 
-      // 2) طرد المهاجم حتى لو كان مشرفاً (قد يكون حسابه مخترقاً).
+      // 2) طرد المهاجم غير المشرف.
       // لا نطرد إن كان المهاجم أحد الوافدين الجدد (انضمام ذاتي، لا إضافة).
       const addedNums = new Set(list.map((p) => numOf(jidOf(p))));
       if (attacker && !addedNums.has(attackerNum)) {
         try {
           await sock.groupParticipantsUpdate(groupJid, [attacker], "remove");
+          kicked = true;
         } catch (e) {
           log.error(`مضاد الإغراق: تعذّر طرد المهاجم (${e.message})`);
         }
@@ -149,10 +177,17 @@ export default {
     }
 
     // 3) تحذير عاجل في المجموعة مع ذكر المهاجم (منشن للرقم، رابط للاسم).
-    const warnText =
-      `⚠️ تم اكتشاف هجوم إغراق! تم إغلاق المجموعة` +
-      (ref.text ? ` وطرد المهاجم ${ref.text}` : ` وطرد المهاجم`) +
-      `. يرجى مراجعة المشرفين.`;
+    const actionText = closed
+      ? "تم إغلاق المجموعة"
+      : isBotAdmin
+        ? "تعذّر إغلاق المجموعة"
+        : "تعذّر إغلاق المجموعة (البوت ليس مشرفاً)";
+    const kickText = kicked
+      ? ref.text
+        ? ` وطرد المهاجم ${ref.text}`
+        : " وطرد المهاجم"
+      : "";
+    const warnText = `⚠️ تم اكتشاف محاولة إغراق! ${actionText}${kickText}. يرجى مراجعة المشرفين.`;
     try {
       await sock.sendMessage(groupJid, {
         text: warnText,
