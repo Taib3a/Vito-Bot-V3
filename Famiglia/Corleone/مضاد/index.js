@@ -4,6 +4,7 @@ import { fileURLToPath, pathToFileURL } from "url";
 import { WAMessageStubType } from "@whiskeysockets/baileys";
 import { log } from "../logger.js";
 import { db } from "../../database/db.js";
+import { shouldHandleGroupEvent } from "../groupResponder.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -155,6 +156,7 @@ export function registerAntifeatures(sock, botLabel = "MAIN") {
     if (!id?.endsWith("@g.us") || !Array.isArray(participants)) return;
 
     try {
+      if (!(await shouldHandleGroupEvent(sock, id, { fresh: true }))) return;
       const groupData = db.getGroup(id);
       const isBotAdmin = await isBotAdminIn(sock, id);
 
@@ -190,6 +192,7 @@ export function registerAntifeatures(sock, botLabel = "MAIN") {
       if (!groupJid?.endsWith("@g.us")) continue;
 
       try {
+        if (!(await shouldHandleGroupEvent(sock, groupJid, { fresh: true }))) continue;
         const groupData = db.getGroup(groupJid);
         for (const mod of modules) {
           if (!mod.onGroupUpdate) continue;
@@ -221,6 +224,7 @@ export function registerAntifeatures(sock, botLabel = "MAIN") {
       if (!from.endsWith("@g.us") || !original?.id) continue;
 
       try {
+        if (!(await shouldHandleGroupEvent(sock, from))) continue;
         const groupData = db.getGroup(from);
         for (const mod of modules) {
           if (!mod.onDelete) continue;

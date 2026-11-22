@@ -5,7 +5,8 @@ import { db } from "../database/db.js";
 import { runAntifeatures, runAllUsersAntifeatures, runServiceAntifeatures } from "./مضاد/index.js";
 import { handleCommandXp } from "./xp.js";
 import { announceLevelUp } from "./levelCard.js";
-import { claimOnce, getLiveSock, activeBots } from "./subbotManager.js";
+import { claimOnce, getLiveSock } from "./subbotManager.js";
+import { pickGroupResponder } from "./groupResponder.js";
 import { extractButtonId } from "./buttons.js";
 
 const GROUP_TTL = 10 * 60 * 1000;
@@ -33,53 +34,6 @@ function cleanJid(jid = "") {
   const userPart = jid.slice(0, atIndex).split(":")[0];
   const domainPart = jid.slice(atIndex + 1);
   return `${userPart}@${domainPart}`;
-}
-
-/**
- * يختار بوتاً واحداً فقط للرد في المجموعة.
- * الأولوية: الرئيسي إن كان مشرفاً، ثم أي فرعي مشرف، ثم الرئيسي، ثم أول بوت موجود.
- * بهذا لا يردّ الرئيسي والفرعيون معاً على الأمر نفسه.
- */
-export function pickGroupResponder(groupMeta, groupJid = "") {
-  const participants = groupMeta?.participants || [];
-  if (!participants.length) return null;
-
-  const online = [...activeBots.values()].filter((b) => {
-    if (!b?.jid || b.status !== "online") return false;
-    // البوت الموقوف عن هذه المجموعة لا يصلح أن يكون المتحدث باسمها.
-    return !groupJid || db.getBotGroup(cleanJid(b.jid).split("@")[0], groupJid).botOn;
-  });
-  if (!online.length) return null;
-
-  const jidOf = (b) => cleanJid(b.jid);
-  const numOf = (jid) => String(jid || "").split("@")[0].split(":")[0];
-  const participantOf = (b) => {
-    const jidNum = numOf(b.jid);
-    const lidNum = numOf(b.lid);
-    return participants.find((p) => {
-      const pId = numOf(p.id);
-      const pLid = numOf(p.lid);
-      return pId === jidNum || (!!lidNum && pId === lidNum) || (!!pLid && (pLid === jidNum || pLid === lidNum));
-    });
-  };
-  const present = online.filter((b) => participantOf(b));
-  if (!present.length) return null;
-
-  const mainNum = String(global.mainBotNum || "");
-  const isMain = (b) => !!b.isMain || (!!mainNum && jidOf(b).split("@")[0] === mainNum);
-  const isAdmin = (b) => {
-    const p = participantOf(b);
-    return p?.admin === "admin" || p?.admin === "superadmin";
-  };
-  const byJid = (a, b) => jidOf(a).localeCompare(jidOf(b));
-
-  const main = present.find(isMain);
-  if (main && isAdmin(main)) return main;
-
-  const adminSub = present.filter((b) => !isMain(b) && isAdmin(b)).sort(byJid)[0];
-  if (adminSub) return adminSub;
-
-  return main || present.sort(byJid)[0];
 }
 
 async function resolveLid(lidJid, groupMeta, sock) {
