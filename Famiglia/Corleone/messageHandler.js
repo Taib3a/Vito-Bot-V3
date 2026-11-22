@@ -9,6 +9,7 @@ import { claimOnce, getLiveSock } from "./subbotManager.js";
 import { pickGroupResponder } from "./groupResponder.js";
 import { extractButtonId } from "./buttons.js";
 import { isPremiumUser } from "./premium.js";
+import { cacheMessage } from "./messageCache.js";
 
 const GROUP_TTL = 10 * 60 * 1000;
 const groupCache = new Map();
@@ -80,6 +81,7 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
     // المقبس المُمرَّر قد يكون أُغلق بعد إعادة اتصال؛ استخدم الحيّ لنفس الرقم.
     sock = getLiveSock(sock);
     const msg = rawMsg;
+    cacheMessage(msg);
     const from = msg.key?.remoteJid;
     if (!from) return;
     if (from === "status@broadcast") return;
