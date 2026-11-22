@@ -1,6 +1,5 @@
 import axios from "axios";
 import db from "../../database/db.js";
-import { isPremiumUser } from "../../Corleone/premium.js";
 import { broadcastReaccionCanal } from "../../Corleone/subbotManager.js";
 
 const MAKLUXNXX_API =
@@ -83,17 +82,7 @@ function dailyUserKey(ctx) {
 }
 
 function isDailyExempt(ctx) {
-  return (
-    ctx.isOwner === true ||
-    ctx.isCoOwner === true ||
-    ctx.isPremium === true ||
-    isPremiumUser({
-      number: ctx.senderNum,
-      username: ctx.msg?.pushName,
-      jid: ctx.sender,
-      includeUsernames: true,
-    })
-  );
+  return ctx.isOwner === true || ctx.isCoOwner === true;
 }
 
 function getDailyUse(ctx) {
