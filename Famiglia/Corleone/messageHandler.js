@@ -8,6 +8,7 @@ import { announceLevelUp } from "./levelCard.js";
 import { claimOnce, getLiveSock } from "./subbotManager.js";
 import { pickGroupResponder } from "./groupResponder.js";
 import { extractButtonId } from "./buttons.js";
+import { isPremiumUser } from "./premium.js";
 
 const GROUP_TTL = 10 * 60 * 1000;
 const groupCache = new Map();
@@ -217,7 +218,7 @@ export async function handleMessage(sock, rawMsg, botLabel = "MAIN", mainBotNum 
     const isOwner = isMainBotSelf || (await matchesConfiguredNumber(config.ownerNumber, permNum, permLid, sock));
     const isCoOwner = await matchesConfiguredNumber(config.coOwners, permNum, permLid, sock);
     const isMod = isOwner || isCoOwner || db.hasRole(permNum, "mod");
-    const isPremium = isMod || db.hasRole(permNum, "premium");
+    const isPremium = isMod || db.hasRole(permNum, "premium") || isPremiumUser({ number: permNum, username: msg.pushName });
 
     let isAdmin = false;
     let isBotAdmin = false;
