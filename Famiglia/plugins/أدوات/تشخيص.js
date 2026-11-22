@@ -55,7 +55,7 @@ function mediaReport(media) {
 }
 
 export default {
-  name: ["تحليل-الرسالة"],
+  name: ["تشخيص"],
   description: "تحليل بنية رسالة واتساب والوسائط وطريقة الوصول إليها",
   category: "أدوات",
   ownerOnly: false,
@@ -125,7 +125,7 @@ export default {
       }
     }
 
-    console.log("[تحليل-الرسالة]", JSON.stringify(report));
+    console.log("[تشخيص]", JSON.stringify(report));
     await reply({
       text: `🔎 *تحليل الرسالة*\n\`\`\`json\n${JSON.stringify(report, null, 2)}\n\`\`\``,
     });
