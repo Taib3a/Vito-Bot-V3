@@ -360,7 +360,7 @@ export default {
           const safePage = Math.max(0, Math.min(page, Math.max(total - 1, 0)));
           const pageCats = cats.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
           const btns = pageCats.map((cat) => ({
-            text: cat,
+            text: `${cat} (${categories[cat].size})`,
             id: `${cmd} ازرار-قسم_0_${encodeURIComponent(cat)}`,
           }));
           if (safePage + 1 < total) {
@@ -393,20 +393,43 @@ export default {
             );
           }
           const cmds = [...categories[cat]];
-          let text = lang === "ar" ? `القسم: ${cat}\n\n` : `Categoría: ${cat}\n\n`;
-          for (const c of cmds) text += `• ${usedPrefix}${c}\n`;
-          text += lang === "ar" ? `\nعدد الأوامر: ${cmds.length}` : `\nComandos: ${cmds.length}`;
+          const header =
+            lang === "ar"
+              ? `${nombreBot}\n\nالقسم: ${cat}\nعدد الأوامر: ${cmds.length}\n\n`
+              : `${nombreBot}\n\nCategoría: ${cat}\nComandos: ${cmds.length}\n\n`;
+          const text = `${header}${cmds.map((c) => `• ${usedPrefix}${c}`).join("\n")}`;
 
-          if (image && text.length <= 1024) {
-            try {
-              const payload =
-                typeof image === "string"
-                  ? { image: { url: image }, caption: text }
-                  : { image, caption: text };
-              await sock.sendMessage(from, payload, { quoted: msg });
-              return;
-            } catch {}
+          const sendWithImage = async (caption) => {
+            const sources = [
+              ...new Set(
+                [image, ...(Array.isArray(global.botImages) ? global.botImages : [])].filter(Boolean)
+              ),
+            ];
+            for (const src of sources) {
+              try {
+                await sock.sendMessage(
+                  from,
+                  typeof src === "string"
+                    ? { image: { url: src }, caption }
+                    : { image: src, caption },
+                  { quoted: msg }
+                );
+                return true;
+              } catch {}
+            }
+            return false;
+          };
+
+          if (text.length <= 1024) {
+            if (await sendWithImage(text)) return;
+            return await sock.sendMessage(from, { text }, { quoted: msg });
           }
+
+          const shortCaption =
+            lang === "ar"
+              ? `${nombreBot}\n\nالقسم: ${cat}\nعدد الأوامر: ${cmds.length}`
+              : `${nombreBot}\n\nCategoría: ${cat}\nComandos: ${cmds.length}`;
+          await sendWithImage(shortCaption);
           await sock.sendMessage(from, { text }, { quoted: msg });
         };
 
