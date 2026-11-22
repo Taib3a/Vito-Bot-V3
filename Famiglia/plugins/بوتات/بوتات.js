@@ -46,37 +46,59 @@ export default {
 
       const participantsMentions = [];
 
-      let report = ( "•.°· ◇ `قائمة البوتات النشطة` ◇ ·°.•\n");
-      report += ( `〔💎〕الرئيسي: ${config.botName}\n`);
-      report += ( `〔🌀〕البوتات الفرعية المتصلة: ${subbotsConectados.length}\n`);
-      report += ( `〔🌱〕في هذه المجموعة: ${subbotsEnGrupo.length}\n\n`);
+      const botName = (() => {
+        const names = (Array.isArray(global.botNames) ? global.botNames : [])
+          .map((n) => String(n || "").normalize("NFKC").trim())
+          .filter((n) => n && /^[\x20-\x7E]+$/.test(n));
+        if (names.length) return names[Math.floor(Math.random() * names.length)];
+        return String(config.botName || "BOT").normalize("NFKC");
+      })();
+
+      let report = `قائمة البوتات النشطة\n`;
+      report += `الرئيسي: ${botName}\n`;
+      report += `البوتات الفرعية المتصلة: ${subbotsConectados.length}\n`;
+      report += `في هذه المجموعة: ${subbotsEnGrupo.length}\n\n`;
 
       if (principalTarget) {
         const jidPrincipal = jidNormalizedUser(principalTarget.id);
         const digitosVisibles = jidPrincipal.split("@")[0];
         participantsMentions.push(jidPrincipal);
-        report += `> *𖠌 ʙᴏᴛ::* @${digitosVisibles}\n`;
-        report += ( `> *⚝ ᴛɪᴘᴏ::* رئيسي 👑\n\n`);
+        report += `البوت: @${digitosVisibles}\n`;
+        report += `النوع: رئيسي\n\n`;
       }
 
       if (subbotsEnGrupo.length > 0) {
         for (const bot of subbotsEnGrupo) {
           const digitosVisibles = bot.targetJid.split("@")[0];
           participantsMentions.push(bot.targetJid);
-          report += `> *𖠌 ʙᴏᴛ::* @${digitosVisibles}\n`;
-          report += `> *⚝ ᴛɪᴘᴏ::* Sub-bot 🌀\n\n`;
+          report += `البوت: @${digitosVisibles}\n`;
+          report += `النوع: بوت فرعي\n\n`;
         }
       } else if (!principalTarget) {
-        report += ( `⚠️ لا يوجد أي بوت من هذا النظام داخل هذه المجموعة.\n\n`);
+        report += `لا يوجد أي بوت من هذا النظام داخل هذه المجموعة.\n\n`;
       }
 
-      report += `🪼 _Powered by Taib_`;
+      report += `Powered by Taib`;
 
-      await sock.sendMessage(
-        from,
-        { text: report, mentions: participantsMentions.filter(Boolean) },
-        { quoted: msg }
-      );
+      let imageUrl = null;
+      try {
+        imageUrl = await sock.profilePictureUrl(jidNormalizedUser(sock.user?.id || ""), "image");
+      } catch {}
+      if (!imageUrl && Array.isArray(global.botImages) && global.botImages.length) {
+        imageUrl = global.botImages[Math.floor(Math.random() * global.botImages.length)];
+      }
+
+      const mentions = participantsMentions.filter(Boolean);
+      const payload = imageUrl
+        ? { image: { url: imageUrl }, caption: report, mentions }
+        : { text: report, mentions };
+
+      try {
+        await sock.sendMessage(from, payload, { quoted: msg });
+      } catch (e) {
+        if (!imageUrl) throw e;
+        await sock.sendMessage(from, { text: report, mentions }, { quoted: msg });
+      }
 
       await react("✅");
     } catch (e) {
