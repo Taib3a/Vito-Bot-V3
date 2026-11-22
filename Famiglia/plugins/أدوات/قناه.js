@@ -47,7 +47,10 @@ export default {
     const body = [
       ...channels.map(
         (channel) =>
-          `📢 *${channel.name}*\n👥 *المشتركون:* ${channel.subscribers}`
+          `📢 *معلومات القناة*\n\n` +
+          `🆔 *المعرّف:* ${channel.id}\n` +
+          `📛 *الاسم:* ${channel.name}\n` +
+          `👥 *المشتركون:* ${channel.subscribers}`
       ),
       ...errors,
     ].join("\n\n");
@@ -67,14 +70,9 @@ export default {
           quoted: msg,
           mentions: sender ? [sender] : [],
         });
-        return;
       } catch (error) {
         console.error("[Channel ID] button send failed:", error?.message || error);
       }
     }
-
-    await reply({
-      text: channels.map((channel) => `🆔 *المعرّف:* ${channel.id}`).join("\n"),
-    });
   },
 };

@@ -48,6 +48,7 @@ export default {
       ...channels.map(
         (channel) =>
           `📢 *معلومات القناة*\n\n` +
+          `🆔 *المعرّف:* ${channel.id}\n` +
           `📛 *الاسم:* ${channel.name}\n` +
           `👥 *المشتركون:* ${channel.subscribers}\n` +
           `${channel.verification}\n` +
@@ -71,14 +72,9 @@ export default {
           quoted: msg,
           mentions: sender ? [sender] : [],
         });
-        return;
       } catch (error) {
         console.error("[Channel Info] button send failed:", error?.message || error);
       }
     }
-
-    await reply({
-      text: channels.map((channel) => `🆔 *المعرّف:* ${channel.id}`).join("\n"),
-    });
   },
 };
