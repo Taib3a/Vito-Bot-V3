@@ -478,8 +478,10 @@ export function launchAllSubbots() {
  * يتفاعل مع رسالة القناة من كل بوت حيّ، موزّعة عشوائياً داخل
  * النافذة حتى لا تصطدم كلها بالواجهة في اللحظة نفسها.
  */
-export async function broadcastReaccionCanal({ canalJid, serverId, emoji, ventanaMs = 5000 }) {
-  const bots = getAllSockets().filter((s) => s && s.user);
+export async function broadcastReaccionCanal({ canalJid, serverId, emoji, ventanaMs = 5000, limit = Infinity }) {
+  const allBots = getAllSockets().filter((s) => s && s.user);
+  const max = Number(limit);
+  const bots = Number.isFinite(max) && max > 0 ? allBots.slice(0, max) : allBots;
 
   const tasks = bots.map(async (s) => {
     await new Promise((r) => setTimeout(r, Math.random() * ventanaMs));
@@ -498,5 +500,11 @@ export async function broadcastReaccionCanal({ canalJid, serverId, emoji, ventan
     }
   }
 
-  return { ok, fail, total: bots.length };
+  return {
+    ok,
+    fail,
+    total: bots.length,
+    available: allBots.length,
+    requested: Number.isFinite(max) ? max : allBots.length,
+  };
 }
