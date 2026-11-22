@@ -137,7 +137,7 @@ export default {
 
     try {
       const code = await requestSubbotCode(id, phone, sock, from, lang);
-      const codeText = `🔑 *${code}*`;
+      const codeText = "\u200B";
       const codeButtons = [
         { text: lang === "ar" ? "📋 نسخ الكود" : "📋 Copiar código", copy: code },
       ];

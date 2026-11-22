@@ -67,6 +67,12 @@ function isArabic(text) {
   return /[\u0600-\u06FF]/.test(text);
 }
 
+function chunk(arr, size) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
 
 // ═══════════════════════════════════════
 // ── دالة وقت التشغيل ──
@@ -97,7 +103,7 @@ export default {
   ownerOnly: false,
 
 
-  async run({ sock, from, sender, senderNum, isGroup, groupName, usedPrefix, msg }) {
+  async run({ sock, from, sender, senderNum, isGroup, groupName, usedPrefix, msg, args, cmdName }) {
     try {
       // ✅ اكتشف اللغة من الرسالة الأصلية
       let rawText = "";
@@ -118,7 +124,7 @@ export default {
       const invokedCommand = afterPrefix.split(/\s+/)[0] || "";
 
 
-      const lang = isArabic(invokedCommand) ? "ar" : "es";
+      const lang = isArabic(String(cmdName || invokedCommand)) || isArabic(rawText) ? "ar" : "es";
 
 
       const currentBotNum = sock.user?.id
@@ -277,38 +283,147 @@ export default {
       const nombreRandom = global.botNames[Math.floor(Math.random() * global.botNames.length)];
       const nombreRandom2 = global.botNames[Math.floor(Math.random() * global.botNames.length)];
       const imagenRandom = global.botImages[Math.floor(Math.random() * global.botImages.length)];
-
-
-      const linkCanal = "https://whatsapp.com/channel/0029Vb8hDbBDuMRXBFk3u02L";
       const canalJid = "120363429662971001@newsletter";
+      const image = urlFoto || imagenRandom;
 
-
-      const buttons = lang === "ar" ? [
-        { text: "📢 القناة", url: linkCanal },
-        { text: "📋 نسخ الرابط", copy: linkCanal }
-      ] : [
-        { text: "📢 Canal", url: linkCanal },
-        { text: "📋 Copiar enlace", copy: linkCanal }
-      ];
-
-
-      await sock.sendButtonMessage(from, textoMenu, buttons, {
-        title: nombreBot,
-        footer: nombreRandom,
-        quoted: msg,
-        image: imagenRandom,
-        mentions: [sender],
-        contextInfo: {
-          mentionedJid: [sender],
-          isForwarded: true,
-          forwardingScore: 1,
-          forwardedNewsletterMessageInfo: {
-            newsletterJid: canalJid,
-            newsletterName: nombreRandom2,
-            serverMessageId: -1,
-          },
+      const sendPanel = async (text, buttons = [], sections = [], selectLabel = "") => {
+        if (typeof sock.sendButtonMessage !== "function") {
+          return await sock.sendMessage(from, { text }, { quoted: msg });
         }
-      });
+        try {
+          await sock.sendButtonMessage(from, text, buttons, {
+            title: nombreBot,
+            footer: nombreRandom,
+            quoted: msg,
+            image,
+            mentions: [sender],
+            sections,
+            selectLabel,
+            contextInfo: {
+              mentionedJid: [sender],
+              isForwarded: true,
+              forwardingScore: 1,
+              forwardedNewsletterMessageInfo: {
+                newsletterJid: canalJid,
+                newsletterName: nombreRandom2,
+                serverMessageId: -1,
+              },
+            },
+          });
+        } catch {
+          await sock.sendMessage(from, { text }, { quoted: msg });
+        }
+      };
+
+      const cmd = `${usedPrefix}اوامر`;
+      const mode = String(args?.[0] || "").toLowerCase();
+      const catArg = String(args?.slice(1).join(" ") || "").trim();
+      const isClick = ["ازرار", "أزرار", "buttons", "button"].includes(mode);
+      const isList = ["قائمة", "قائمه", "list", "dropdown"].includes(mode);
+      const isText = ["نص", "نصي", "text"].includes(mode);
+
+      const modePrompt = async () => {
+        const modeButtons = lang === "ar"
+          ? [
+              { text: "🔵 أزرار قابلة للضغط", id: `${cmd} ازرار` },
+              { text: "📋 أزرار منسدلة", id: `${cmd} قائمة` },
+              { text: "📜 القائمة النصية", id: `${cmd} نص` },
+            ]
+          : [
+              { text: "🔵 Botones pulsables", id: `${cmd} buttons` },
+              { text: "📋 Menú desplegable", id: `${cmd} list` },
+              { text: "📜 Lista de texto", id: `${cmd} text` },
+            ];
+        await sendPanel(
+          lang === "ar" ? "اختر طريقة عرض الأوامر:" : "Elige cómo mostrar los comandos:",
+          modeButtons
+        );
+      };
+
+      if (!mode) {
+        return await modePrompt();
+      }
+
+      if (isClick) {
+        const cats = Object.keys(categories);
+        const MAX_BUTTONS = 9;
+        if (!catArg) {
+          const catButtons = cats.slice(0, MAX_BUTTONS).map((cat) => ({
+            text: cat,
+            id: `${cmd} ازرار ${cat}`,
+          }));
+          if (cats.length > MAX_BUTTONS) {
+            catButtons.push({
+              text: lang === "ar" ? "📋 المزيد" : "📋 Más",
+              id: `${cmd} قائمة`,
+            });
+          }
+          return await sendPanel(lang === "ar" ? "اختر القسم:" : "Elige una categoría:", catButtons);
+        }
+        const cat = cats.find((c) => c === catArg) || cats.find((c) => c.toLowerCase() === catArg.toLowerCase());
+        if (!cat) return await sendPanel(lang === "ar" ? "❌ القسم غير موجود." : "❌ Categoría no encontrada.");
+        const cmds = [...categories[cat]];
+        const cmdButtons = cmds.slice(0, MAX_BUTTONS).map((c) => ({
+          text: `${usedPrefix}${c}`,
+          id: `${usedPrefix}${c}`,
+        }));
+        if (cmds.length > MAX_BUTTONS) {
+          cmdButtons.push({
+            text: lang === "ar" ? "📋 المزيد" : "📋 Más",
+            id: `${cmd} قائمة ${cat}`,
+          });
+        }
+        return await sendPanel(lang === "ar" ? `أوامر قسم ${cat}:` : `Comandos de ${cat}:`, cmdButtons);
+      }
+
+      if (isList) {
+        const cats = Object.keys(categories);
+        if (!catArg) {
+          const sections = chunk(cats, 10).map((group, i) => ({
+            title:
+              i === 0
+                ? lang === "ar" ? "الأقسام" : "Categorías"
+                : `${lang === "ar" ? "الأقسام" : "Categorías"} ${i + 1}`,
+            rows: group.map((cat) => ({
+              title: cat,
+              description: lang === "ar" ? `${categories[cat].size} أمر` : `${categories[cat].size} comandos`,
+              id: `${cmd} قائمة ${cat}`,
+            })),
+          }));
+          return await sendPanel(
+            lang === "ar" ? "اختر القسم من القائمة:" : "Elige una categoría de la lista:",
+            [],
+            sections,
+            lang === "ar" ? "الأقسام" : "Categorías"
+          );
+        }
+        const cat = cats.find((c) => c === catArg) || cats.find((c) => c.toLowerCase() === catArg.toLowerCase());
+        if (!cat) return await sendPanel(lang === "ar" ? "❌ القسم غير موجود." : "❌ Categoría no encontrada.");
+        const rows = [...categories[cat]].map((c) => ({
+          title: `${usedPrefix}${c}`,
+          id: `${usedPrefix}${c}`,
+        }));
+        rows.push({
+          title: lang === "ar" ? "↩️ رجوع" : "↩️ Volver",
+          id: `${cmd} قائمة`,
+        });
+        const sections = chunk(rows, 10).map((group, i) => ({
+          title: i === 0 ? cat : `${cat} ${i + 1}`,
+          rows: group,
+        }));
+        return await sendPanel(
+          lang === "ar" ? `أوامر قسم ${cat}:` : `Comandos de ${cat}:`,
+          [],
+          sections,
+          cat
+        );
+      }
+
+      if (isText) {
+        return await sock.sendMessage(from, { text: textoMenu }, { quoted: msg });
+      }
+
+      return await modePrompt();
 
 
     } catch (error) {
