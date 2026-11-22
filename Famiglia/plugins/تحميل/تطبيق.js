@@ -3,6 +3,37 @@ import axios from "axios";
 const API_TIMEOUT = 30000;
 const API_HEADERS = { "User-Agent": "AhmadShahzad-MD/1.0 (Aptoide app search)" };
 
+const APK_FALLBACKS = {
+  // Aptoide keeps stale metadata for this app; the pool URL returns 404.
+  "com.aefyr.sai": "https://github.com/Aefyr/SAI/releases/download/4.5/SAI-4.5.apk",
+};
+
+async function isDownloadable(url) {
+  if (!url || !/^https:\/\//i.test(url)) return false;
+  try {
+    const res = await axios.head(url, {
+      timeout: API_TIMEOUT,
+      headers: API_HEADERS,
+      maxRedirects: 10,
+      validateStatus: (status) => status >= 200 && status < 400,
+    });
+    return !String(res.headers["content-type"] || "").toLowerCase().includes("text/html");
+  } catch {
+    try {
+      const res = await axios.get(url, {
+        timeout: API_TIMEOUT,
+        headers: { ...API_HEADERS, Range: "bytes=0-0" },
+        responseType: "arraybuffer",
+        maxRedirects: 10,
+        validateStatus: (status) => status >= 200 && status < 400,
+      });
+      return !String(res.headers["content-type"] || "").toLowerCase().includes("text/html");
+    } catch {
+      return false;
+    }
+  }
+}
+
 function cleanFileName(value) {
   return (
     String(value || "app")
@@ -53,17 +84,23 @@ export default {
       }
 
       const app = list[0];
-      const downloadUrl = app?.file?.path_alt || app?.file?.path || app?.file?.pathAlt;
+      const packageName = String(app.package || "");
+      let downloadUrl = app?.file?.path_alt || app?.file?.path || app?.file?.pathAlt;
 
-      if (!downloadUrl || !/^https:\/\//i.test(downloadUrl)) {
+      if (!(await isDownloadable(downloadUrl))) {
+        downloadUrl = APK_FALLBACKS[packageName] || null;
+      }
+      if (!(await isDownloadable(downloadUrl))) {
         await react("❌");
-        return await reply("❌ لم يوفر متجر Aptoide رابط تحميل صالح. يرجى المحاولة لاحقاً.");
+        return await reply(
+          "❌ التطبيق موجود في Aptoide لكن رابط تحميله غير متاح حالياً. جرّب تطبيقاً آخر أو حاول لاحقاً."
+        );
       }
 
       const sizeBytes = Number(app.size || app.file?.size || 0);
       const sizeText = sizeBytes > 0 ? `${(sizeBytes / 1048576).toFixed(2)} MB` : "غير معروف";
       const appName = String(app.name || query);
-      const packageName = String(app.package || "غير معروف");
+      const packageLabel = String(app.package || "غير معروف");
       const developer = String(app.developer?.name || "غير معروف");
       const version = String(app.file?.vername || app.file?.vercode || "غير معروف");
       const updated = String(app.updated || "غير معروف");
@@ -74,7 +111,7 @@ export default {
         "╭━━━〔 📦 تحميل تطبيقات الأندرويد 〕━━━",
         `┃ 📱 الاسم: ${appName}`,
         `┃ 📦 الحجم: ${sizeText}`,
-        `┃ 🆔 الحزمة: ${packageName}`,
+        `┃ 🆔 الحزمة: ${packageLabel}`,
         `┃ 🔖 الإصدار: ${version}`,
         `┃ 📅 آخر تحديث: ${updated}`,
         `┃ 👨‍💻 المطور: ${developer}`,
@@ -84,31 +121,50 @@ export default {
         "— 𝐀𝐡𝐦𝐚𝐝𝐒𝐡𝐚𝐡𝐳𝐚𝐝-𝐌𝐃",
       ].join("\n");
 
+      let captionSent = false;
       if (iconUrl) {
+        try {
+          await sock.sendMessage(from, { image: { url: iconUrl }, caption }, { quoted: msg });
+          captionSent = true;
+        } catch (error) {
+          console.error("[APK Downloader] icon failed:", error?.message || error);
+        }
+      }
+
+      const docBase = {
+        fileName: `${cleanFileName(appName)}.apk`,
+        mimetype: "application/vnd.android.package-archive",
+        caption: captionSent ? "" : caption,
+      };
+
+      try {
         await sock.sendMessage(
           from,
-          { image: { url: iconUrl }, caption },
+          { ...docBase, document: { url: downloadUrl } },
+          { quoted: msg }
+        );
+      } catch (error) {
+        console.error("[APK Downloader] document URL failed, retrying buffer:", error?.message || error);
+        const apkRes = await axios.get(downloadUrl, {
+          responseType: "arraybuffer",
+          timeout: 120000,
+          headers: API_HEADERS,
+          maxRedirects: 10,
+          validateStatus: (status) => status >= 200 && status < 300,
+        });
+        await sock.sendMessage(
+          from,
+          { ...docBase, document: Buffer.from(apkRes.data) },
           { quoted: msg }
         );
       }
-
-      await sock.sendMessage(
-        from,
-        {
-          document: { url: downloadUrl },
-          fileName: `${cleanFileName(appName)}.apk`,
-          mimetype: "application/vnd.android.package-archive",
-          caption: iconUrl ? "" : caption,
-        },
-        { quoted: msg }
-      );
 
       await react("✅");
     } catch (error) {
       console.error("[APK Downloader]", error?.message || error);
       await react("❌");
       return await reply(
-        "❌ فشل جلب/تحميل التطبيق. قد تكون خدمة Aptoide أو الشبكة مشغولة؛ يرجى المحاولة لاحقاً."
+        "❌ تعذّر تحميل ملف التطبيق. قد يكون رابط التحميل غير متاح أو الشبكة مشغولة؛ جرّب تطبيقاً آخر أو حاول لاحقاً."
       );
     }
   },
