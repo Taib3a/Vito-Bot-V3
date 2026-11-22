@@ -1,5 +1,5 @@
 import { downloadContentFromMessage } from "@whiskeysockets/baileys";
-import { getCachedMessage, getCachedMedia } from "../../Corleone/messageCache.js";
+import { getCachedMessage, getCachedMedia, cacheMedia } from "../../Corleone/messageCache.js";
 
 const WRAPPERS = [
   "viewOnceMessage",
@@ -92,7 +92,7 @@ export default {
   category: "المجموعات",
   ownerOnly: false,
 
-  async run({ sock, from, msg, reply, react, cmdName }) {
+  async run({ sock, from, msg, reply, react, cmdName, botLabel, sender }) {
     const isArabic = /[\u0600-\u06FF]/.test(String(cmdName || ""));
     const lang = isArabic ? "ar" : "es";
     const t = T[lang];
@@ -114,6 +114,8 @@ export default {
       const raw = cached?.message || quoted;
       const found = findMedia(raw);
       console.log('[فضح] context', JSON.stringify({
+        bot: botLabel || null,
+        sender: sender || null,
         stanzaId: contextInfo?.stanzaId || null,
         cached: !!cached,
         media: !!getCachedMedia(contextInfo?.stanzaId),
@@ -151,6 +153,8 @@ export default {
         await react("❌");
         return await reply({ text: t.fail });
       }
+
+      cacheMedia(contextInfo?.stanzaId, buffer);
 
       const payload = {
         [found.field]: buffer,
