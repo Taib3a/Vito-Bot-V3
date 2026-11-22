@@ -1,5 +1,6 @@
 import { log } from "../logger.js";
 import config from "../settings.js";
+import { db } from "../../database/db.js";
 import { addWarning, clearWarnings, MAX_WARNINGS } from "../warnings.js";
 
 const linkRegex = /(?:^|[\s/])(?:chat\.whatsapp\.com\/[0-9A-Za-z]{20,24}|(?:www\.|web\.)?whatsapp\.com\/channel\/[0-9A-Za-z]{10,30})(?:[\s?]|$)/i;
@@ -17,6 +18,32 @@ function ownerNumbers() {
     .map((n) => numOf(String(n)));
 }
 
+/** هل المرسل أحد البوتات النشطة (الرئيسي أو الفرعي)؟ */
+function isActiveBot(sender) {
+  const num = numOf(sender);
+  if (!num) return false;
+  const main = String(global.mainBotNum || "");
+  if (main && num === main) return true;
+  for (const b of global.activeBots?.values?.() || []) {
+    if (numOf(b?.jid) === num) return true;
+  }
+  return false;
+}
+
+/** فحص مباشر من بيانات المجموعة: قد تكون isAdmin غير محسوبة للمرسل. */
+async function isGroupAdminNow(sock, groupJid, sender) {
+  try {
+    const meta = await sock.groupMetadata(groupJid);
+    const num = numOf(sender);
+    const p = meta?.participants?.find((x) =>
+      numOf(x.id) === num || numOf(x.lid) === num || numOf(x.phoneNumber) === num
+    );
+    return p?.admin === "admin" || p?.admin === "superadmin";
+  } catch {
+    return false;
+  }
+}
+
 export default {
   name: "مضاد-روابط",
   flag: "antilink",
@@ -29,6 +56,9 @@ export default {
     if (numOf(sender) === numOf(sock.user?.id)) return false;
     if (isOwner || isAdmin || isMod) return false;
     if (ownerNumbers().includes(numOf(sender))) return false;
+    if (db.hasRole(sender, "mod") || db.hasRole(numOf(sender), "mod")) return false;
+    if (isActiveBot(sender)) return false;
+    if (await isGroupAdminNow(sock, from, sender)) return false;
 
     const user = numOf(sender);
 
