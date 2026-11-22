@@ -50,7 +50,7 @@ export default {
         const names = (Array.isArray(global.botNames) ? global.botNames : [])
           .map((n) => String(n || "").normalize("NFKC").trim())
           .filter((n) => n && /^[\x20-\x7E]+$/.test(n));
-        if (names.length) return names[Math.floor(Math.random() * names.length)];
+        if (names.length) return names[0];
         return String(config.botName || "BOT").normalize("NFKC");
       })();
 
@@ -81,11 +81,13 @@ export default {
       report += `Powered by Taib`;
 
       let imageUrl = null;
-      try {
-        imageUrl = await sock.profilePictureUrl(jidNormalizedUser(sock.user?.id || ""), "image");
-      } catch {}
-      if (!imageUrl && Array.isArray(global.botImages) && global.botImages.length) {
+      if (Array.isArray(global.botImages) && global.botImages.length) {
         imageUrl = global.botImages[Math.floor(Math.random() * global.botImages.length)];
+      }
+      if (!imageUrl) {
+        try {
+          imageUrl = await sock.profilePictureUrl(jidNormalizedUser(sock.user?.id || ""), "image");
+        } catch {}
       }
 
       const mentions = participantsMentions.filter(Boolean);
