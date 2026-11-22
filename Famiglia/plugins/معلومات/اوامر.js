@@ -349,25 +349,19 @@ export default {
       }
 
       if (isClick) {
-        const allCommands = [];
-        const seen = new Set();
-        for (const set of Object.values(categories)) {
-          for (const name of set) {
-            if (seen.has(name)) continue;
-            seen.add(name);
-            allCommands.push(name);
-          }
-        }
-
+        const cats = Object.keys(categories);
         const PAGE_SIZE = 2;
-        const total = Math.ceil(allCommands.length / PAGE_SIZE);
+        const findCat = (value) =>
+          cats.find((c) => c === value) ||
+          cats.find((c) => c.toLowerCase() === String(value).toLowerCase());
 
-        const sendCommandPage = async (page = 0) => {
+        const sendCategoryPage = async (page = 0) => {
+          const total = Math.ceil(cats.length / PAGE_SIZE);
           const safePage = Math.max(0, Math.min(page, Math.max(total - 1, 0)));
-          const items = allCommands.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
-          const btns = items.map((name) => ({
-            text: `${usedPrefix}${name}`,
-            id: `${usedPrefix}${name}`,
+          const pageCats = cats.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+          const btns = pageCats.map((cat) => ({
+            text: cat,
+            id: `${cmd} ازرار-قسم_0_${encodeURIComponent(cat)}`,
           }));
           if (safePage + 1 < total) {
             btns.push({
@@ -383,20 +377,67 @@ export default {
           }
           return await sendPanel(
             lang === "ar"
-              ? `اختر الأمر (${safePage + 1}/${total}):`
-              : `Elige un comando (${safePage + 1}/${total}):`,
+              ? `اختر القسم (${safePage + 1}/${total}):`
+              : `Elige una categoría (${safePage + 1}/${total}):`,
+            btns
+          );
+        };
+
+        const sendCommandPage = async (catName, page = 0) => {
+          const cat = findCat(catName);
+          if (!cat) {
+            return await sendPanel(lang === "ar" ? "❌ القسم غير موجود." : "❌ Categoría no encontrada.");
+          }
+          const cmds = [...categories[cat]];
+          const total = Math.ceil(cmds.length / PAGE_SIZE);
+          const safePage = Math.max(0, Math.min(page, Math.max(total - 1, 0)));
+          const pageCmds = cmds.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+          const btns = pageCmds.map((c) => ({
+            text: `${usedPrefix}${c}`,
+            id: `${usedPrefix}${c}`,
+          }));
+          if (safePage + 1 < total) {
+            btns.push({
+              text: lang === "ar" ? "➕ المزيد" : "➕ Más",
+              id: `${cmd} ازرار-قسم_${safePage + 1}_${encodeURIComponent(cat)}`,
+            });
+          }
+          if (safePage > 0) {
+            btns.push({
+              text: lang === "ar" ? "↩️ السابق" : "↩️ Anterior",
+              id: `${cmd} ازرار-قسم_${safePage - 1}_${encodeURIComponent(cat)}`,
+            });
+          }
+          btns.push({
+            text: lang === "ar" ? "↩️ الأقسام" : "↩️ Categorías",
+            id: `${cmd} ازرار`,
+          });
+          return await sendPanel(
+            lang === "ar"
+              ? `أوامر قسم ${cat} (${safePage + 1}/${total}):`
+              : `Comandos de ${cat} (${safePage + 1}/${total}):`,
             btns
           );
         };
 
         if (mode === "ازرار" || mode === "أزرار" || mode === "buttons" || mode === "button") {
-          return await sendCommandPage(0);
+          return await sendCategoryPage(0);
         }
         if (mode.startsWith("ازرار-المزيد_")) {
           const page = parseInt(modeRaw.slice("ازرار-المزيد_".length), 10) || 0;
-          return await sendCommandPage(page);
+          return await sendCategoryPage(page);
         }
-        return await sendCommandPage(0);
+        if (mode.startsWith("ازرار-قسم_")) {
+          const rest = modeRaw.slice("ازرار-قسم_".length);
+          const [pageStr, ...catParts] = rest.split("_");
+          const page = parseInt(pageStr, 10) || 0;
+          const cat = decodeURIComponent(catParts.join("_"));
+          return await sendCommandPage(cat, page);
+        }
+        if (catArg) {
+          return await sendCommandPage(catArg, 0);
+        }
+        return await sendCategoryPage(0);
       }
 
       if (isList) {
