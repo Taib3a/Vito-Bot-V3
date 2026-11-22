@@ -56,6 +56,8 @@ export default {
       ...errors,
     ].join("\n\n");
 
+    await reply({ text: body });
+
     const buttons = channels.map((channel) => ({
       text: `🆔 ${channel.id}`,
       copy: channel.id,
@@ -63,9 +65,9 @@ export default {
 
     if (typeof sock.sendButtonMessage === "function") {
       try {
-        await sock.sendButtonMessage(from, body, buttons, {
-          title: "🆔 معلومات القناة",
-          footer: "اضغط على الزر لنسخ المعرّف",
+        await sock.sendButtonMessage(from, "\u200B", buttons, {
+          title: "",
+          footer: "",
           quoted: msg,
           mentions: sender ? [sender] : [],
         });
@@ -75,10 +77,8 @@ export default {
       }
     }
 
-    return await reply({
-      text:
-        `${body}\n\n` +
-        channels.map((channel) => `🆔 *المعرّف:* ${channel.id}`).join("\n"),
+    await reply({
+      text: channels.map((channel) => `🆔 *المعرّف:* ${channel.id}`).join("\n"),
     });
   },
 };
