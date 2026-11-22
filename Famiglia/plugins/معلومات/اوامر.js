@@ -316,9 +316,13 @@ export default {
       };
 
       const cmd = `${usedPrefix}اوامر`;
-      const mode = String(args?.[0] || "").toLowerCase();
+      const modeRaw = String(args?.[0] || "");
+      const mode = modeRaw.toLowerCase();
       const catArg = String(args?.slice(1).join(" ") || "").trim();
-      const isClick = ["ازرار", "أزرار", "buttons", "button"].includes(mode);
+      const isClick =
+        ["ازرار", "أزرار", "buttons", "button"].includes(mode) ||
+        mode.startsWith("ازرار-") ||
+        mode.startsWith("buttons-");
       const isList = ["قائمة", "قائمه", "list", "dropdown"].includes(mode);
       const isText = ["نص", "نصي", "text"].includes(mode);
 
@@ -345,35 +349,54 @@ export default {
       }
 
       if (isClick) {
-        const cats = Object.keys(categories);
-        const MAX_BUTTONS = 9;
-        if (!catArg) {
-          const catButtons = cats.slice(0, MAX_BUTTONS).map((cat) => ({
-            text: cat,
-            id: `${cmd} ازرار ${cat}`,
+        const allCommands = [];
+        const seen = new Set();
+        for (const set of Object.values(categories)) {
+          for (const name of set) {
+            if (seen.has(name)) continue;
+            seen.add(name);
+            allCommands.push(name);
+          }
+        }
+
+        const PAGE_SIZE = 2;
+        const total = Math.ceil(allCommands.length / PAGE_SIZE);
+
+        const sendCommandPage = async (page = 0) => {
+          const safePage = Math.max(0, Math.min(page, Math.max(total - 1, 0)));
+          const items = allCommands.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+          const btns = items.map((name) => ({
+            text: `${usedPrefix}${name}`,
+            id: `${usedPrefix}${name}`,
           }));
-          if (cats.length > MAX_BUTTONS) {
-            catButtons.push({
-              text: lang === "ar" ? "📋 المزيد" : "📋 Más",
-              id: `${cmd} قائمة`,
+          if (safePage + 1 < total) {
+            btns.push({
+              text: lang === "ar" ? "➕ المزيد" : "➕ Más",
+              id: `${cmd} ازرار-المزيد_${safePage + 1}`,
             });
           }
-          return await sendPanel(lang === "ar" ? "اختر القسم:" : "Elige una categoría:", catButtons);
+          if (safePage > 0) {
+            btns.push({
+              text: lang === "ar" ? "↩️ السابق" : "↩️ Anterior",
+              id: `${cmd} ازرار-المزيد_${safePage - 1}`,
+            });
+          }
+          return await sendPanel(
+            lang === "ar"
+              ? `اختر الأمر (${safePage + 1}/${total}):`
+              : `Elige un comando (${safePage + 1}/${total}):`,
+            btns
+          );
+        };
+
+        if (mode === "ازرار" || mode === "أزرار" || mode === "buttons" || mode === "button") {
+          return await sendCommandPage(0);
         }
-        const cat = cats.find((c) => c === catArg) || cats.find((c) => c.toLowerCase() === catArg.toLowerCase());
-        if (!cat) return await sendPanel(lang === "ar" ? "❌ القسم غير موجود." : "❌ Categoría no encontrada.");
-        const cmds = [...categories[cat]];
-        const cmdButtons = cmds.slice(0, MAX_BUTTONS).map((c) => ({
-          text: `${usedPrefix}${c}`,
-          id: `${usedPrefix}${c}`,
-        }));
-        if (cmds.length > MAX_BUTTONS) {
-          cmdButtons.push({
-            text: lang === "ar" ? "📋 المزيد" : "📋 Más",
-            id: `${cmd} قائمة ${cat}`,
-          });
+        if (mode.startsWith("ازرار-المزيد_")) {
+          const page = parseInt(modeRaw.slice("ازرار-المزيد_".length), 10) || 0;
+          return await sendCommandPage(page);
         }
-        return await sendPanel(lang === "ar" ? `أوامر قسم ${cat}:` : `Comandos de ${cat}:`, cmdButtons);
+        return await sendCommandPage(0);
       }
 
       if (isList) {
@@ -420,7 +443,17 @@ export default {
       }
 
       if (isText) {
-        return await sock.sendMessage(from, { text: textoMenu }, { quoted: msg });
+        const linkCanal = "https://whatsapp.com/channel/0029Vb8hDbBDuMRXBFk3u02L";
+        const textButtons = lang === "ar"
+          ? [
+              { text: "📢 القناة", url: linkCanal },
+              { text: "📋 نسخ الرابط", copy: linkCanal },
+            ]
+          : [
+              { text: "📢 Canal", url: linkCanal },
+              { text: "📋 Copiar enlace", copy: linkCanal },
+            ];
+        return await sendPanel(textoMenu, textButtons);
       }
 
       return await modePrompt();
