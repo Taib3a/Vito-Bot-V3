@@ -395,9 +395,10 @@ export default {
           const cmds = [...categories[cat]];
           const header =
             lang === "ar"
-              ? `${nombreBot}\n\nالقسم: ${cat}\nعدد الأوامر: ${cmds.length}\n\n`
-              : `${nombreBot}\n\nCategoría: ${cat}\nComandos: ${cmds.length}\n\n`;
-          const text = `${header}${cmds.map((c) => `• ${usedPrefix}${c}`).join("\n")}`;
+              ? `القسم: ${cat}\nعدد الأوامر: ${cmds.length}\n\n`
+              : `Categoría: ${cat}\nComandos: ${cmds.length}\n\n`;
+          const footer = `\n\n${nombreBot}`;
+          const text = `${header}${cmds.map((c) => `• ${usedPrefix}${c}`).join("\n")}${footer}`;
 
           const sendWithImage = async (caption) => {
             const sources = [
@@ -427,8 +428,8 @@ export default {
 
           const shortCaption =
             lang === "ar"
-              ? `${nombreBot}\n\nالقسم: ${cat}\nعدد الأوامر: ${cmds.length}`
-              : `${nombreBot}\n\nCategoría: ${cat}\nComandos: ${cmds.length}`;
+              ? `القسم: ${cat}\nعدد الأوامر: ${cmds.length}\n\n${nombreBot}`
+              : `Categoría: ${cat}\nComandos: ${cmds.length}\n\n${nombreBot}`;
           await sendWithImage(shortCaption);
           await sock.sendMessage(from, { text }, { quoted: msg });
         };
