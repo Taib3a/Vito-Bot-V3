@@ -7,17 +7,6 @@ async function getBuffer(message, type) {
   return Buffer.concat(chunks);
 }
 
-const WRAPPERS = ["viewOnceMessage", "viewOnceMessageV2", "viewOnceMessageV2Extension"];
-
-/** يفكّ غلاف «المشاهدة مرة واحدة» مع الحفاظ على العلم الداخلي. */
-function unwrapQuoted(quoted) {
-  let q = quoted;
-  for (const w of WRAPPERS) {
-    if (q?.[w]?.message) q = q[w].message;
-  }
-  return q;
-}
-
 const T = {
   ar: {
     noQuote: "❌ رد على رسالة (صورة/فيديو/صوت) لمشاهدة مرة واحدة",
@@ -45,26 +34,17 @@ export default {
     const t = T[lang];
 
     try {
-      const rawQuoted =
+      const quoted =
         msg.quoted?.message ||
-        msg.message?.extendedTextMessage?.contextInfo?.quotedMessage ||
-        msg.message?.imageMessage?.contextInfo?.quotedMessage ||
-        msg.message?.videoMessage?.contextInfo?.quotedMessage ||
-        msg.message?.audioMessage?.contextInfo?.quotedMessage ||
-        null;
+        msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
 
-      if (!rawQuoted) {
+      if (!quoted) {
         return await reply({ text: t.noQuote });
       }
 
-      const wrapped = WRAPPERS.some((w) => rawQuoted?.[w]);
-      const quoted = unwrapQuoted(rawQuoted);
-
       const isViewOnce =
-        wrapped ||
         quoted.imageMessage?.viewOnce ||
         quoted.videoMessage?.viewOnce ||
-        quoted.ptvMessage?.viewOnce ||
         quoted.audioMessage?.viewOnce;
 
       if (!isViewOnce) {
@@ -87,17 +67,11 @@ export default {
           video: buffer,
           caption: quoted.videoMessage.caption || "👁️ Revealed",
         };
-      } else if (quoted.ptvMessage) {
-        const buffer = await getBuffer(quoted.ptvMessage, "video");
-        sendMsg = {
-          video: buffer,
-          caption: quoted.ptvMessage.caption || "👁️ Revealed",
-        };
       } else if (quoted.audioMessage) {
         const buffer = await getBuffer(quoted.audioMessage, "audio");
         sendMsg = {
           audio: buffer,
-          mimetype: quoted.audioMessage.mimetype || "audio/mp4",
+          mimetype: "audio/mp4",
           ptt: false,
         };
       }
