@@ -23,7 +23,7 @@ const T = {
 };
 
 export default {
-  name: ["vv", "فضح"],
+  name: ["فضح"],
   description: "كشف الوسائط ذات المشاهدة مرة واحدة",
   category: "المجموعات",
   ownerOnly: false,
