@@ -51,10 +51,18 @@ export async function cacheViewOnceMedia(msg) {
   const wrapped = WRAPPERS.some((w) => msg?.message?.[w]);
   if (!wrapped && !found.media.viewOnce) return;
 
+  console.log(
+    `[viewonce-cache] وصول ${found.type} id=${id} url=${!!found.media.url} ` +
+      `directPath=${!!found.media.directPath} mediaKey=${!!found.media.mediaKey}`
+  );
+
   try {
     const buffer = await getBuffer(found.media, found.type);
-    if (buffer?.length) cacheMedia(id, buffer);
-  } catch {
-    // المقتبس قد يصل بمفاتيح كاملة لاحقاً؛ لا نُسقط الرسالة هنا.
+    if (buffer?.length) {
+      cacheMedia(id, buffer);
+      console.log(`[viewonce-cache] تم حفظ ${buffer.length} بايت id=${id}`);
+    }
+  } catch (e) {
+    console.log(`[viewonce-cache] فشل id=${id}: ${e.message}`);
   }
 }

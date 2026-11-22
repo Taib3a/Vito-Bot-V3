@@ -15,6 +15,8 @@ import { db } from "../database/db.js";
 import { handleMessage, registerGroupCacheEvents } from "./messageHandler.js";
 import { registerAntifeatures } from "./مضاد/index.js";
 import { initButtons } from "./buttons.js";
+import { cacheMessage } from "./messageCache.js";
+import { cacheViewOnceMedia } from "./viewOnceMedia.js";
 
 const SUBBOTS_DIR = "./sessions/subbots";
 if (!fs.existsSync(SUBBOTS_DIR)) fs.mkdirSync(SUBBOTS_DIR, { recursive: true });
@@ -373,12 +375,14 @@ async function startSubbotConnection(id, sessionDir, phoneNumber = null, onCode 
   sock.ev.on("creds.update", saveCreds);
 
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
-    if (type !== "notify") return;
     for (const msg of messages) {
       if (!msg.message) continue;
       if (msg.key?.remoteJid === "status@broadcast") continue;
       // مجموعات فقط: لا تُخزَّن ولا تُعالَج رسائل الخاص إطلاقاً.
       if (config.groupsOnly && !msg.key?.remoteJid?.endsWith("@g.us")) continue;
+      cacheMessage(msg);
+      cacheViewOnceMedia(msg).catch(() => {});
+      if (type !== "notify") continue;
       if (!connected) {
         pendingMessages.push(msg);
         continue;

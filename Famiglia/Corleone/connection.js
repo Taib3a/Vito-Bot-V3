@@ -19,6 +19,8 @@ import config from "./settings.js";
 import { handleMessage, registerGroupCacheEvents } from "./messageHandler.js";
 import { registerAntifeatures } from "./مضاد/index.js";
 import { initButtons } from "./buttons.js";
+import { cacheMessage as cacheSharedMessage } from "./messageCache.js";
+import { cacheViewOnceMedia } from "./viewOnceMedia.js";
 
 // واتساب يحتاج لحظة بعد المصافحة قبل أن يقبل طلب الاقتران.
 const PAIRING_DELAY_MS = 3000;
@@ -622,15 +624,16 @@ export async function createConnection({
   guardGroupAddFlood(sock);
 
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
-    if (type !== "notify") return;
-
     for (const msg of messages) {
       if (!msg.message) continue;
       if (msg.key?.remoteJid === "status@broadcast") continue;
       // مجموعات فقط: لا تُخزَّن ولا تُعالَج رسائل الخاص إطلاقاً.
       if (config.groupsOnly && !msg.key?.remoteJid?.endsWith("@g.us")) continue;
 
+      cacheSharedMessage(msg);
+      cacheViewOnceMedia(msg).catch(() => {});
       cacheMessage(msg);
+      if (type !== "notify") continue;
 
       // لا تُعالَج رسالة على مقبس أُغلق للتو: الإرسال عليه يفشل بـ428
       // "Connection Closed" (يحدث أثناء إعادة الاتصال بعد الربط).
