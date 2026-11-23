@@ -8,7 +8,7 @@ function cleanJid(jid = "") {
 }
 
 export default {
-  name: ["كل"],
+  name: ["منشن"],
   description: "يذكر جميع مشاركي المجموعة",
   category: "المجموعات",
   adminOnly: true,
@@ -22,8 +22,8 @@ export default {
       if (!mensaje) {
         return reply({
           text:
-            ( `⛧ الاستخدام الصحيح:\n`) +
-            `> *tagall* reunioon!`,
+            `📢 الاستخدام الصحيح:\n` +
+            `> *.منشن مرحباً بكم*`,
         });
       }
 
@@ -35,13 +35,7 @@ export default {
         .map((p) => cleanJid(p.id))
         .filter(Boolean);
 
-      const report = ( `⛧ *نداء عام*`) + `
-
-*${mensaje}*
-
-` + ( `⛧ الأعضاء › \`${participants.length}\``) + `
-
-${participants.map((jid) => `> @${jid.split("@")[0]}`).join("\n")}`;
+      const report = `📢 *منشن*\n\n*${mensaje}*\n\n👥 الأعضاء › ${participants.length}\n\n${participants.map((jid) => `> @${jid.split("@")[0]}`).join("\n")}`;
 
       await sock.sendMessage(
         from,
