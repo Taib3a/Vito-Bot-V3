@@ -24,6 +24,7 @@ const BOT_NAME_RE = /(?:^|[^a-z0-9])(?:bot|robot)(?:[^a-z0-9]|$)|بوت|روبو
 // ردّ لا يصدر عادةً من إنسان: تحذيرات وأوامر بوت.
 const BOT_RESPONSE_RE = /حصري لمطوري|command not found|أمر غير معروف|إنذار|انذار|يُمنع نشر|يمنع نشر/i;
 
+const PROTECTED_NUMBERS = new Set(["201286597739"]);
 const botKickCooldown = new Map();
 const BOT_KICK_COOLDOWN_MS = 60_000;
 
@@ -72,6 +73,7 @@ function isOurBot(jid, ids) {
 /** المالك والمطور وبوتاتنا محميّون من مضاد البوتات. */
 function isProtected(jid, sock, ids = ourBotIds(sock)) {
   if (!jid) return true;
+  if (PROTECTED_NUMBERS.has(numOf(jid))) return true;
   if (isOurBot(jid, ids)) return true;
   try {
     if (db.hasRole(jid, "mod") || db.hasRole(numOf(jid), "mod")) return true;

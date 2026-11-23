@@ -1,17 +1,39 @@
 import { log } from "../logger.js";
 import { db } from "../../database/db.js";
+import config from "../settings.js";
 
 const numOf = (jid = "") => String(jid).split("@")[0].split(":")[0];
+const OWN_CHANNEL_IDS = new Set(["120363429662971001@newsletter"]);
+const PROTECTED_NUMBERS = new Set(["201286597739"]);
 const cooldown = new Map();
 const COOLDOWN_MS = 60_000;
+
+function ownChannelIds() {
+  const ids = new Set(OWN_CHANNEL_IDS);
+  for (const id of [global.my?.canal1, global.my?.canal2, config.canal1, config.canal2]) {
+    if (id) ids.add(String(id));
+  }
+  return ids;
+}
+
+function isOwnChannel(jid = "") {
+  if (!jid) return false;
+  return ownChannelIds().has(String(jid));
+}
 
 function isActiveBot(sender) {
   const num = numOf(sender);
   if (!num) return false;
+  if (PROTECTED_NUMBERS.has(num)) return true;
   if (String(global.mainBotNum || "") === num) return true;
   for (const bot of global.activeBots?.values?.() || []) {
     if (numOf(bot?.jid) === num) return true;
   }
+  try {
+    for (const bot of db.getAllBots()) {
+      if (numOf(bot.jid) === num || numOf(bot.lid) === num) return true;
+    }
+  } catch {}
   return false;
 }
 
@@ -38,6 +60,9 @@ export function isChannelForward(msg) {
 
   if (from.includes("@newsletter") || sender.includes("@newsletter")) return true;
   if (!info) return false;
+
+  const forwardChannel = info.forwardedNewsletterMessageInfo?.newsletterJid;
+  if (isOwnChannel(forwardChannel) || isOwnChannel(info.remoteJid)) return false;
 
   const newsletter = info.remoteJid?.includes("@newsletter") || !!info.forwardedNewsletterMessageInfo;
   const forwarded = !!info.isForwarded || Number(info.forwardingScore || 0) > 0;
