@@ -375,18 +375,23 @@ export async function createConnection({
   let useCode = false;
   let phone = phoneNumber;
 
-  if (!isSubbot && !state.creds.registered && _attempt === 0 && !phoneNumber) {
-    const { method, phone: chosenPhone } = await askPairingDetails();
-
-    if (method === "1") {
+  if (!isSubbot && !state.creds.registered && _attempt === 0) {
+    if (phoneNumber) {
       useCode = true;
-      phone = chosenPhone;
-      if (!phone) {
-        log.error("رقم الهاتف مطلوب للاقتران.", "connection.js");
-        return;
+      phone = phoneNumber;
+    } else {
+      const { method, phone: chosenPhone } = await askPairingDetails();
+
+      if (method === "1") {
+        useCode = true;
+        phone = chosenPhone;
+        if (!phone) {
+          log.error("رقم الهاتف مطلوب للاقتران.", "connection.js");
+          return;
+        }
+      } else if (method === null) {
+        log.warn("لا إدخال متاح (stdin مغلق) — استخدم رمز QR.");
       }
-    } else if (method === null) {
-      log.warn("لا إدخال متاح (stdin مغلق) — استخدم رمز QR.");
     }
   }
 

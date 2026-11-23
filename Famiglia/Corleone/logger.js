@@ -262,7 +262,8 @@ export const log = {
   },
 
   pairingCode(code) {
-    const pretty = String(code || "").match(/.{1,4}/g)?.join("-") ?? String(code || "");
+    const raw = String(code || "").replace(/[^0-9A-Za-z]/g, "");
+    const pretty = raw.match(/.{1,4}/g)?.join("-") ?? raw;
     const center = (colored) => B("║") + centerVis(colored, WIDTH) + B("║");
     console.log();
     console.log(B("╔" + "═".repeat(WIDTH) + "╗"));
