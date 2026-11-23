@@ -4,7 +4,7 @@ const numOf = (jid = "") => String(jid).split("@")[0].split(":")[0];
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export default {
-  name: ["فحص-البوتات", "فحص-الكل"],
+  name: ["فحص-بوتات"],
   description: "يجعل كل بوت متصل يرسل ردًا للتأكد من أنه يعمل",
   category: "المالك",
   ownerOnly: true,
