@@ -150,6 +150,7 @@ const GROUP_DEFAULTS = {
   antispam: true,
   antiflood: true,
   antibot: true,
+  antichannel: true,
   antidelete: true,
   monitor: true,
   viewonce: true,
