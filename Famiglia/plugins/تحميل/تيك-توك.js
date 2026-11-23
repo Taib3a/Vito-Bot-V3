@@ -6,6 +6,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { pipeline } from 'stream/promises';
+import { fetchTikTok } from '../../Corleone/tiktokApi.js';
 
 const execAsync = promisify(exec);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -21,36 +22,7 @@ function validateTikTokUrl(url) {
 }
 
 async function downloadTikTokNormal(url) {
-  try {
-    const apiUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(url)}`;
-
-    const { data } = await axios.get(apiUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Referer': 'https://www.tikwm.com/',
-        'Origin': 'https://www.tikwm.com'
-      },
-      timeout: 15000
-    });
-
-    if (data.code === 0 && data.data && data.data.play) {
-      const d = data.data;
-
-      return {
-        videoUrl: d.play,
-        title: d.title,
-        authorNick: d.author?.nickname || ( 'غير معروف'),
-        likes: d.digg_count,
-        shares: d.share_count,
-        downloads: d.download_count,
-        comments: d.comment_count
-      };
-    }
-    throw new Error(( 'لا توجد بيانات فيديو'));
-  } catch (error) {
-    throw new Error(( `خطأ واجهة TikWM: ${error.message}`));
-  }
+  return fetchTikTok(url);
 }
 
 async function descargarAArchivo(url, destPath) {
