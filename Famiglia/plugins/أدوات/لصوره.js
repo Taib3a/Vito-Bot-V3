@@ -27,7 +27,7 @@ function contextInfoOf(message) {
 }
 
 export default {
-  name: ["لصوره", "لصورة", "تحويل-صورة"],
+  name: ["لصوره"],
   description: "يحوّل الملصق إلى صورة",
   category: "أدوات",
 
