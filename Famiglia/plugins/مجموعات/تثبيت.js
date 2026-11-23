@@ -95,6 +95,9 @@ export default {
       });
     }
 
+    const image =
+      global.botImages?.[Math.floor(Math.random() * (global.botImages?.length || 1))] || undefined;
+
     return await sock.sendButtonMessage(
       from,
       "『📌』اختر مدة تثبيت الرسالة:",
@@ -102,6 +105,7 @@ export default {
       {
         footer: "الحد الأقصى في واتساب هو 30 يومًا",
         quoted: msg,
+        image,
       }
     );
   },
