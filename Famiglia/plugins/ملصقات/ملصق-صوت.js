@@ -11,26 +11,19 @@ import config from "../../Corleone/settings.js";
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TMP_DIR = path.join(__dirname, "../../../tmp");
-const DEFAULT_COVER = path.join(__dirname, "../../assets/vito-1.png");
 
-const MAX_AUDIO_SECONDS = 30;
 const MAX_VIDEO_SECONDS = 10;
 const MAX_STICKER_BYTES = 1_000_000;
-const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
-const PICK_TTL_MS = 90_000;
+const MAX_VIDEO_BYTES = 25 * 1024 * 1024;
 
-// الأغلفة المختارة مؤقتًا: مفتاحها المحادثة + المرسل.
-const pickedCovers = new Map();
 let busy = false;
 
 const RAW_FIELDS = Symbol("rawFields");
 
 const USAGE =
   "🎙️ *ملصق بصوت*\n\n" +
-  "ردّ على مقطع صوتي أو فيديو بأمر `.ملصق-صوت`:\n" +
-  "• صوت: ملصق ثابت بصوتك، وغلافه الافتراضي صورة البوت.\n" +
-  "• فيديو: ملصق متحرك من الفيديو نفسه مع صوته.\n\n" +
-  "🖼️ لاختيار غلاف للصوت: ردّ على صورة أو ملصق بالأمر، ثم ردّ على الصوت خلال 90 ثانية.";
+  "ردّ على فيديو بأمر `.ملصق-صوت` وسأحوّله إلى ملصق متحرك مع صوت الفيديو.\n" +
+  `⏱️ آخذ أول ${MAX_VIDEO_SECONDS} ثوانٍ فقط.`;
 
 function ensureTmp() {
   if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true });
@@ -74,7 +67,7 @@ async function convert(input, args, extension) {
   }
 }
 
-export function toOpus(input, maxSeconds = MAX_AUDIO_SECONDS) {
+export function toOpus(input, maxSeconds = MAX_VIDEO_SECONDS) {
   return convert(
     input,
     [
@@ -88,19 +81,6 @@ export function toOpus(input, maxSeconds = MAX_AUDIO_SECONDS) {
       "-f", "ogg",
     ],
     "ogg"
-  );
-}
-
-export function toWebp(input) {
-  return convert(
-    input,
-    [
-      "-frames:v", "1",
-      "-vf", "scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2",
-      "-c:v", "libwebp",
-      "-f", "webp",
-    ],
-    "webp"
   );
 }
 
@@ -263,18 +243,6 @@ function buildCredit(pushName, senderNum) {
   };
 }
 
-export async function prepareCover(buffer) {
-  if (
-    buffer.length > 12 &&
-    buffer.toString("ascii", 0, 4) === "RIFF" &&
-    buffer.toString("ascii", 8, 12) === "WEBP"
-  ) {
-    return { buffer, webp: parseWebp(buffer) };
-  }
-  const converted = await toWebp(buffer);
-  return { buffer: converted, webp: parseWebp(converted) };
-}
-
 function varint(value) {
   const bytes = [];
   let n = value;
@@ -384,7 +352,7 @@ function encodeAudio(audio, seconds) {
       mediaKey: audio.mediaKey,
       directPath: audio.directPath,
       mediaKeyTimestamp: audio.mediaKeyTimestamp,
-      seconds: Math.min(Math.round(seconds || 0), MAX_AUDIO_SECONDS),
+      seconds: Math.min(Math.round(seconds || 0), MAX_VIDEO_SECONDS),
       ptt: false,
     })
   ).finish();
@@ -456,36 +424,16 @@ async function downloadQuoted(sock, from, contextInfo, quoted) {
 }
 
 export default {
-  name: ["ملصق-صوت", "ملصق_بصوت"],
-  description: "يصنع ملصقًا بصوت مدمج (ميزة تجريبية)",
+  name: ["ملصق-صوت"],
+  description: "يحوّل الفيديو إلى ملصق متحرك مع صوته (ميزة تجريبية)",
   category: "الملصقات",
 
-  async run({ sock, from, sender, senderNum, msg, react, reply }) {
+  async run({ sock, from, senderNum, msg, react, reply }) {
     const contextInfo = contextInfoOf(msg.message);
     const quoted = contextInfo?.quotedMessage;
     const quotedType = quoted ? Object.keys(quoted)[0] : null;
-    const pickKey = `${from}|${sender}`;
 
-    if (quotedType === "imageMessage" || quotedType === "stickerMessage") {
-      try {
-        const buffer = await downloadQuoted(sock, from, contextInfo, quoted);
-        if (!buffer?.length) throw new Error("لم أستطع تنزيل الغلاف.");
-        for (const [key, entry] of pickedCovers) {
-          if (Date.now() - entry.ts > PICK_TTL_MS) pickedCovers.delete(key);
-        }
-        pickedCovers.set(pickKey, { buffer, ts: Date.now() });
-        await react("🎵");
-        return await reply({
-          text: "✅ حفظت الغلاف. ردّ الآن على مقطع صوتي بنفس الأمر خلال 90 ثانية.",
-        });
-      } catch (e) {
-        await react("❌");
-        return await reply({ text: `❌ تعذّر حفظ الغلاف:\n${e.message}` });
-      }
-    }
-
-    const isVideo = quotedType === "videoMessage";
-    if (quotedType !== "audioMessage" && !isVideo) {
+    if (quotedType !== "videoMessage") {
       return await reply({ text: USAGE });
     }
 
@@ -493,35 +441,17 @@ export default {
     busy = true;
 
     try {
-      const mediaBuffer = await downloadQuoted(sock, from, contextInfo, quoted);
-      if (!mediaBuffer?.length) throw new Error("لم أستطع تنزيل الوسيط.");
-      if (mediaBuffer.length > MAX_AUDIO_BYTES) {
-        throw new Error(`حجم ${isVideo ? "الفيديو" : "الصوت"} أكبر من 25 ميغابايت.`);
-      }
+      const video = await downloadQuoted(sock, from, contextInfo, quoted);
+      if (!video?.length) throw new Error("لم أستطع تنزيل الفيديو.");
+      if (video.length > MAX_VIDEO_BYTES) throw new Error("حجم الفيديو أكبر من 25 ميغابايت.");
 
-      const seconds = await probeSeconds(mediaBuffer);
-      let opus;
-      let webpBuffer;
-      let covered = false;
-      let clipSeconds = seconds === null ? 0 : Math.min(seconds, MAX_AUDIO_SECONDS);
+      const seconds = await probeSeconds(video);
+      const duration = Math.min(seconds || MAX_VIDEO_SECONDS, MAX_VIDEO_SECONDS);
 
-      if (isVideo) {
-        const duration = Math.min(seconds || MAX_VIDEO_SECONDS, MAX_VIDEO_SECONDS);
-        clipSeconds = duration;
-        [webpBuffer, opus] = await Promise.all([
-          buildAnimatedSticker(mediaBuffer, duration),
-          toOpus(mediaBuffer, duration),
-        ]);
-      } else {
-        opus = await toOpus(mediaBuffer);
-
-        const pick = pickedCovers.get(pickKey);
-        covered = Boolean(pick && Date.now() - pick.ts <= PICK_TTL_MS);
-        const cover = covered
-          ? await prepareCover(pick.buffer)
-          : await prepareCover(fs.readFileSync(DEFAULT_COVER));
-        webpBuffer = cover.buffer;
-      }
+      const [webpBuffer, opus] = await Promise.all([
+        buildAnimatedSticker(video, duration),
+        toOpus(video, duration),
+      ]);
 
       let finalWebp = webpBuffer;
       try {
@@ -539,12 +469,10 @@ export default {
         sticker,
         audio,
         webp: parseWebp(finalWebp),
-        seconds: clipSeconds,
+        seconds: duration,
       });
 
       await relayWithRaw(sock, from, payload);
-
-      if (covered) pickedCovers.delete(pickKey);
       await react("✅");
     } catch (e) {
       await react("❌");
