@@ -1,4 +1,4 @@
-import { log } from "../logger.js";
+import { log } from "../../logger.js";
 
 const WINDOW_MS = 10_000;
 const MAX_MESSAGES = 6;

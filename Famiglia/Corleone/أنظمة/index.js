@@ -8,28 +8,43 @@ import { shouldHandleGroupEvent } from "../groupResponder.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-/** كل ملف .js في core/مضاد/ (عدا هذا الملف) هو مضاد مستقل. */
+/**
+ * أنواع الأنظمة: كل مجلد فرعي يجمع وحدات من طبيعة واحدة.
+ *  • مضاد: يعاقب على مخالفة (حذف/تحذير/طرد).
+ *  • خدمة: يعمل تلقائيًا بلا عقاب (ترحيب، مستويات، كشف المحذوف...).
+ *  • تحكم: مفتاح يغيّر سلوك المجموعة أو البوت (تشغيل/إيقاف، أوضاع).
+ */
+export const antifeatureKinds = [
+  { dir: "مضاد", kind: "مضاد", label: "🛡️ مضادات" },
+  { dir: "خدمات", kind: "خدمة", label: "⚙️ خدمات تلقائية" },
+  { dir: "تحكم", kind: "تحكم", label: "🎛️ تحكم" },
+];
+
+/** كل ملف .js داخل مجلدات الأنواع هو وحدة مستقلة. */
 async function loadModules() {
   const modules = [];
 
-  let files;
-  try {
-    files = readdirSync(__dirname).filter((f) => f.endsWith(".js") && f !== "index.js");
-  } catch (e) {
-    log.warn(`تعذّر قراءة مجلد المضادات: ${e.message}`);
-    return modules;
-  }
-
-  for (const file of files) {
+  for (const { dir, kind } of antifeatureKinds) {
+    let files;
     try {
-      const mod = await import(pathToFileURL(join(__dirname, file)).href);
-      if (!mod.default?.name) {
-        log.warn(`المضاد ${file} لا يصدّر default بـ name.`);
-        continue;
-      }
-      modules.push(mod.default);
+      files = readdirSync(join(__dirname, dir)).filter((f) => f.endsWith(".js"));
     } catch (e) {
-      log.warn(`تعذّر تحميل المضاد ${file}: ${e.message}`);
+      log.warn(`تعذّر قراءة مجلد ${dir}: ${e.message}`);
+      continue;
+    }
+
+    for (const file of files) {
+      try {
+        const mod = await import(pathToFileURL(join(__dirname, dir, file)).href);
+        if (!mod.default?.name) {
+          log.warn(`الوحدة ${dir}/${file} لا تصدّر default بـ name.`);
+          continue;
+        }
+        mod.default.kind = mod.default.kind || kind;
+        modules.push(mod.default);
+      } catch (e) {
+        log.warn(`تعذّر تحميل ${dir}/${file}: ${e.message}`);
+      }
     }
   }
 
@@ -67,7 +82,7 @@ async function isBotAdminIn(sock, groupJid) {
 }
 
 /**
- * يمرّر الرسالة على المضادات المطابقة للفلتر.
+ * يمرّر الرسالة على الأنظمة المطابقة للفلتر.
  * يعيد true إذا تعامل أحدها مع الرسالة (فلا تُعالج كأمر).
  */
 async function runMods(filterFn, { sock, msg, from, sender, body, isBotAdmin, isAdmin, isOwner, isMod, botLabel, isCmd }) {
@@ -77,7 +92,7 @@ async function runMods(filterFn, { sock, msg, from, sender, body, isBotAdmin, is
   for (const mod of modules) {
     if (!mod.check || !filterFn(mod)) continue;
     if (mod.flag && !(mod.global ? botSettings[mod.flag] : groupData?.[mod.flag])) continue;
-    // مضادات الحماية لا تُشغَّل على المشرفين، إلا ما أعلن أنه ليس عقاباً
+    // أنظمة الحماية لا تُشغَّل على المشرفين، إلا ما أعلن أنه ليس عقاباً
     // بل خدمة تُفيد الجميع (كشف العرض مرة واحدة).
     if ((isAdmin || isMod) && !mod.includeAdmins) continue;
 
@@ -92,18 +107,18 @@ async function runMods(filterFn, { sock, msg, from, sender, body, isBotAdmin, is
   return false;
 }
 
-/** مضادات الحماية: تستهدف المخالفين، فلا تُشغَّل للمشرفين. */
+/** أنظمة الحماية: تستهدف المخالفين، فلا تُشغَّل للمشرفين. */
 export async function runAntifeatures(ctx) {
   return runMods((m) => !m.allUsers && !m.service, ctx);
 }
 
-/** مضادات تعمل لكل الأعضاء بلا استثناء (رفع المستوى التلقائي). */
+/** أنظمة تعمل لكل الأعضاء بلا استثناء (رفع المستوى التلقائي). */
 export async function runAllUsersAntifeatures(ctx) {
   return runMods((m) => !!m.allUsers, ctx);
 }
 
 /**
- * مضادات «خدمة»: لا تعاقب أحداً، بل تفيد المجموعة (كشف العرض مرة واحدة).
+ * أنظمة «خدمة»: لا تعاقب أحداً، بل تفيد المجموعة (كشف العرض مرة واحدة).
  * تعمل قبل بوابات الوضع الخاص/المشرفين فقط، وعلى رسائل البوت نفسه أيضاً —
  * وإلا لظلّت معطّلة لمن يرسل من رقم البوت أو في مجموعة مقفلة على المشرفين.
  */
@@ -112,7 +127,7 @@ export async function runServiceAntifeatures(ctx) {
 }
 
 /**
- * يربط أحداث الدخول والخروج والحذف بكل مضاد يملك onJoin/onLeave/onDelete.
+ * يربط أحداث الدخول والخروج والحذف بكل نظام يملك onJoin/onLeave/onDelete.
  * كل معالج معزول بـ try/catch حتى لا يُسقط خطأ واحد البوت.
  */
 export function registerAntifeatures(sock, botLabel = "MAIN") {
@@ -129,7 +144,7 @@ export function registerAntifeatures(sock, botLabel = "MAIN") {
     }
   });
 
-  // حالات واتساب (status@broadcast) لا تخص مجموعة، فتُمرَّر للمضادات العامة وحدها.
+  // حالات واتساب (status@broadcast) لا تخص مجموعة، فتُمرَّر للأنظمة العامة وحدها.
   // إعداداتها خاصة برقم البوت نفسه، فيتحكم كل بوت في مشاهدة حالاته مستقلاً.
   sock.ev.on("messages.upsert", async ({ messages }) => {
     if (!Array.isArray(messages)) return;
@@ -183,7 +198,7 @@ export function registerAntifeatures(sock, botLabel = "MAIN") {
   });
 
   // تغييرات بيانات المجموعة (الاسم، الوصف، الإعدادات). الجرد الجماعي يبثّ البيانات
-  // كاملة بلا `author`، فيتجاهله المضاد الذي يميّز التغيير الحقيقي بالفاعل.
+  // كاملة بلا `author`، فيتجاهله النظام الذي يميّز التغيير الحقيقي بالفاعل.
   sock.ev.on("groups.update", async (updates) => {
     if (!Array.isArray(updates)) return;
 
@@ -244,13 +259,14 @@ export function registerAntifeatures(sock, botLabel = "MAIN") {
     }
   });
 
-  log.info(`[${botLabel}] المضادات مُفعّلة: ${modules.map((m) => m.name).join("، ")}`);
+  log.info(`[${botLabel}] الأنظمة مُفعّلة: ${modules.map((m) => m.name).join("، ")}`);
 }
 
-/** سجل المضادات: يُستخدم بواسطة أمر التحكم الواحد في plugins/. */
+/** سجل الأنظمة: يُستخدم بواسطة أمر التحكم الواحد في plugins/. */
 export const antifeatures = modules.map((m) => ({
   name: m.name,
   flag: m.flag,
+  kind: m.kind || null,
   global: !!m.global,
   mode: m.mode || null,
 }));

@@ -1,6 +1,6 @@
 import { downloadContentFromMessage, downloadMediaMessage, extractMessageContent } from "@whiskeysockets/baileys";
-import { log } from "../logger.js";
-import { cacheMedia } from "../messageCache.js";
+import { log } from "../../logger.js";
+import { cacheMedia } from "../../messageCache.js";
 
 // رسائل «العرض مرة واحدة» تصل بلا نص، فلا يعتمد هذا المضاد على `body`.
 const MEDIA = {

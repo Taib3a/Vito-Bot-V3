@@ -1,9 +1,9 @@
 import { db } from "../../database/db.js";
-import { antifeatures, antifeatureModules } from "../../Corleone/مضاد/index.js";
+import { antifeatures, antifeatureModules, antifeatureKinds } from "../../Corleone/أنظمة/index.js";
 
-// المضادات ثلاثة أقسام:
-//  • مضادات المجموعة: يتحكم بها مشرفو المجموعة، وإعدادها لكل مجموعة.
-//  • مضادات البوت العامة: يتحكم بها رقم البوت نفسه (من نفّذ الأمر)، وإعدادها لكل رقم على حدة.
+// الأنظمة ثلاثة أنواع (مضاد/خدمة/تحكم) على مستويين:
+//  • أنظمة المجموعة: يتحكم بها مشرفو المجموعة، وإعدادها لكل مجموعة.
+//  • أنظمة البوت العامة: يتحكم بها رقم البوت نفسه (من نفّذ الأمر)، وإعدادها لكل رقم على حدة.
 //  • إعدادات المالك: لا يراها ولا يتحكم بها إلا مالك البوت.
 const GROUP_FEATURES = antifeatures.filter((a) => !a.global && a.mode !== "bot" && a.mode !== "owner");
 const BOT_FEATURES = antifeatures.filter((a) => a.global);
@@ -30,12 +30,13 @@ const PAGE_NAMES = Array.from({ length: 50 }, (_, i) => `تفعيل-المزيد
 const FOOTER = "𝙱𝙾𝚃 𝚅𝙸𝚃𝙾 𝚅𝟹";
 
 const T = {
-  head: "🛡️ *لوحة المضادات*",
-  btnTitle: "لوحة المضادات",
+  head: "🛡️ *لوحة الأنظمة*",
+  btnTitle: "لوحة الأنظمة",
   mainPrompt: "اختر طريقة عرض الأقسام:",
   btnInteractive: "🎯 أزرار قابلة للضغط",
   btnDropdown: "📋 أزرار منسدلة",
   chooseCategory: "اختر القسم للتحكم به:",
+  kind: "النوع",
   status: "الحالة",
   statusOn: "يعمل ✅",
   statusOff: "متوقف 🚫",
@@ -45,7 +46,7 @@ const T = {
   more: "➕ المزيد",
   deny: "❌ هذا الأمر لمشرفي المجموعة ومالك البوت فقط.",
   denyOwner: "❌ هذا الإعداد لمالك البوت وحده.",
-  notFound: "❌ لا يوجد مضاد بهذا الاسم.",
+  notFound: "❌ لا يوجد نظام بهذا الاسم.",
   onOne: (n) => `✅ تم تفعيل *${n}*.`,
   offOne: (n) => `🚫 تم تعطيل *${n}*.`,
 };
@@ -116,20 +117,25 @@ function buildCategoriesButtons(list, page = 0) {
   return { text: `${T.head}\n\n${T.chooseCategory}`, buttons };
 }
 
-/** الخطوة 2ب: الأقسام كقائمة منسدلة. */
+/** الخطوة 2ب: الأقسام كقائمة منسدلة، مجمّعة بحسب نوع النظام. */
 function buildCategoriesDropdown(list) {
-  return {
-    text: `${T.head}\n\n${T.chooseCategory}`,
-    sections: [
-      {
-        title: T.btnTitle,
-        rows: list.map((a) => ({ title: a.name, description: a.flag, id: `.اختر_${a.flag}` })),
-      },
-    ],
-  };
+  const ownerFlags = new Set(OWNER_FEATURES.map((a) => a.flag));
+  const rowOf = (a) => ({ title: a.name, description: a.flag, id: `.اختر_${a.flag}` });
+
+  const sections = antifeatureKinds
+    .map(({ kind, label }) => ({
+      title: label,
+      rows: list.filter((a) => a.kind === kind && !ownerFlags.has(a.flag)).map(rowOf),
+    }))
+    .filter((section) => section.rows.length);
+
+  const ownerRows = list.filter((a) => ownerFlags.has(a.flag)).map(rowOf);
+  if (ownerRows.length) sections.push({ title: "👑 إعدادات المالك", rows: ownerRows });
+
+  return { text: `${T.head}\n\n${T.chooseCategory}`, sections };
 }
 
-/** الخطوة 3: لوحة تحكم مضاد مجموعة: حالته وزرّ التبديل. */
+/** الخطوة 3: لوحة تحكم نظام مجموعة: نوعه وحالته وزرّ التبديل. */
 function buildControlPanel(flag, from) {
   const q = String(flag).toLowerCase();
   const mod = antifeatures.find((a) => a.flag.toLowerCase() === q);
@@ -137,7 +143,7 @@ function buildControlPanel(flag, from) {
 
   const isOn = !!db.getGroup(from)?.[mod.flag];
   return {
-    text: `${T.head}\n\n📌 *${mod.name}*\n${T.status}: ${isOn ? T.statusOn : T.statusOff}`,
+    text: `${T.head}\n\n📌 *${mod.name}*\n${T.kind}: ${mod.kind || "-"}\n${T.status}: ${isOn ? T.statusOn : T.statusOff}`,
     buttons: [
       { text: isOn ? T.btnOff : T.btnOn, id: isOn ? `.تعطيل_${flag}` : `.تفعيل_${flag}` },
       { text: T.btnBack, id: ".تفعيل" },
@@ -165,7 +171,7 @@ function buildBotStatusPanel(botNum, from) {
 
 export default {
   name: ["تفعيل", "تعطيل", ...TOGGLE_NAMES, ...BOT_TOGGLE_NAMES, ...BOT_TOOL_COMMANDS, ...SELECT_NAMES, ...MODE_NAMES, ...PAGE_NAMES],
-  description: "تفعيل وتعطيل المضادات بأزرار قابلة للضغط",
+  description: "تفعيل وتعطيل أنظمة المجموعة: مضادات وخدمات وتحكم",
   category: "المجموعات",
   groupOnly: true,
 
@@ -226,7 +232,7 @@ export default {
       return await botPanel(buildBotStatusPanel(botNum, from).text);
     }
 
-    // مشرف/مالك: لوحة مضادات المجموعة.
+    // مشرف/مالك: لوحة أنظمة المجموعة.
 
     // الخطوة 1: طريقة العرض.
     if ((name === "تفعيل" || name === "تعطيل") && !args[0]) {
@@ -252,7 +258,7 @@ export default {
       return await panel(buildCategoriesButtons(featuresFor(isOwner), Number(name.split("_").pop()) || 0));
     }
 
-    // الخطوة 3: لوحة تحكم مضاد.
+    // الخطوة 3: لوحة تحكم نظام.
     if (name.startsWith("اختر_")) {
       const target = name.replace("اختر_", "").toLowerCase();
       // إعدادات المالك لا تُفتح لغيره.

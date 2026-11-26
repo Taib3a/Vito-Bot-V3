@@ -1,4 +1,4 @@
-import { log } from "../logger.js";
+import { log } from "../../logger.js";
 import { EMOJIS, senderOf, numOf, isOwnStatus, viewStatus } from "./مشاهدة-ستوري.js";
 
 export default {

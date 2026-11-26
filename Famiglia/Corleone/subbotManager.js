@@ -13,7 +13,7 @@ import { openDatabase } from "./sqlite.js";
 import { useSQLiteAuthState, attachSocketState, makeSendResilient, guardGroupAddFlood, getLiveSocketFor, probeAlive } from "./connection.js";
 import { db } from "../database/db.js";
 import { handleMessage, registerGroupCacheEvents } from "./messageHandler.js";
-import { registerAntifeatures } from "./مضاد/index.js";
+import { registerAntifeatures } from "./أنظمة/index.js";
 import { initButtons } from "./buttons.js";
 import { cacheMessage } from "./messageCache.js";
 import { cacheViewOnceMedia } from "./viewOnceMedia.js";

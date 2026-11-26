@@ -2,7 +2,7 @@ import config from "./settings.js";
 import { log } from "./logger.js";
 import { getPlugins } from "./pluginLoader.js";
 import { db } from "../database/db.js";
-import { runAntifeatures, runAllUsersAntifeatures, runServiceAntifeatures } from "./مضاد/index.js";
+import { runAntifeatures, runAllUsersAntifeatures, runServiceAntifeatures } from "./أنظمة/index.js";
 import { handleCommandXp } from "./xp.js";
 import { announceLevelUp } from "./levelCard.js";
 import { claimOnce, getLiveSock } from "./subbotManager.js";

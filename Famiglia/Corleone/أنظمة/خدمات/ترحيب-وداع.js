@@ -1,6 +1,6 @@
 import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
-import { log } from "../logger.js";
-import { db } from "../../database/db.js";
+import { log } from "../../logger.js";
+import { db } from "../../../database/db.js";
 
 const BACKGROUND_URL = "https://i.postimg.cc/L5jnccN4/generated-image-(3).png";
 

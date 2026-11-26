@@ -17,7 +17,7 @@ import { openDatabase } from "./sqlite.js";
 import { askPairingDetails } from "./prompt.js";
 import config from "./settings.js";
 import { handleMessage, registerGroupCacheEvents } from "./messageHandler.js";
-import { registerAntifeatures } from "./مضاد/index.js";
+import { registerAntifeatures } from "./أنظمة/index.js";
 import { initButtons } from "./buttons.js";
 import { cacheMessage as cacheSharedMessage } from "./messageCache.js";
 import { cacheViewOnceMedia } from "./viewOnceMedia.js";

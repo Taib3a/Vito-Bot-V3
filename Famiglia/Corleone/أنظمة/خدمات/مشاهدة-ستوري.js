@@ -1,4 +1,4 @@
-import { log } from "../logger.js";
+import { log } from "../../logger.js";
 
 // إيموجي التفاعل — يُختار عشوائياً لكل حالة.
 export const EMOJIS = [
