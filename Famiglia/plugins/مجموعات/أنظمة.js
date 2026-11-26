@@ -26,6 +26,11 @@ const BOT_TOOL_COMMANDS = BOT_TOOLS.flatMap((a) => Object.keys(moduleOf(a.flag)?
 const SELECT_NAMES = [...GROUP_FEATURES, ...OWNER_FEATURES].map((a) => `اختر_${a.flag}`);
 const MODE_NAMES = ["تفعيل-ازرار", "تفعيل-قائمه", "تعطيل-ازرار", "تعطيل-قائمه"];
 const PAGE_NAMES = Array.from({ length: 50 }, (_, i) => `تفعيل-المزيد_${i + 1}`);
+// الأزرار تمرّ بمرحلتين: أقسام النوع أولاً، ثم وحدات القسم.
+const SECTION_NAMES = ["قسم_مضاد", "قسم_خدمة", "قسم_تحكم", "قسم_مالك"];
+const KIND_PAGE_NAMES = ["مضاد", "خدمة", "تحكم", "مالك"].flatMap((kind) =>
+  Array.from({ length: 6 }, (_, i) => `قسم-المزيد_${kind}_${i + 2}`)
+);
 
 const FOOTER = "𝙱𝙾𝚃 𝚅𝙸𝚃𝙾 𝚅𝟹";
 
@@ -35,7 +40,8 @@ const T = {
   mainPrompt: "اختر طريقة عرض الأقسام:",
   btnInteractive: "🎯 أزرار قابلة للضغط",
   btnDropdown: "📋 أزرار منسدلة",
-  chooseCategory: "اختر القسم للتحكم به:",
+  chooseCategory: "اختر النظام للتحكم به:",
+  chooseSection: "اختر القسم:",
   kind: "النوع",
   status: "الحالة",
   statusOn: "يعمل ✅",
@@ -103,18 +109,53 @@ function buildMainMenu() {
   };
 }
 
-/** الخطوة 2أ: الأقسام كأزرار قابلة للضغط (بصفحات لئلا تتجاوز حدّ واتساب). */
-function buildCategoriesButtons(list, page = 0) {
-  const totalPages = Math.ceil(list.length / 2);
+/** أقسام اللوحة: الأنواع الثلاثة، ثم إعدادات المالك لمن يملكها. */
+function sectionList(isOwner) {
+  const sections = antifeatureKinds
+    .map(({ kind, label }) => ({ kind, label, items: GROUP_FEATURES.filter((a) => a.kind === kind) }))
+    .filter((section) => section.items.length);
+
+  if (isOwner && OWNER_FEATURES.length) {
+    sections.push({ kind: "مالك", label: "👑 إعدادات المالك", items: OWNER_FEATURES });
+  }
+
+  return sections;
+}
+
+/** الخطوة 2أ: أقسام الأنواع كأزرار، بثلاثة أزرار كحدّ أقصى. */
+function buildSectionButtons(isOwner, page = 0) {
+  const sections = sectionList(isOwner);
+  const totalPages = Math.ceil(sections.length / 3);
   const p = Math.min(Math.max(page, 0), Math.max(totalPages - 1, 0));
   const perPage = totalPages > 1 ? 2 : 3;
-  const slice = list.slice(p * perPage, p * perPage + perPage);
+  const slice = sections.slice(p * perPage, p * perPage + perPage);
 
-  const buttons = slice.map((a) => ({ text: a.name, id: `.اختر_${a.flag}` }));
+  const buttons = slice.map((section) => ({
+    text: `${section.label} (${section.items.length})`,
+    id: `.قسم_${section.kind}`,
+  }));
+
   if (p < totalPages - 1) buttons.push({ text: T.more, id: `.تفعيل-المزيد_${p + 1}` });
   else if (p > 0) buttons.push({ text: T.btnBack, id: ".تفعيل" });
 
-  return { text: `${T.head}\n\n${T.chooseCategory}`, buttons };
+  return { text: `${T.head}\n\n${T.chooseSection}`, buttons };
+}
+
+/** الخطوة 2ب: وحدات قسم واحد كأزرار، بصفحات لئلا تتجاوز حدّ واتساب. */
+function buildSectionFeatureButtons(kind, isOwner, page = 0) {
+  const section = sectionList(isOwner).find((item) => item.kind === kind);
+  if (!section) return null;
+
+  const list = section.items;
+  const totalPages = Math.ceil(list.length / 2);
+  const p = Math.min(Math.max(page, 0), Math.max(totalPages - 1, 0));
+  const slice = list.slice(p * 2, p * 2 + 2);
+
+  const buttons = slice.map((a) => ({ text: a.name, id: `.اختر_${a.flag}` }));
+  if (p < totalPages - 1) buttons.push({ text: T.more, id: `.قسم-المزيد_${kind}_${p + 2}` });
+  else buttons.push({ text: T.btnBack, id: ".تفعيل-ازرار" });
+
+  return { text: `${T.head}\n\n${section.label}\n${T.chooseCategory}`, buttons };
 }
 
 /** الخطوة 2ب: الأقسام كقائمة منسدلة، مجمّعة بحسب نوع النظام. */
@@ -170,7 +211,7 @@ function buildBotStatusPanel(botNum, from) {
 }
 
 export default {
-  name: ["تفعيل", "تعطيل", ...TOGGLE_NAMES, ...BOT_TOGGLE_NAMES, ...BOT_TOOL_COMMANDS, ...SELECT_NAMES, ...MODE_NAMES, ...PAGE_NAMES],
+  name: ["تفعيل", "تعطيل", ...SECTION_NAMES, ...KIND_PAGE_NAMES, ...TOGGLE_NAMES, ...BOT_TOGGLE_NAMES, ...BOT_TOOL_COMMANDS, ...SELECT_NAMES, ...MODE_NAMES, ...PAGE_NAMES],
   description: "تفعيل وتعطيل أنظمة المجموعة: مضادات وخدمات وتحكم",
   category: "المجموعات",
   groupOnly: true,
@@ -243,7 +284,7 @@ export default {
     // الخطوة 2أ: الأقسام كأزرار.
     if (name === "تفعيل-ازرار" || name === "تعطيل-ازرار") {
       await react("🎯");
-      return await panel(buildCategoriesButtons(featuresFor(isOwner), 0));
+      return await panel(buildSectionButtons(isOwner, 0));
     }
 
     // الخطوة 2ب: الأقسام كقائمة منسدلة.
@@ -255,7 +296,26 @@ export default {
     // تنقّل بين صفحات الأقسام.
     if (name.startsWith("تفعيل-المزيد_")) {
       await react("➕");
-      return await panel(buildCategoriesButtons(featuresFor(isOwner), Number(name.split("_").pop()) || 0));
+      return await panel(buildSectionButtons(isOwner, Number(name.split("_").pop()) || 0));
+    }
+
+    // فتح قسم: عرض وحداته كأزرار.
+    if (name.startsWith("قسم_")) {
+      const kind = name.slice("قسم_".length);
+      if (kind === "مالك" && !isOwner) return await reply({ text: T.denyOwner });
+      const view = buildSectionFeatureButtons(kind, isOwner, 0);
+      if (!view) return await reply({ text: T.notFound });
+      await react("📂");
+      return await panel(view);
+    }
+
+    // تنقّل بين صفحات وحدات القسم.
+    if (name.startsWith("قسم-المزيد_")) {
+      const [, kind, page] = name.split("_");
+      const view = buildSectionFeatureButtons(kind, isOwner, Number(page) - 1);
+      if (!view) return await reply({ text: T.notFound });
+      await react("➕");
+      return await panel(view);
     }
 
     // الخطوة 3: لوحة تحكم نظام.

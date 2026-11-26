@@ -7,12 +7,17 @@ const plugins = new Map();
 const PLUGINS_DIR = path.resolve("./Famiglia/plugins");
 const watchTimers = new Map();
 
+// أسماء كل ملف: تُمسح قبل إعادة تسجيله، وإلا بقيت أسماء قديمة
+// تشير إلى النسخة السابقة من الوحدة بعد التحديث المباشر.
+const fileNames = new Map();
+
 // مجلد كل إضافة داخل Famiglia/plugins — يُشتق من المسار لا من قائمة ثابتة.
 const sections = new Map();
 
 export async function loadPlugins() {
   plugins.clear();
   sections.clear();
+  fileNames.clear();
   await loadDir(PLUGINS_DIR);
 
   // نحصي الإضافات الفريدة لا الأسماء: الأمر ذو الاسمين
@@ -51,14 +56,15 @@ async function loadPlugin(filePath) {
       return;
     }
 
-    for (const [key, val] of plugins.entries()) {
-      if (val === mod.default) plugins.delete(key);
-    }
-
     sections.set(mod.default, sectionOf(filePath));
 
     const names = Array.isArray(mod.default.name) ? mod.default.name : [mod.default.name];
-    for (const n of names) plugins.set(String(n).toLowerCase(), mod.default);
+    const keys = names.map((n) => String(n).toLowerCase());
+
+    for (const key of fileNames.get(filePath) || []) plugins.delete(key);
+    fileNames.set(filePath, keys);
+
+    for (const key of keys) plugins.set(key, mod.default);
   } catch (e) {
     log.error(`خطأ في تحميل ${filePath}: ${e.message}`);
   }
