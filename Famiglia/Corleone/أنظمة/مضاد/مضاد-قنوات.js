@@ -1,6 +1,6 @@
-import { log } from "../logger.js";
-import { db } from "../../database/db.js";
-import config from "../settings.js";
+import { log } from "../../logger.js";
+import { db } from "../../../database/db.js";
+import config from "../../settings.js";
 
 const numOf = (jid = "") => String(jid).split("@")[0].split(":")[0];
 const OWN_CHANNEL_IDS = new Set(["120363429662971001@newsletter"]);

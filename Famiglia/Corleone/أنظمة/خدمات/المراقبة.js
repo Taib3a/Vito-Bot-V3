@@ -1,4 +1,4 @@
-import { log } from "../logger.js";
+import { log } from "../../logger.js";
 
 // آخر اسم/وصف معروف لكل مجموعة، لعرض التغيير بصيغة «من ← إلى».
 // الجرد الجماعي (groupFetchAllParticipating) يبثّ بيانات المجموعة كاملة بلا

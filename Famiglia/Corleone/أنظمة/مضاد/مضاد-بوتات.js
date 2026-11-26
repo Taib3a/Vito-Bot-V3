@@ -1,5 +1,5 @@
-import { log } from "../logger.js";
-import { db } from "../../database/db.js";
+import { log } from "../../logger.js";
+import { db } from "../../../database/db.js";
 
 // Baileys يمرّر المشاركين كائنات { id, ... } لا نصوصاً.
 function jidOf(p) {

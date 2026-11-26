@@ -1,5 +1,5 @@
 import { downloadMediaMessage } from "@whiskeysockets/baileys";
-import { log } from "../logger.js";
+import { log } from "../../logger.js";
 
 // الوسائط تُعاد بنفس نوعها؛ الملصق لا يقبل تعليقاً فيُسبق بإشعار نصي.
 const MEDIA = {
@@ -38,7 +38,7 @@ function numOf(jid = "") {
 }
 
 export default {
-  name: "مضاد-حذف",
+  name: "كشف-المحذوف",
   flag: "antidelete",
 
   async onDelete({ sock, deleted, botLabel }) {

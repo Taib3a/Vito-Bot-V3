@@ -1,6 +1,6 @@
-import { db } from "../../database/db.js";
-import { chatXpAmount, grantXp, CHAT_XP_COOLDOWN_MS } from "../xp.js";
-import { announceLevelUp } from "../levelCard.js";
+import { db } from "../../../database/db.js";
+import { chatXpAmount, grantXp, CHAT_XP_COOLDOWN_MS } from "../../xp.js";
+import { announceLevelUp } from "../../levelCard.js";
 
 export default {
   name: "رفع-مستوى-تلقائي",

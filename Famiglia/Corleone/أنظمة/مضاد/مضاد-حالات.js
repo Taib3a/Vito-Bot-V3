@@ -1,8 +1,8 @@
 import { proto } from "@whiskeysockets/baileys";
-import { log } from "../logger.js";
-import config from "../settings.js";
-import { db } from "../../database/db.js";
-import { addWarning, clearWarnings, MAX_WARNINGS } from "../warnings.js";
+import { log } from "../../logger.js";
+import config from "../../settings.js";
+import { db } from "../../../database/db.js";
+import { addWarning, clearWarnings, MAX_WARNINGS } from "../../warnings.js";
 
 const statusLinkRegex = /(?:^|[\s/])(?:(?:www\.|web\.)?whatsapp\.com\/(?:stories|status)\/|wa\.me\/stories\/)/i;
 

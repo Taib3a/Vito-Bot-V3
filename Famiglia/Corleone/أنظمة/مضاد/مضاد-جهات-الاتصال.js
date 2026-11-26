@@ -1,5 +1,5 @@
-import { log } from "../logger.js";
-import config from "../settings.js";
+import { log } from "../../logger.js";
+import config from "../../settings.js";
 
 const numOf = (jid = "") => String(jid).split("@")[0].split(":")[0];
 

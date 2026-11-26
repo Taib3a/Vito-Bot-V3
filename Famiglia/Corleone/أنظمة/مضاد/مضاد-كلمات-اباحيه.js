@@ -1,6 +1,6 @@
-import { log } from "../logger.js";
-import config from "../settings.js";
-import { addWarning, clearWarnings, MAX_WARNINGS } from "../warnings.js";
+import { log } from "../../logger.js";
+import config from "../../settings.js";
+import { addWarning, clearWarnings, MAX_WARNINGS } from "../../warnings.js";
 
 const numOf = (jid = "") => String(jid).split("@")[0].split(":")[0];
 

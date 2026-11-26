@@ -1,7 +1,7 @@
-import { log } from "../logger.js";
-import config from "../settings.js";
-import { db } from "../../database/db.js";
-import { addWarning, clearWarnings, MAX_WARNINGS } from "../warnings.js";
+import { log } from "../../logger.js";
+import config from "../../settings.js";
+import { db } from "../../../database/db.js";
+import { addWarning, clearWarnings, MAX_WARNINGS } from "../../warnings.js";
 
 const linkRegex = /(?:^|[\s/])(?:chat\.whatsapp\.com\/[0-9A-Za-z]{20,24}|(?:www\.|web\.)?whatsapp\.com\/channel\/[0-9A-Za-z]{10,30})(?:[\s?]|$)/i;
 
