@@ -1,6 +1,7 @@
 import { db } from "../database/db.js";
 import { levelFromXp, grantXp } from "./xp.js";
 import { log } from "./logger.js";
+import { renderRaidBanner } from "./raidBanner.js";
 
 const RAID_MS = 3 * 60 * 1000;
 const REST_MS = 60 * 60 * 1000;
@@ -179,6 +180,19 @@ export async function startRaid({ sock, from, msg, byName }) {
   };
 
   raids.set(from, raid);
+
+  try {
+    const banner = await renderRaidBanner({ name: raid.monster.name }).catch(() => null);
+    if (banner) {
+      await sock.sendMessage(
+        from,
+        { image: banner, caption: `⚔️ *${raid.monster.name}* — بدأ *${byName}* الغارة.` },
+        { quoted: msg }
+      );
+    }
+  } catch (e) {
+    log.warn(`تعذّر إرسال لافتة الغارة: ${e.message}`);
+  }
 
   const text = statusText(raid, `📣 بدأ *${byName}* الغارة.`);
   try {
