@@ -152,6 +152,7 @@ const GROUP_DEFAULTS = {
   antibot: true,
   antichannel: true,
   antidelete: true,
+  antistatus: true,
   monitor: true,
   viewonce: true,
   levelup: true,
