@@ -82,7 +82,34 @@ export async function askPhoneNumber() {
  * لوحة الاستضافة السطرين دفعة واحدة)، تخزّن واجهة readline الأولى السطر الثاني
  * وتُسقطه عند الإغلاق، فيُحلّ سؤال الرقم فارغاً. مشاركة الموجّه تحفظ ذلك السطر.
  */
+/**
+ * اقتران غير تفاعلي للاستضافات: PAIR_METHOD=1 + PAIR_PHONE=<رقم> أو PAIR_METHOD=2.
+ * بدونه ينتظر البوت إدخالاً من الطرفية لا يأتي عند إعادة تشغيل اللوحة.
+ */
+function presetPairing() {
+  const method = String(process.env.PAIR_METHOD ?? "").trim().toLowerCase();
+  if (["1", "code", "pairing", "اقتران"].includes(method)) {
+    const phone = cleanPhoneNumber(process.env.PAIR_PHONE);
+    if (!isValidPhoneNumber(phone)) {
+      console.log(" ⚠️ PAIR_METHOD=1 لكن PAIR_PHONE غير صالح — سيُستخدم رمز QR.");
+      return { method: "2", phone: null };
+    }
+    return { method: "1", phone };
+  }
+  if (["2", "qr", "رمز"].includes(method)) return { method: "2", phone: null };
+  return null;
+}
+
 export async function askPairingDetails() {
+  const preset = presetPairing();
+  if (preset) return preset;
+
+  if (!process.stdin.isTTY) {
+    console.log(" ⚠️ لا طرفية تفاعلية — سيُستخدم رمز QR.");
+    console.log("    للاقتران الآلي: PAIR_METHOD=1 PAIR_PHONE=<رقمك برمز الدولة>");
+    return { method: "2", phone: null };
+  }
+
   const prompter = createPrompter();
   try {
     const method = await askConnectionMethodOn(prompter);
