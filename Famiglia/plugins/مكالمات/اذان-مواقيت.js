@@ -65,6 +65,9 @@ async function sendAdhan(jid, prayerLabel) {
   const sock = getMainSock();
   if (!sock) return log.warn("الأذان: لا يوجد بوت رئيسي متصل.");
   await sock.sendMessage(jid, { text: `🕌 حان الآن وقت صلاة ${prayerLabel}` });
+  if (!fs.existsSync(AUDIO_FILE)) {
+    return log.warn("الأذان: ملف الصوت غير موجود — أُرسل التنبيه النصي فقط.");
+  }
   await sock.sendMessage(jid, {
     audio: fs.readFileSync(AUDIO_FILE),
     mimetype: "audio/ogg; codecs=opus",
