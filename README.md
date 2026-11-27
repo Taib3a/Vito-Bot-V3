@@ -172,11 +172,12 @@ apk add --no-cache ffmpeg
 | `THEME_UPLOAD_BASE` | الأصوب والأوضح — نطاقك أو IP السيرفر |
 | `PUBLIC_URL` · `SERVER_URL` · `RENDER_EXTERNAL_URL` · `RAILWAY_PUBLIC_DOMAIN` · `KOYEB_PUBLIC_DOMAIN` · `VERCEL_URL` | يوفّرها المستضيف غالباً بلا إعداد |
 | `SERVER_IP` + المنفذ | استضافات Pterodactyl (توفّر `SERVER_IP` و`SERVER_PORT`) |
+| اكتشاف تلقائي | يسأل خدمة خارجية عن IP العام ويستخدمه مع المنفذ — يعمل على VPS وPterodactyl بلا أي إعداد |
 
 المنفذ: `THEME_UPLOAD_PORT` ثم `SERVER_PORT` ثم `12000`.
 
-إن لم يُعرف رابط عام لا يرسل البوت زراً معطّلاً؛ يرسل للمشرف تنبيهاً يطلب ضبط
-`THEME_UPLOAD_BASE`. مثال:
+إن لم يُعرف رابط عام (شبكة مغلقة أو بروكسي بلا متغيّر) لا يرسل البوت زراً معطّلاً؛
+يرسل للمشرف تنبيهاً يطلب ضبط `THEME_UPLOAD_BASE`. مثال:
 
 ```bash
 THEME_UPLOAD_BASE=https://bot.example.com
