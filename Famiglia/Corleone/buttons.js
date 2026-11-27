@@ -63,6 +63,31 @@ function formatButton(btn, index) {
     };
   }
 
+  if (btn.location) {
+    return { name: "send_location", buttonParamsJson: JSON.stringify({}) };
+  }
+
+  if (btn.callPermission) {
+    return {
+      name: "call_permission_request",
+      buttonParamsJson: JSON.stringify({ display_text: btn.text || "" }),
+    };
+  }
+
+  if (btn.flow) {
+    return {
+      name: "flow",
+      buttonParamsJson: JSON.stringify({
+        flow_message_version: "3",
+        flow_token: btn.flow.token || "unused",
+        flow_id: btn.flow.id,
+        flow_cta: btn.text || "افتح",
+        flow_action: btn.flow.action || "navigate",
+        flow_action_payload: btn.flow.payload || { screen: "WELCOME" },
+      }),
+    };
+  }
+
   return {
     name: "quick_reply",
     buttonParamsJson: JSON.stringify({ display_text: btn.text || "", id: btn.id || `btn_${index}` }),

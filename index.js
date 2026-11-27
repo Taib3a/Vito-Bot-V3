@@ -2,6 +2,7 @@ import { printBanner, log } from "./Famiglia/Corleone/logger.js";
 import { createConnection } from "./Famiglia/Corleone/connection.js";
 import { loadPlugins, watchPlugins } from "./Famiglia/Corleone/pluginLoader.js";
 import { launchAllSubbots, registerMainBot } from "./Famiglia/Corleone/subbotManager.js";
+import { startThemeUploadServer, setThemeUploadSock } from "./Famiglia/Corleone/themeUploadServer.js";
 import fs from "fs";
 import path from "path";
 
@@ -60,22 +61,25 @@ async function main() {
 
   log.info("تشغيل البوت الرئيسي...");
   const sock = await createConnection({
-    sessionDir: "./sessions/main",
+    sessionDir: process.env.VITO_SESSION_DIR || "./sessions/main",
     botLabel: "MAIN",
     isSubbot: false,
     // يُستدعى عند كل فتح للاتصال: إعادة الاتصال تنشئ مقبساً جديداً،
     // فيجب تحديث مرجع البوت الرئيسي وإلا عُرض كبوت فرعي.
     onOpen: (s) => {
       registerMainBot(s, "MAIN");
+      setThemeUploadSock(s);
       log.info("[MAIN] تم التسجيل في البوتات النشطة");
     },
   });
 
   if (sock) {
     registerMainBot(sock, "MAIN");
+    setThemeUploadSock(sock);
     log.info("[MAIN] تم التسجيل في البوتات النشطة");
   }
 
+  startThemeUploadServer();
   launchAllSubbots();
 }
 

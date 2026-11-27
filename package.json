@@ -16,6 +16,7 @@
   "dependencies": {
     "@napi-rs/canvas": "^0.1.80",
     "@whiskeysockets/baileys": "npm:@muhammadridwanf61/baileys-nextgen@latest",
+    "adhan": "^4.4.6",
     "axios": "^1.7.9",
     "chalk": "^5.4.0",
     "fluent-ffmpeg": "^2.1.3",
