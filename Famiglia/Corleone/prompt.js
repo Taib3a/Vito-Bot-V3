@@ -100,22 +100,37 @@ function presetPairing() {
   return null;
 }
 
+const PROMPT_TIMEOUT_MS = 45_000;
+const TIMEOUT = Symbol("timeout");
+
+/** يحوّل غياب الإدخال إلى قيمة بدل التعليق للأبد على لوحة لا تقبل الكتابة. */
+function withTimeout(promise, ms) {
+  let timer;
+  const timeout = new Promise((resolve) => {
+    timer = setTimeout(() => resolve(TIMEOUT), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 export async function askPairingDetails() {
   const preset = presetPairing();
   if (preset) return preset;
 
-  if (!process.stdin.isTTY) {
-    console.log(" ⚠️ لا طرفية تفاعلية — سيُستخدم رمز QR.");
-    console.log("    للاقتران الآلي: PAIR_METHOD=1 PAIR_PHONE=<رقمك برمز الدولة>");
-    return { method: "2", phone: null };
-  }
-
   const prompter = createPrompter();
   try {
-    const method = await askConnectionMethodOn(prompter);
+    const method = await withTimeout(askConnectionMethodOn(prompter), PROMPT_TIMEOUT_MS);
+    if (method === TIMEOUT || method === null) {
+      console.log(" ⚠️ لا إدخال متاح — سيُستخدم رمز QR.");
+      console.log("    للاقتران الآلي: PAIR_METHOD=1 PAIR_PHONE=<رقمك برمز الدولة>");
+      return { method: "2", phone: null };
+    }
     if (method !== "1") return { method, phone: null };
 
-    const phone = await askPhoneNumberOn(prompter);
+    const phone = await withTimeout(askPhoneNumberOn(prompter), PROMPT_TIMEOUT_MS);
+    if (phone === TIMEOUT || phone === null) {
+      console.log(" ⚠️ لا إدخال متاح — سيُستخدم رمز QR.");
+      return { method: "2", phone: null };
+    }
     return { method, phone };
   } finally {
     prompter.close();
