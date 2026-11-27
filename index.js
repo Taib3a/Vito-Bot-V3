@@ -1,3 +1,4 @@
+import "./Famiglia/Corleone/loadEnv.js";
 import { printBanner, log } from "./Famiglia/Corleone/logger.js";
 import { createConnection } from "./Famiglia/Corleone/connection.js";
 import { loadPlugins, watchPlugins } from "./Famiglia/Corleone/pluginLoader.js";
