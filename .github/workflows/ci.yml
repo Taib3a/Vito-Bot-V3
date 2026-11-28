@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  syntax:
+    name: فحص الصياغة
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Node version
+        run: node -v
+
+      - name: Check syntax
+        run: npm run check
+
+      - name: Check JSON files
+        run: |
+          for f in $(find . -maxdepth 2 -name '*.json' -not -path './node_modules/*'); do
+            node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))" || exit 1
+          done
