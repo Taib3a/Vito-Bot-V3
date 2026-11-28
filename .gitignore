@@ -1,0 +1,7 @@
+node_modules/
+sessions/
+.env
+*.log
+Famiglia/database/*.sqlite*
+tmp/
+package-lock.json
